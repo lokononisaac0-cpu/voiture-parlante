@@ -2,249 +2,230 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#0a1628">
-<title>🚗 Voiture Parlante</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🚗 VISION</title>
 <style>
-  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   body {
-    font-family: system-ui, -apple-system, sans-serif;
-    background: linear-gradient(160deg, #0a1628 0%, #12294a 100%);
-    color:#eaf2ff; min-height:100vh;
-    display:flex; flex-direction:column; align-items:center;
-    padding:24px 20px; text-align:center;
+    font-family: system-ui, sans-serif;
+    background: #0a1628;
+    color: #eaf2ff;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 30px 20px;
+    text-align: center;
   }
-  h1 { font-size:1.5rem; margin-bottom:4px; }
-  .sub { color:#8fb3e0; font-size:.85rem; margin-bottom:24px; }
+  h1 { margin-bottom: 6px; }
   #cercle {
-    width:180px; height:180px; border-radius:50%;
-    display:flex; align-items:center; justify-content:center;
-    font-size:64px; margin:12px 0 20px;
-    background:#132c52; border:3px solid #29508c;
+    width: 130px; height: 130px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 48px; margin: 14px 0;
+    background: #132c52; border: 3px solid #29508c;
     transition: all .3s;
   }
-  #cercle.actif { border-color:#3ddc84; box-shadow:0 0 40px rgba(61,220,132,.35); }
-  #cercle.parle { border-color:#ffc84d; box-shadow:0 0 50px rgba(255,200,77,.5); transform:scale(1.06); }
-  #etat { font-size:1.05rem; min-height:48px; color:#cfe1ff; padding:0 8px; }
+  #cercle.actif { border-color: #3ddc84; box-shadow: 0 0 35px rgba(61,220,132,.35); }
+  #etat {
+    margin: 10px 0 16px;
+    font-size: 1.05rem;
+    color: #ffc84d;
+    min-height: 50px;
+  }
   button {
-    border:none; border-radius:14px; padding:16px 22px;
-    font-size:1.05rem; font-weight:700; cursor:pointer;
-    width:100%; max-width:340px; margin-top:14px;
+    border: none;
+    border-radius: 14px;
+    padding: 18px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    cursor: pointer;
+    width: 100%;
+    max-width: 320px;
+    margin-top: 14px;
   }
-  #btnActiver { background:#3ddc84; color:#04240f; }
-  #btnActiver.stop { background:#ff5d5d; color:#fff; }
-  .btnTest { background:#1d3a66; color:#cfe1ff; font-weight:500; font-size:.9rem; padding:12px; }
-  .panneau {
-    background:#0f2242; border-radius:16px; padding:16px;
-    width:100%; max-width:340px; margin-top:22px; text-align:left;
-  }
-  .panneau label { font-size:.85rem; color:#8fb3e0; display:block; margin:10px 0 4px; }
-  input[type=range] { width:100%; }
-  .val { color:#3ddc84; font-weight:700; }
-  #journal {
-    font-size:.75rem; color:#6d8cb8; margin-top:18px;
-    max-width:340px; width:100%; text-align:left;
-    max-height:120px; overflow-y:auto;
-  }
+  #btnAuto     { background: #3ddc84; color: #04240f; }
+  #btnAuto.stop{ background: #ff5d5d; color: #fff; }
+  #btnDemarrer { background: #1d3a66; color: #cfe1ff; font-weight: 500; }
+  #btnBye      { background: #b58cff; color: #240d4d; }
 </style>
 </head>
 <body>
 
-<h1>🚗 Voiture Parlante</h1>
-<div class="sub">Pose le téléphone dans la voiture et active</div>
+<h1>🚗 VISION</h1>
+<div>Assistant de bord</div>
 
 <div id="cercle">🚘</div>
-<div id="etat">Appuie sur « Activer » pour démarrer la surveillance.</div>
+<div id="etat">Appuie sur « Mode automatique » et pose le téléphone.</div>
 
-<button id="btnActiver">▶️ Activer</button>
-<button class="btnTest" id="btnTest">🔊 Tester la voix</button>
-
-<div class="panneau">
-  <label>Seuil de détection (⬇️ plus bas = plus sensible) : <span class="val" id="valSens">2.5</span></label>
-  <input type="range" id="sens" min="1" max="6" step="0.5" value="2.5">
-  <label>Délai avant rappel ceinture : <span class="val" id="valDelai">10</span> s</label>
-  <input type="range" id="delai" min="5" max="30" step="1" value="10">
-  <label>Pause entre deux accueils : <span class="val" id="valPause">60</span> s</label>
-  <input type="range" id="pause" min="20" max="180" step="10" value="60">
-</div>
-
-<div id="journal"></div>
+<button id="btnAuto">🤖 Mode automatique</button>
+<button id="btnBye">👋 Fin de course (au revoir)</button>
+<button id="btnDemarrer">🙋 Accueil manuel (si la détection rate)</button>
 
 <script>
-// ================== MESSAGES ==================
-const MSG_BIENVENUE = "Bienvenue à bord ! Installez-vous confortablement.";
-const MSG_CEINTURE  = "N'oubliez pas d'attacher votre ceinture de sécurité, s'il vous plaît.";
-const MSG_ROUTE     = "Bonne route, et que Dieu vous garde !";
+// ============ LES 3 MESSAGES (modifie librement les textes) ============
 
-// ================== ÉTAT ==================
-let actif = false;
-let enSequence = false;
+const MSG_ACCUEIL =
+  "{salutation} ! Bienvenue à bord. Je suis VISION, votre assistant personnel pour ce trajet. " +
+  "Asseyez-vous confortablement, et n'oubliez pas d'attacher votre ceinture de sécurité. " +
+  "Que Dieu bénisse votre trajet !";
+
+const MSG_MI_TRAJET =
+  "J'espère que votre trajet se passe bien. " +
+  "Petit rappel : veillez à ne pas oublier vos affaires en descendant. " +
+  "Je vous souhaite une excellente fin de trajet !";
+
+const MSG_AUREVOIR =
+  "Nous voilà arrivés ! Vérifiez que vous n'oubliez rien : téléphone, sac, portefeuille. " +
+  "Merci d'avoir voyagé avec nous, et que Dieu vous garde !";
+
+// Réglages du temps
+const DELAI_DEMARRAGE_SEC = 3;    // secondes avant la 1ère phrase
+const DELAI_MI_TRAJET_MIN = 5;    // minutes avant le message de mi-trajet
+const PAUSE_ENTRE_CLIENTS_SEC = 90; // temps mini avant de pouvoir accueillir le client suivant
+
+// Réglage de la détection de mouvement
+const SEUIL_DETECTION = 2.0;  // plus bas = plus sensible
+
+// Réglages de la voix
+const TON_VOIX     = 0.55;
+const VITESSE_VOIX = 0.88;
+
+// ============ LE CODE ============
+
+const etat = document.getElementById("etat");
+const cercle = document.getElementById("cercle");
+let timerMi = null;
+let timerDemarrage = null;
+let voixChoisie = null;
+let auto = false;
+let enCourse = false;
 let dernierAccueil = 0;
-let voixFr = null;
 let wakeLock = null;
 
-// Réglages (sauvegardés en localStorage)
-const cfg = JSON.parse(localStorage.getItem('vp_cfg') || '{"sens":2.5,"delai":10,"pause":60}');
-
-const $ = id => document.getElementById(id);
-const cercle = $('cercle'), etat = $('etat'), journal = $('journal');
-
-// ================== RÉGLAGES UI ==================
-function lierSlider(id, cle, affiche) {
-  const el = $(id);
-  el.value = cfg[cle];
-  $(affiche).textContent = cfg[cle];
-  el.oninput = () => {
-    cfg[cle] = parseFloat(el.value);
-    $(affiche).textContent = el.value;
-    localStorage.setItem('vp_cfg', JSON.stringify(cfg));
-  };
+function traiter(texte) {
+  const h = new Date().getHours();
+  const salutation = (h >= 5 && h < 18) ? "Bonjour" : "Bonsoir";
+  return texte.replaceAll("{salutation}", salutation);
 }
-lierSlider('sens', 'sens', 'valSens');
-lierSlider('delai', 'delai', 'valDelai');
-lierSlider('pause', 'pause', 'valPause');
-
-// ================== JOURNAL ==================
-function log(txt) {
-  const h = new Date().toLocaleTimeString('fr-FR');
-  journal.innerHTML = `<div>[${h}] ${txt}</div>` + journal.innerHTML;
-}
-
-// ================== VOIX ==================
-const TTS_OK = 'speechSynthesis' in window;
 
 function chargerVoix() {
-  if (!TTS_OK) return;
-  const voix = speechSynthesis.getVoices();
-  voixFr = voix.find(v => v.lang.startsWith('fr') && v.localService)
-        || voix.find(v => v.lang.startsWith('fr'))
-        || null;
+  const francaises = speechSynthesis.getVoices().filter(v => v.lang.toLowerCase().startsWith("fr"));
+  if (francaises.length === 0) return;
+  voixChoisie = francaises.find(v =>
+    /male|homme|masculin|frb|frd|paul|nicolas|thomas|henri|claude|antoine/i.test(v.name)
+    && !/female|femme/i.test(v.name)
+  ) || francaises[0];
 }
-if (TTS_OK) speechSynthesis.onvoiceschanged = chargerVoix;
+speechSynthesis.onvoiceschanged = chargerVoix;
 chargerVoix();
 
 function parler(texte) {
-  if (!TTS_OK) {
-    etat.textContent = '⚠️ Voix indisponible ici. Ouvre la page en https:// dans Chrome.';
-    log('speechSynthesis absent (aperçu/sandbox)');
-    return Promise.resolve();
-  }
-  return new Promise(fin => {
-    const u = new SpeechSynthesisUtterance(texte);
-    u.lang = 'fr-FR';
-    if (voixFr) u.voice = voixFr;
-    u.rate = 0.95;
-    u.onend = fin;
-    u.onerror = fin;
-    cercle.classList.add('parle');
-    cercle.textContent = '🗣️';
-    speechSynthesis.speak(u);
-  }).then(() => {
-    cercle.classList.remove('parle');
-    cercle.textContent = actif ? '👀' : '🚘';
-  });
+  const u = new SpeechSynthesisUtterance(traiter(texte));
+  u.lang = "fr-FR";
+  u.rate = VITESSE_VOIX;
+  u.pitch = TON_VOIX;
+  if (voixChoisie) u.voice = voixChoisie;
+  speechSynthesis.cancel();
+  speechSynthesis.speak(u);
 }
 
-// ================== SÉQUENCE D'ACCUEIL ==================
-const attendre = ms => new Promise(r => setTimeout(r, ms));
+// ============ LA COURSE ============
 
-async function sequenceAccueil() {
-  enSequence = true;
+function demarrerCourse() {
+  if (enCourse) return;
+  enCourse = true;
   dernierAccueil = Date.now();
-  log('Mouvement détecté → accueil !');
-  etat.textContent = '🎙️ Accueil en cours...';
+  clearTimeout(timerDemarrage);
+  clearTimeout(timerMi);
 
-  await parler(MSG_BIENVENUE);
-  await attendre(cfg.delai * 1000);
-  await parler(MSG_CEINTURE);
-  await attendre(4000);
-  await parler(MSG_ROUTE);
+  etat.textContent = "⏳ Client détecté ! Accueil dans " + DELAI_DEMARRAGE_SEC + " secondes...";
 
-  etat.textContent = '👀 Surveillance active — en attente du prochain passager.';
-  enSequence = false;
+  timerDemarrage = setTimeout(() => {
+    parler(MSG_ACCUEIL);
+    etat.textContent = "🚕 Trajet en cours... message de mi-trajet dans " + DELAI_MI_TRAJET_MIN + " minutes.";
+
+    timerMi = setTimeout(() => {
+      parler(MSG_MI_TRAJET);
+      etat.textContent = "✅ Message de mi-trajet dit. Appuie sur 👋 à l'arrivée.";
+    }, DELAI_MI_TRAJET_MIN * 60000);
+
+  }, DELAI_DEMARRAGE_SEC * 1000);
 }
 
-// ================== ACCÉLÉROMÈTRE ==================
-let dernierX = null, dernierY = null, dernierZ = null;
+document.getElementById("btnBye").onclick = () => {
+  clearTimeout(timerDemarrage);
+  clearTimeout(timerMi);
+  parler(MSG_AUREVOIR);
+  enCourse = false;
+  dernierAccueil = Date.now(); // le claquement de porte ne redéclenchera pas un accueil
+  etat.textContent = auto ? "👀 Prêt — j'attends le prochain client." : "👋 Course terminée.";
+};
+
+document.getElementById("btnDemarrer").onclick = () => {
+  enCourse = false;
+  demarrerCourse();
+};
+
+// ============ DÉTECTION AUTOMATIQUE (accéléromètre) ============
+
+let dX = null, dY = null, dZ = null;
 
 function surMouvement(e) {
-  if (!actif || enSequence) return;
-
+  if (!auto || enCourse) return;
   const a = e.accelerationIncludingGravity;
   if (!a || a.x === null) return;
 
-  if (dernierX !== null) {
-    const delta = Math.abs(a.x - dernierX) + Math.abs(a.y - dernierY) + Math.abs(a.z - dernierZ);
-
-    const pauseOk = (Date.now() - dernierAccueil) > cfg.pause * 1000;
-
-    if (delta > cfg.sens && pauseOk) {
-      sequenceAccueil();
+  if (dX !== null) {
+    const delta = Math.abs(a.x - dX) + Math.abs(a.y - dY) + Math.abs(a.z - dZ);
+    const pauseOk = (Date.now() - dernierAccueil) > PAUSE_ENTRE_CLIENTS_SEC * 1000;
+    if (delta > SEUIL_DETECTION && pauseOk) {
+      demarrerCourse();
     }
   }
-  dernierX = a.x; dernierY = a.y; dernierZ = a.z;
+  dX = a.x; dY = a.y; dZ = a.z;
 }
 
-// ================== WAKE LOCK (écran allumé) ==================
 async function garderEcran() {
   try {
-    if ('wakeLock' in navigator) {
-      wakeLock = await navigator.wakeLock.request('screen');
-      log('Écran maintenu allumé ✅');
-    }
-  } catch (e) { log('Wake lock indisponible'); }
+    if ("wakeLock" in navigator) wakeLock = await navigator.wakeLock.request("screen");
+  } catch (e) {}
 }
-document.addEventListener('visibilitychange', () => {
-  if (actif && document.visibilityState === 'visible') garderEcran();
+document.addEventListener("visibilitychange", () => {
+  if (auto && document.visibilityState === "visible") garderEcran();
 });
 
-// ================== ACTIVATION ==================
-async function demanderPermissionMouvement() {
-  // iOS demande une permission explicite
-  if (typeof DeviceMotionEvent !== 'undefined' &&
-      typeof DeviceMotionEvent.requestPermission === 'function') {
-    const rep = await DeviceMotionEvent.requestPermission();
-    return rep === 'granted';
-  }
-  return true; // Android : pas de permission nécessaire
-}
-
-$('btnActiver').onclick = async () => {
-  if (!actif) {
-    const ok = await demanderPermissionMouvement();
-    if (!ok) { etat.textContent = '❌ Permission mouvement refusée.'; return; }
-
-    window.addEventListener('devicemotion', surMouvement);
+document.getElementById("btnAuto").onclick = async () => {
+  const btn = document.getElementById("btnAuto");
+  if (!auto) {
+    // iPhone demande une permission explicite
+    if (typeof DeviceMotionEvent !== "undefined" &&
+        typeof DeviceMotionEvent.requestPermission === "function") {
+      const rep = await DeviceMotionEvent.requestPermission();
+      if (rep !== "granted") { etat.textContent = "❌ Permission mouvement refusée."; return; }
+    }
+    window.addEventListener("devicemotion", surMouvement);
     await garderEcran();
-
-    actif = true;
-    cercle.classList.add('actif');
-    cercle.textContent = '👀';
-    $('btnActiver').textContent = '⏹️ Désactiver';
-    $('btnActiver').classList.add('stop');
-    etat.textContent = '👀 Surveillance active — pose le téléphone dans la voiture.';
-    log('Système activé');
-
-    // Petit message de confirmation vocale
-    parler('Système activé.');
+    auto = true;
+    cercle.classList.add("actif");
+    cercle.textContent = "👀";
+    btn.textContent = "⏹️ Arrêter le mode automatique";
+    btn.classList.add("stop");
+    etat.textContent = "👀 Prêt — pose le téléphone. J'accueille dès qu'un client monte.";
+    parler("Système VISION activé.");
   } else {
-    window.removeEventListener('devicemotion', surMouvement);
+    window.removeEventListener("devicemotion", surMouvement);
     if (wakeLock) { wakeLock.release(); wakeLock = null; }
-    if (TTS_OK) speechSynthesis.cancel();
-
-    actif = false;
-    enSequence = false;
-    cercle.classList.remove('actif', 'parle');
-    cercle.textContent = '🚘';
-    $('btnActiver').textContent = '▶️ Activer';
-    $('btnActiver').classList.remove('stop');
-    etat.textContent = 'Système désactivé.';
-    log('Système désactivé');
+    speechSynthesis.cancel();
+    clearTimeout(timerDemarrage);
+    clearTimeout(timerMi);
+    auto = false;
+    enCourse = false;
+    cercle.classList.remove("actif");
+    cercle.textContent = "🚘";
+    btn.textContent = "🤖 Mode automatique";
+    btn.classList.remove("stop");
+    etat.textContent = "Système arrêté.";
   }
 };
-
-// ================== TEST ==================
-$('btnTest').onclick = () => parler(MSG_BIENVENUE);
 </script>
 </body>
 </html>
