@@ -2,64 +2,130 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🚗 VISION</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#FFFFFF">
+<title>VISION — Assistant de bord</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
+  :root {
+    --route: #2563EB;
+    --arrivee: #E8453C;
+    --encre: #1B2430;
+    --gris: #5F6B7A;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { height:100%; }
   body {
-    font-family: system-ui, sans-serif;
-    background: #0a1628;
-    color: #eaf2ff;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 30px 20px;
-    text-align: center;
+    font-family: "Manrope", system-ui, sans-serif;
+    color: var(--encre);
+    overflow: hidden;
+    background:#EAEDF1;
   }
-  h1 { margin-bottom: 6px; }
-  #cercle {
-    width: 130px; height: 130px; border-radius: 50%;
+
+  /* ---------- LA VRAIE CARTE ---------- */
+  #map { position: fixed; inset: 0; z-index: 1; }
+
+  /* Marqueur taxi */
+  .marqueurTaxi {
+    width: 40px; height: 40px;
+    background: #fff;
+    border: 3px solid var(--route);
+    border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
-    font-size: 48px; margin: 14px 0;
-    background: #132c52; border: 3px solid #29508c;
-    transition: all .3s;
+    font-size: 19px;
+    box-shadow: 0 3px 10px rgba(27,36,48,.3);
   }
-  #cercle.actif { border-color: #3ddc84; box-shadow: 0 0 35px rgba(61,220,132,.35); }
-  #etat {
-    margin: 10px 0 16px;
-    font-size: 1.05rem;
-    color: #ffc84d;
-    min-height: 50px;
+
+  /* ---------- CHIP DU HAUT ---------- */
+  .chipHaut {
+    position: fixed; top: 14px; left: 50%;
+    transform: translateX(-50%);
+    background: #fff;
+    border-radius: 999px;
+    padding: 10px 18px;
+    box-shadow: 0 2px 12px rgba(27,36,48,.2);
+    font-weight: 800; font-size: 15px;
+    display: flex; align-items: center; gap: 8px;
+    z-index: 10;
+    white-space: nowrap;
   }
+  .chipHaut .pt { width:10px; height:10px; border-radius:50%; background:#B7C1CC; }
+  .chipHaut .pt.on { background:#22B573; animation: pulsePt 1.6s infinite; }
+  @keyframes pulsePt {
+    0%,100% { box-shadow: 0 0 0 0 rgba(34,181,115,.45); }
+    50%     { box-shadow: 0 0 0 6px rgba(34,181,115,0); }
+  }
+  .chipHaut #vitesse { color: var(--gris); font-weight: 700; font-size: 13px; }
+
+  /* ---------- CHIP TEMPS ---------- */
+  #chipTemps {
+    position: fixed; top: 64px; left: 50%;
+    transform: translateX(-50%);
+    background: var(--route); color: #fff;
+    border-radius: 12px; padding: 7px 14px;
+    font-weight: 800; font-size: 14px;
+    box-shadow: 0 3px 10px rgba(37,99,235,.35);
+    z-index: 10; text-align: center;
+    transition: background .3s;
+    white-space: nowrap;
+  }
+  #chipTemps.fin { background: var(--arrivee); }
+  #chipTemps small { display:block; font-weight:500; font-size:11px; opacity:.9; }
+
+  /* ---------- PANNEAU BAS ---------- */
+  .panneau {
+    position: fixed; left: 0; right: 0; bottom: 0;
+    background: #fff;
+    border-radius: 24px 24px 0 0;
+    box-shadow: 0 -6px 30px rgba(27,36,48,.18);
+    padding: 10px 18px calc(18px + env(safe-area-inset-bottom));
+    z-index: 10;
+    max-width: 480px; margin: 0 auto;
+  }
+  .poignee { width: 44px; height: 5px; border-radius: 3px; background: #E1E6EC; margin: 2px auto 12px; }
+  #statut { font-size: 17px; font-weight: 800; }
+  #sousStatut { font-size: 13px; color: var(--gris); margin-top: 2px; min-height: 18px; }
+  .boutons { margin-top: 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   button {
-    border: none;
-    border-radius: 14px;
-    padding: 18px;
-    font-size: 1.1rem;
-    font-weight: bold;
-    cursor: pointer;
-    width: 100%;
-    max-width: 320px;
-    margin-top: 14px;
+    border: none; border-radius: 14px;
+    padding: 15px 12px;
+    font-family: inherit; font-size: 15px; font-weight: 800;
+    cursor: pointer; transition: transform .06s;
   }
-  #btnAuto     { background: #3ddc84; color: #04240f; }
-  #btnAuto.stop{ background: #ff5d5d; color: #fff; }
-  #btnDemarrer { background: #1d3a66; color: #cfe1ff; font-weight: 500; }
-  #btnBye      { background: #b58cff; color: #240d4d; }
+  button:active { transform: scale(.97); }
+  #btnAuto {
+    grid-column: 1 / -1;
+    background: var(--route); color: #fff;
+    box-shadow: 0 4px 14px rgba(37,99,235,.35);
+  }
+  #btnAuto.stop { background: var(--arrivee); box-shadow: 0 4px 14px rgba(232,69,60,.3); }
+  #btnBye { background: #EEF2F7; color: var(--encre); }
+  #btnManuel { background: #EEF2F7; color: var(--gris); font-weight: 700; }
+
+  @media (prefers-reduced-motion: reduce) { .chipHaut .pt.on { animation: none; } }
 </style>
 </head>
 <body>
 
-<h1>🚗 VISION</h1>
-<div>Assistant de bord</div>
+<div id="map"></div>
 
-<div id="cercle">🚘</div>
-<div id="etat">Appuie sur « Mode automatique » et pose le téléphone.</div>
+<div class="chipHaut"><span class="pt" id="ptEtat"></span> VISION <span id="vitesse"></span></div>
+<div id="chipTemps">— <small>en attente</small></div>
 
-<button id="btnAuto">🤖 Mode automatique</button>
-<button id="btnBye">👋 Fin de course (au revoir)</button>
-<button id="btnDemarrer">🙋 Accueil manuel (si la détection rate)</button>
+<div class="panneau">
+  <div class="poignee"></div>
+  <div id="statut">Assistant de bord</div>
+  <div id="sousStatut">Active le mode automatique et pose le téléphone.</div>
+  <div class="boutons">
+    <button id="btnAuto">Mode automatique</button>
+    <button id="btnBye">👋 Fin de course</button>
+    <button id="btnManuel">Accueil manuel</button>
+  </div>
+</div>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 // ============ LES 3 MESSAGES (modifie librement les textes) ============
 
@@ -77,30 +143,83 @@ const MSG_AUREVOIR =
   "Nous voilà arrivés ! Vérifiez que vous n'oubliez rien : téléphone, sac, portefeuille. " +
   "Merci d'avoir voyagé avec nous, et que Dieu vous garde !";
 
-// Réglages du temps
-const DELAI_DEMARRAGE_SEC = 3;    // secondes avant la 1ère phrase
-const DELAI_MI_TRAJET_MIN = 5;    // minutes avant le message de mi-trajet
-const PAUSE_ENTRE_CLIENTS_SEC = 90; // temps mini avant de pouvoir accueillir le client suivant
-
-// Réglage de la détection de mouvement
-const SEUIL_DETECTION = 2.0;  // plus bas = plus sensible
-
-// Réglages de la voix
-const TON_VOIX     = 0.55;
+// Réglages
+const DELAI_DEMARRAGE_SEC = 3;
+const DELAI_MI_TRAJET_MIN = 5;
+const PAUSE_ENTRE_CLIENTS_SEC = 90;
+const SEUIL_DETECTION = 2.0;
+const TON_VOIX = 0.55;
 const VITESSE_VOIX = 0.88;
 
-// ============ LE CODE ============
+// ============ ÉLÉMENTS ============
+const $ = id => document.getElementById(id);
+const statut = $("statut"), sousStatut = $("sousStatut");
+const chipTemps = $("chipTemps"), ptEtat = $("ptEtat"), vitesseEl = $("vitesse");
 
-const etat = document.getElementById("etat");
-const cercle = document.getElementById("cercle");
-let timerMi = null;
-let timerDemarrage = null;
+let timerMi = null, timerDemarrage = null;
 let voixChoisie = null;
-let auto = false;
-let enCourse = false;
-let dernierAccueil = 0;
-let wakeLock = null;
+let auto = false, enCourse = false, miDit = false;
+let dernierAccueil = 0, finMiPrevue = 0;
+let wakeLock = null, watchGPS = null;
 
+function afficher(principal, sous) {
+  statut.textContent = principal;
+  sousStatut.textContent = sous || "";
+}
+
+// ============ LA VRAIE CARTE (OpenStreetMap) ============
+const map = L.map("map", { zoomControl: false }).setView([6.3703, 2.3912], 14); // Cotonou
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  maxZoom: 19,
+  attribution: "© OpenStreetMap"
+}).addTo(map);
+
+const iconeTaxi = L.divIcon({
+  className: "",
+  html: '<div class="marqueurTaxi">🚕</div>',
+  iconSize: [40, 40],
+  iconAnchor: [20, 20]
+});
+const taxi = L.marker([6.3703, 2.3912], { icon: iconeTaxi }).addTo(map);
+let traceCourse = null;
+let pointsCourse = [];
+
+// ============ LE VRAI GPS ============
+function demarrerGPS() {
+  if (!("geolocation" in navigator)) {
+    afficher("GPS indisponible", "Ce téléphone ne donne pas sa position au navigateur.");
+    return;
+  }
+  watchGPS = navigator.geolocation.watchPosition(pos => {
+    const lat = pos.coords.latitude, lng = pos.coords.longitude;
+    taxi.setLatLng([lat, lng]);
+    map.panTo([lat, lng], { animate: true });
+
+    // Vitesse réelle en km/h
+    if (pos.coords.speed !== null && !isNaN(pos.coords.speed)) {
+      vitesseEl.textContent = "· " + Math.round(pos.coords.speed * 3.6) + " km/h";
+    }
+
+    // Trace bleue du trajet en cours
+    if (enCourse) {
+      pointsCourse.push([lat, lng]);
+      if (!traceCourse) {
+        traceCourse = L.polyline(pointsCourse, { color: "#2563EB", weight: 6, opacity: .85 }).addTo(map);
+      } else {
+        traceCourse.setLatLngs(pointsCourse);
+      }
+    }
+  }, err => {
+    afficher("Position refusée", "Autorise la localisation dans Chrome (icône 🔒 près de l'adresse).");
+  }, { enableHighAccuracy: true, maximumAge: 2000, timeout: 15000 });
+}
+
+function arreterGPS() {
+  if (watchGPS !== null) { navigator.geolocation.clearWatch(watchGPS); watchGPS = null; }
+  vitesseEl.textContent = "";
+}
+
+// ============ VOIX ============
 function traiter(texte) {
   const h = new Date().getHours();
   const salutation = (h >= 5 && h < 18) ? "Bonjour" : "Bonsoir";
@@ -108,12 +227,12 @@ function traiter(texte) {
 }
 
 function chargerVoix() {
-  const francaises = speechSynthesis.getVoices().filter(v => v.lang.toLowerCase().startsWith("fr"));
-  if (francaises.length === 0) return;
-  voixChoisie = francaises.find(v =>
+  const fr = speechSynthesis.getVoices().filter(v => v.lang.toLowerCase().startsWith("fr"));
+  if (fr.length === 0) return;
+  voixChoisie = fr.find(v =>
     /male|homme|masculin|frb|frd|paul|nicolas|thomas|henri|claude|antoine/i.test(v.name)
     && !/female|femme/i.test(v.name)
-  ) || francaises[0];
+  ) || fr[0];
 }
 speechSynthesis.onvoiceschanged = chargerVoix;
 chargerVoix();
@@ -128,45 +247,69 @@ function parler(texte) {
   speechSynthesis.speak(u);
 }
 
-// ============ LA COURSE ============
+// ============ LA BULLE DE TEMPS ============
+setInterval(() => {
+  if (enCourse && !miDit && finMiPrevue > 0) {
+    const reste = Math.max(0, finMiPrevue - Date.now());
+    const min = Math.floor(reste / 60000);
+    const sec = Math.floor((reste % 60000) / 1000);
+    chipTemps.classList.remove("fin");
+    chipTemps.innerHTML = min + " min " + (sec < 10 ? "0" : "") + sec + "<small>prochain message</small>";
+  } else if (enCourse && miDit) {
+    chipTemps.classList.add("fin");
+    chipTemps.innerHTML = "Course en cours<small>appuie 👋 à destination</small>";
+  } else {
+    chipTemps.classList.remove("fin");
+    chipTemps.innerHTML = (auto ? "Prêt" : "—") + "<small>" + (auto ? "j'attends un client" : "en attente") + "</small>";
+  }
+}, 1000);
 
+// ============ LA COURSE ============
 function demarrerCourse() {
   if (enCourse) return;
   enCourse = true;
+  miDit = false;
+  finMiPrevue = 0;
   dernierAccueil = Date.now();
   clearTimeout(timerDemarrage);
   clearTimeout(timerMi);
 
-  etat.textContent = "⏳ Client détecté ! Accueil dans " + DELAI_DEMARRAGE_SEC + " secondes...";
+  // Nouvelle trace pour cette course
+  pointsCourse = [];
+  if (traceCourse) { map.removeLayer(traceCourse); traceCourse = null; }
+
+  afficher("Client détecté", "Accueil dans " + DELAI_DEMARRAGE_SEC + " secondes...");
 
   timerDemarrage = setTimeout(() => {
     parler(MSG_ACCUEIL);
-    etat.textContent = "🚕 Trajet en cours... message de mi-trajet dans " + DELAI_MI_TRAJET_MIN + " minutes.";
+    finMiPrevue = Date.now() + DELAI_MI_TRAJET_MIN * 60000;
+    afficher("Trajet en cours", "Message de mi-trajet dans " + DELAI_MI_TRAJET_MIN + " minutes.");
 
     timerMi = setTimeout(() => {
       parler(MSG_MI_TRAJET);
-      etat.textContent = "✅ Message de mi-trajet dit. Appuie sur 👋 à l'arrivée.";
+      miDit = true;
+      afficher("Trajet en cours", "Message de mi-trajet dit. Appuie sur 👋 à l'arrivée.");
     }, DELAI_MI_TRAJET_MIN * 60000);
 
   }, DELAI_DEMARRAGE_SEC * 1000);
 }
 
-document.getElementById("btnBye").onclick = () => {
+$("btnBye").onclick = () => {
   clearTimeout(timerDemarrage);
   clearTimeout(timerMi);
   parler(MSG_AUREVOIR);
   enCourse = false;
-  dernierAccueil = Date.now(); // le claquement de porte ne redéclenchera pas un accueil
-  etat.textContent = auto ? "👀 Prêt — j'attends le prochain client." : "👋 Course terminée.";
+  miDit = false;
+  dernierAccueil = Date.now();
+  afficher("Course terminée", auto ? "Prêt pour le prochain client." : "Mode automatique arrêté.");
 };
 
-document.getElementById("btnDemarrer").onclick = () => {
+$("btnManuel").onclick = () => {
   enCourse = false;
   demarrerCourse();
 };
 
-// ============ DÉTECTION AUTOMATIQUE (accéléromètre) ============
-
+// ============ DÉTECTION AUTOMATIQUE ============
 let dX = null, dY = null, dZ = null;
 
 function surMouvement(e) {
@@ -177,9 +320,7 @@ function surMouvement(e) {
   if (dX !== null) {
     const delta = Math.abs(a.x - dX) + Math.abs(a.y - dY) + Math.abs(a.z - dZ);
     const pauseOk = (Date.now() - dernierAccueil) > PAUSE_ENTRE_CLIENTS_SEC * 1000;
-    if (delta > SEUIL_DETECTION && pauseOk) {
-      demarrerCourse();
-    }
+    if (delta > SEUIL_DETECTION && pauseOk) demarrerCourse();
   }
   dX = a.x; dY = a.y; dZ = a.z;
 }
@@ -193,37 +334,35 @@ document.addEventListener("visibilitychange", () => {
   if (auto && document.visibilityState === "visible") garderEcran();
 });
 
-document.getElementById("btnAuto").onclick = async () => {
-  const btn = document.getElementById("btnAuto");
+$("btnAuto").onclick = async () => {
+  const btn = $("btnAuto");
   if (!auto) {
-    // iPhone demande une permission explicite
     if (typeof DeviceMotionEvent !== "undefined" &&
         typeof DeviceMotionEvent.requestPermission === "function") {
       const rep = await DeviceMotionEvent.requestPermission();
-      if (rep !== "granted") { etat.textContent = "❌ Permission mouvement refusée."; return; }
+      if (rep !== "granted") { afficher("Permission refusée", "Autorise le capteur de mouvement dans Chrome."); return; }
     }
     window.addEventListener("devicemotion", surMouvement);
     await garderEcran();
+    demarrerGPS();
     auto = true;
-    cercle.classList.add("actif");
-    cercle.textContent = "👀";
-    btn.textContent = "⏹️ Arrêter le mode automatique";
+    ptEtat.classList.add("on");
+    btn.textContent = "Arrêter le mode automatique";
     btn.classList.add("stop");
-    etat.textContent = "👀 Prêt — pose le téléphone. J'accueille dès qu'un client monte.";
+    afficher("Surveillance active", "Pose le téléphone. J'accueille dès qu'un client monte.");
     parler("Système VISION activé.");
   } else {
     window.removeEventListener("devicemotion", surMouvement);
     if (wakeLock) { wakeLock.release(); wakeLock = null; }
+    arreterGPS();
     speechSynthesis.cancel();
     clearTimeout(timerDemarrage);
     clearTimeout(timerMi);
-    auto = false;
-    enCourse = false;
-    cercle.classList.remove("actif");
-    cercle.textContent = "🚘";
-    btn.textContent = "🤖 Mode automatique";
+    auto = false; enCourse = false; miDit = false;
+    ptEtat.classList.remove("on");
+    btn.textContent = "Mode automatique";
     btn.classList.remove("stop");
-    etat.textContent = "Système arrêté.";
+    afficher("Système arrêté", "Active le mode automatique et pose le téléphone.");
   }
 };
 </script>
