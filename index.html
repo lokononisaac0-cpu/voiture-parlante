@@ -29,13 +29,9 @@
 
   /* Marqueur taxi */
   .marqueurTaxi {
-    width: 40px; height: 40px;
-    background: #fff;
-    border: 3px solid var(--route);
-    border-radius: 50%;
+    width: 46px; height: 46px;
     display: flex; align-items: center; justify-content: center;
-    font-size: 19px;
-    box-shadow: 0 3px 10px rgba(27,36,48,.3);
+    filter: drop-shadow(0 4px 7px rgba(0,0,0,.45));
   }
 
   /* ---------- CHIP DU HAUT ---------- */
@@ -104,6 +100,129 @@
   #btnBye { background: #EEF2F7; color: var(--encre); }
   #btnManuel { background: #EEF2F7; color: var(--gris); font-weight: 700; }
 
+
+  /* ---------- BOUTON MICRO IA (flottant) ---------- */
+  #btnMicIA {
+    position: fixed;
+    right: 16px;
+    bottom: 220px;
+    width: 64px; height: 64px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #2563EB, #1D4ED8);
+    border: none;
+    box-shadow: 0 6px 18px rgba(37,99,235,.45);
+    cursor: pointer;
+    z-index: 10;
+    transition: transform .1s, background .3s;
+    padding: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #btnMicIA:active { transform: scale(.92); }
+  #btnMicIA.ecoute {
+    background: linear-gradient(135deg, #E8453C, #C93A32);
+    box-shadow: 0 6px 18px rgba(232,69,60,.45);
+    animation: pulseMic 1.2s infinite;
+  }
+  @keyframes pulseMic {
+    0%,100% { box-shadow: 0 0 0 0 rgba(37,99,235,.4); }
+    50%     { box-shadow: 0 0 0 14px rgba(37,99,235,0); }
+  }
+
+
+  /* ---------- BOUTON VIDEO + LECTEUR ---------- */
+  #btnVideo {
+    position: fixed;
+    right: 16px;
+    bottom: 296px;
+    width: 64px; height: 64px;
+    border-radius: 50%;
+    background: #fff;
+    border: none;
+    box-shadow: 0 4px 16px rgba(27,36,48,.25);
+    cursor: pointer;
+    z-index: 10;
+    padding: 0;
+    transition: transform .1s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #btnVideo:active { transform: scale(.92); }
+
+  #panneauVideo {
+    position: fixed;
+    right: 12px;
+    bottom: 236px;
+    width: min(360px, calc(100vw - 24px));
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: 0 10px 40px rgba(27,36,48,.35);
+    z-index: 20;
+    padding: 12px;
+    opacity: 0;
+    transform: translateY(26px);
+    pointer-events: none;
+    transition: transform .3s ease, opacity .3s ease;
+  }
+  #panneauVideo.ouvert {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+  .videoHaut {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .videoHaut b { font-size: 15px; }
+  #fermerVideo {
+    width: 34px; height: 34px; border-radius: 50%;
+    border: none; background: #EEF2F7; color: var(--encre);
+    font-size: 16px; font-weight: 800; cursor: pointer; padding: 0;
+  }
+  .cadreVideo {
+    position: relative; width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: 12px; overflow: hidden;
+    background: #000;
+  }
+  .cadreVideo iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+  .chipsVideo { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .chipsVideo button {
+    border: none; border-radius: 999px;
+    background: #EEF2F7; color: var(--encre);
+    font-family: inherit; font-size: 12.5px; font-weight: 700;
+    padding: 8px 12px; cursor: pointer;
+  }
+  .chipsVideo button.actifV { background: var(--route); color: #fff; }
+
+
+  /* ---------- BOUTON PLAN / SATELLITE ---------- */
+  #btnCouche {
+    position: fixed;
+    left: 16px;
+    bottom: 220px;
+    width: 64px; height: 64px;
+    border-radius: 16px;
+    border: 3px solid #fff;
+    box-shadow: 0 4px 16px rgba(27,36,48,.3);
+    cursor: pointer;
+    z-index: 10;
+    padding: 0;
+    overflow: hidden;
+    background-size: cover;
+    background-position: center;
+    transition: transform .1s;
+  }
+  #btnCouche:active { transform: scale(.94); }
+  #btnCouche span {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    background: rgba(27,36,48,.72);
+    color: #fff;
+    font-family: inherit;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 3px 0;
+  }
+
   @media (prefers-reduced-motion: reduce) { .chipHaut .pt.on { animation: none; } }
 </style>
 </head>
@@ -113,6 +232,21 @@
 
 <div class="chipHaut"><span class="pt" id="ptEtat"></span> VISION <span id="vitesse"></span></div>
 <div id="chipTemps">— <small>en attente</small></div>
+
+<button id="btnCouche" title="Changer de vue"><span>Satellite</span></button>
+
+<button id="btnVideo" title="Vidéos"><svg viewBox="0 0 24 24" width="27" height="27" fill="none" stroke="#1B2430" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="3"/><polygon points="10 9 15 12 10 15" fill="#1B2430" stroke="none"/></svg></button>
+
+<div id="panneauVideo">
+  <div class="videoHaut">
+    <b>📺 Divertissement a bord</b>
+    <button id="fermerVideo">✕</button>
+  </div>
+  <div class="cadreVideo"><iframe id="iframeVideo" src="" allow="autoplay; encrypted-media; fullscreen" allowfullscreen title="Video"></iframe></div>
+  <div class="chipsVideo" id="chipsVideo"></div>
+</div>
+
+<button id="btnMicIA" title="Parler à VISION"><svg viewBox="0 0 24 24" width="27" height="27" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></button>
 
 <div class="panneau">
   <div class="poignee"></div>
@@ -161,6 +295,7 @@ let voixChoisie = null;
 let auto = false, enCourse = false, miDit = false;
 let dernierAccueil = 0, finMiPrevue = 0;
 let wakeLock = null, watchGPS = null;
+let dernierePos = null;
 
 function afficher(principal, sous) {
   statut.textContent = principal;
@@ -168,17 +303,53 @@ function afficher(principal, sous) {
 }
 
 // ============ LA VRAIE CARTE (OpenStreetMap) ============
-const map = L.map("map", { zoomControl: false }).setView([6.3703, 2.3912], 14); // Cotonou
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+const map = L.map("map", { zoomControl: false }).setView([6.3703, 2.3912], 16); // Cotonou
+
+// --- Les deux mondes : Plan epure + Satellite ---
+const fondPlan = L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
   maxZoom: 19,
-  attribution: "© OpenStreetMap"
-}).addTo(map);
+  attribution: "© OpenStreetMap © CARTO"
+});
+const fondSatellite = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
+  maxZoom: 19,
+  attribution: "© Esri"
+});
+// Noms des rues par-dessus le satellite (sinon on est perdu)
+const etiquettes = L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png", {
+  maxZoom: 19, pane: "shadowPane"
+});
+
+let vueSatellite = false;
+fondPlan.addTo(map);
+
+const btnCouche = document.getElementById("btnCouche");
+// Apercu de l'AUTRE vue sur le bouton (comme Google Maps)
+const APERCU_SAT  = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/13/3948/4148";
+const APERCU_PLAN = "https://a.basemaps.cartocdn.com/rastertiles/voyager/13/4148/3948.png";
+btnCouche.style.backgroundImage = "url('" + APERCU_SAT + "')";
+
+btnCouche.onclick = () => {
+  vueSatellite = !vueSatellite;
+  if (vueSatellite) {
+    map.removeLayer(fondPlan);
+    fondSatellite.addTo(map);
+    etiquettes.addTo(map);
+    btnCouche.querySelector("span").textContent = "Plan";
+    btnCouche.style.backgroundImage = "url('" + APERCU_PLAN + "')";
+  } else {
+    map.removeLayer(fondSatellite);
+    map.removeLayer(etiquettes);
+    fondPlan.addTo(map);
+    btnCouche.querySelector("span").textContent = "Satellite";
+    btnCouche.style.backgroundImage = "url('" + APERCU_SAT + "')";
+  }
+};
 
 const iconeTaxi = L.divIcon({
   className: "",
-  html: '<div class="marqueurTaxi">🚕</div>',
-  iconSize: [40, 40],
-  iconAnchor: [20, 20]
+  html: '<div class="marqueurTaxi"><svg width="44" height="44" viewBox="0 0 48 48"><g><rect x="15" y="5" width="18" height="38" rx="8.5" fill="#0F172A"/><rect x="16.6" y="6.6" width="14.8" height="34.8" rx="7" fill="#1E293B"/><path d="M18.5 13.5 Q24 10.5 29.5 13.5 L29 18 Q24 16 19 18 Z" fill="#7DB4F5"/><path d="M18.8 36 Q24 38.3 29.2 36 L29 32.4 Q24 34 19 32.4 Z" fill="#7DB4F5"/><rect x="19.5" y="20.5" width="9" height="9.5" rx="2" fill="#334155"/><rect x="12.6" y="12" width="3" height="7" rx="1.5" fill="#0F172A"/><rect x="32.4" y="12" width="3" height="7" rx="1.5" fill="#0F172A"/><rect x="12.6" y="30" width="3" height="7" rx="1.5" fill="#0F172A"/><rect x="32.4" y="30" width="3" height="7" rx="1.5" fill="#0F172A"/><rect x="17.5" y="5.5" width="2.6" height="2.6" rx="1.3" fill="#F8FAFC"/><rect x="27.9" y="5.5" width="2.6" height="2.6" rx="1.3" fill="#F8FAFC"/></g></svg></div>',
+  iconSize: [46, 46],
+  iconAnchor: [23, 23]
 });
 const taxi = L.marker([6.3703, 2.3912], { icon: iconeTaxi }).addTo(map);
 let traceCourse = null;
@@ -192,8 +363,18 @@ function demarrerGPS() {
   }
   watchGPS = navigator.geolocation.watchPosition(pos => {
     const lat = pos.coords.latitude, lng = pos.coords.longitude;
+    dernierePos = { lat: lat, lng: lng };
     taxi.setLatLng([lat, lng]);
     map.panTo([lat, lng], { animate: true });
+
+    // Arrivee a destination (navigation en cours) ?
+    if (navActive && destinationNav) {
+      const d = distanceMetres(lat, lng, destinationNav.lat, destinationNav.lng);
+      if (d < 80) {
+        parler("Nous voila arrives a destination. " + destinationNav.nom + ".");
+        effacerNavigation();
+      }
+    }
 
     // Vitesse réelle en km/h
     if (pos.coords.speed !== null && !isNaN(pos.coords.speed)) {
@@ -204,7 +385,7 @@ function demarrerGPS() {
     if (enCourse) {
       pointsCourse.push([lat, lng]);
       if (!traceCourse) {
-        traceCourse = L.polyline(pointsCourse, { color: "#2563EB", weight: 6, opacity: .85 }).addTo(map);
+        traceCourse = L.polyline(pointsCourse, { color: "#E8453C", weight: 6, opacity: .9 }).addTo(map);
       } else {
         traceCourse.setLatLngs(pointsCourse);
       }
@@ -238,6 +419,7 @@ speechSynthesis.onvoiceschanged = chargerVoix;
 chargerVoix();
 
 function parler(texte) {
+  if (typeof pauserVideo === "function") pauserVideo();
   const u = new SpeechSynthesisUtterance(traiter(texte));
   u.lang = "fr-FR";
   u.rate = VITESSE_VOIX;
@@ -249,7 +431,10 @@ function parler(texte) {
 
 // ============ LA BULLE DE TEMPS ============
 setInterval(() => {
-  if (enCourse && !miDit && finMiPrevue > 0) {
+  if (navActive && infoNav) {
+    chipTemps.classList.remove("fin");
+    chipTemps.innerHTML = infoNav.km + " km · " + infoNav.min + " min<small>" + infoNav.nom + "</small>";
+  } else if (enCourse && !miDit && finMiPrevue > 0) {
     const reste = Math.max(0, finMiPrevue - Date.now());
     const min = Math.floor(reste / 60000);
     const sec = Math.floor((reste % 60000) / 1000);
@@ -280,8 +465,7 @@ function demarrerCourse() {
 
   afficher("Client détecté", "Accueil dans " + DELAI_DEMARRAGE_SEC + " secondes...");
 
-  timerDemarrage = setTimeout(() => {
-    parler(MSG_ACCUEIL);
+  timerDemarrage = setTimeout(async () => {
     finMiPrevue = Date.now() + DELAI_MI_TRAJET_MIN * 60000;
     afficher("Trajet en cours", "Message de mi-trajet dans " + DELAI_MI_TRAJET_MIN + " minutes.");
 
@@ -291,12 +475,30 @@ function demarrerCourse() {
       afficher("Trajet en cours", "Message de mi-trajet dit. Appuie sur 👋 à l'arrivée.");
     }, DELAI_MI_TRAJET_MIN * 60000);
 
+    await parlerEtAttendre(MSG_ACCUEIL);
+
+    // --- VISION propose la video (question vocale oui/non) ---
+    if (window.SpeechRecognition || window.webkitSpeechRecognition) {
+      await new Promise(r => setTimeout(r, 3000));
+      await parlerEtAttendre("Souhaitez-vous regarder une video pendant le trajet ? Repondez par oui ou non.");
+      const rep = await ecouterUneFois();
+      if (rep && estOui(rep)) {
+        document.getElementById("panneauVideo").classList.add("ouvert");
+        chargerVideo(0);
+        await parlerEtAttendre("Voici pour vous, bon visionnage !");
+      } else if (rep && estNon(rep)) {
+        await parlerEtAttendre("Tres bien, bonne route !");
+      }
+      // Si rien compris : on n'insiste pas, les boutons restent la en secours.
+    }
+
   }, DELAI_DEMARRAGE_SEC * 1000);
 }
 
 $("btnBye").onclick = () => {
   clearTimeout(timerDemarrage);
   clearTimeout(timerMi);
+  effacerNavigation();
   parler(MSG_AUREVOIR);
   enCourse = false;
   miDit = false;
@@ -365,6 +567,243 @@ $("btnAuto").onclick = async () => {
     afficher("Système arrêté", "Active le mode automatique et pose le téléphone.");
   }
 };
+// ============ TON IA (Worker Cloudflare) ============
+// Mets ici l'URL de ton Worker (voir le fichier worker-vision-taxi.js)
+const WORKER_URL = "https://vision-ia.lokononisaac0.workers.dev";
+
+// ============ CONVERSATION VOCALE (invisible, tout en voix) ============
+const Reco = window.SpeechRecognition || window.webkitSpeechRecognition;
+let enConversation = false;
+
+function ecouterUneFois() {
+  return new Promise(resolve => {
+    if (!Reco) { resolve(null); return; }
+    const rec = new Reco();
+    rec.lang = "fr-FR";
+    rec.interimResults = false;
+    rec.maxAlternatives = 1;
+    let fini = false;
+    rec.onresult = e => { fini = true; resolve(e.results[0][0].transcript); };
+    rec.onerror = () => { fini = true; resolve(null); };
+    rec.onend = () => { if (!fini) resolve(null); };
+    rec.start();
+  });
+}
+
+function parlerEtAttendre(texte) {
+  if (typeof pauserVideo === "function") pauserVideo();
+  return new Promise(fin => {
+    const u = new SpeechSynthesisUtterance(traiter(texte));
+    u.lang = "fr-FR";
+    u.rate = VITESSE_VOIX;
+    u.pitch = TON_VOIX;
+    if (voixChoisie) u.voice = voixChoisie;
+    u.onend = fin;
+    u.onerror = fin;
+    speechSynthesis.cancel();
+    speechSynthesis.speak(u);
+  });
+}
+
+async function demanderIA(question) {
+  const ctrl = new AbortController();
+  const chrono = setTimeout(() => ctrl.abort(), 20000);
+
+  const consigne = "Tu es VISION, l'assistant vocal d'un taxi a Cotonou. " +
+    "Reponds en francais, en 1 a 3 phrases courtes maximum, car ta reponse sera lue a voix haute. " +
+    "Sois chaleureux et poli. Question du passager : ";
+
+  try {
+    const rep = await fetch(WORKER_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message: consigne + question,
+        prompt: consigne + question,
+        question: consigne + question
+      }),
+      signal: ctrl.signal
+    });
+    clearTimeout(chrono);
+    const data = await rep.json();
+
+    // On lit la reponse quel que soit le nom du champ renvoye par le worker
+    const texte = data.reponse || data.response || data.answer || data.text ||
+                  (data.result && (data.result.response || data.result.text)) ||
+                  (typeof data === "string" ? data : null);
+
+    return texte ? String(texte).trim() : null;
+  } catch (e) {
+    clearTimeout(chrono);
+    return null;
+  }
+}
+
+const btnMicIA = document.getElementById("btnMicIA");
+
+btnMicIA.onclick = async () => {
+  if (enConversation) return;
+  if (!Reco) {
+    afficher("Micro indisponible", "Utilise Chrome sur Android pour parler a VISION.");
+    return;
+  }
+  enConversation = true;
+  btnMicIA.classList.add("ecoute");
+
+  await parlerEtAttendre("Je vous ecoute !");
+  const question = await ecouterUneFois();
+
+  if (!question) {
+    await parlerEtAttendre("Pardon, je n'ai pas bien entendu. Appuyez et reessayez.");
+  } else if (estDemandeItineraire(question)) {
+    await naviguerVers(question);
+  } else {
+    const reponse = await demanderIA(question);
+    if (reponse) {
+      await parlerEtAttendre(reponse);
+    } else {
+      await parlerEtAttendre("Je n'arrive pas a joindre mon intelligence pour le moment. Reessayez dans un instant.");
+    }
+  }
+
+  btnMicIA.classList.remove("ecoute");
+  enConversation = false;
+};
+
+// ============ LES VIDEOS (modifie librement : titre + identifiant YouTube) ============
+// L'identifiant, c'est ce qui suit "watch?v=" dans le lien YouTube.
+const VIDEOS = [
+  { titre: "Louange & adoration", id: "PxEBb6mCB_8" },
+  { titre: "1 h de louange", id: "A1rhszHt5Go" },
+  { titre: "20 chants chretiens", id: "zizto_iKwcY" }
+];
+
+const panneauVideo = document.getElementById("panneauVideo");
+const iframeVideo = document.getElementById("iframeVideo");
+const chipsVideo = document.getElementById("chipsVideo");
+let videoActive = -1;
+
+VIDEOS.forEach((v, i) => {
+  const b = document.createElement("button");
+  b.textContent = v.titre;
+  b.onclick = () => chargerVideo(i);
+  chipsVideo.appendChild(b);
+});
+
+function chargerVideo(i) {
+  videoActive = i;
+  iframeVideo.src = "https://www.youtube-nocookie.com/embed/" + VIDEOS[i].id + "?enablejsapi=1&rel=0";
+  [...chipsVideo.children].forEach((b, j) => b.classList.toggle("actifV", j === i));
+}
+
+function pauserVideo() {
+  if (iframeVideo.src) {
+    iframeVideo.contentWindow.postMessage(JSON.stringify({ event: "command", func: "pauseVideo", args: [] }), "*");
+  }
+}
+
+document.getElementById("btnVideo").onclick = () => {
+  panneauVideo.classList.add("ouvert");
+  if (videoActive === -1) chargerVideo(0);
+};
+
+document.getElementById("fermerVideo").onclick = () => {
+  panneauVideo.classList.remove("ouvert");
+  iframeVideo.src = ""; // coupe le son en fermant
+  videoActive = -1;
+  [...chipsVideo.children].forEach(b => b.classList.remove("actifV"));
+};
+
+// ============ COMPRENDRE OUI / NON ============
+function estOui(t) {
+  const p = (t || "").toLowerCase();
+  return /\b(oui|ouais|d'accord|daccord|ok|bien sur|bien s\u00fbr|vas-y|vas y|volontiers|avec plaisir|je veux|pourquoi pas|allez|mets|montre)\b/.test(p);
+}
+function estNon(t) {
+  const p = (t || "").toLowerCase();
+  return /\b(non|nan|pas besoin|ca va|\u00e7a va|merci non|non merci|plus tard|jamais|laisse)\b/.test(p);
+}
+
+// ============ NAVIGATION REELLE (adresses + itineraire trace) ============
+// Services libres : Nominatim (trouver l'adresse) + OSRM (calculer la route)
+let navActive = false, destinationNav = null, infoNav = null;
+let routeNav = null, marqueurDest = null;
+
+function distanceMetres(lat1, lng1, lat2, lng2) {
+  const R = 6371000, rad = Math.PI / 180;
+  const dLat = (lat2 - lat1) * rad, dLng = (lng2 - lng1) * rad;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*rad) * Math.cos(lat2*rad) * Math.sin(dLng/2)**2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+function effacerNavigation() {
+  navActive = false; destinationNav = null; infoNav = null;
+  if (routeNav) { map.removeLayer(routeNav); routeNav = null; }
+  if (marqueurDest) { map.removeLayer(marqueurDest); marqueurDest = null; }
+}
+
+// La phrase demande-t-elle un itineraire ?
+function estDemandeItineraire(p) {
+  return /emm(e|è)ne|am(e|è)ne|conduis|direction|itin(e|é)raire|comment aller|je veux aller|va (a|à) |allons (a|à) |o(u|ù) se trouve|o(u|ù) est|adresse de/i.test(p);
+}
+
+// Nettoie la phrase pour garder le nom du lieu
+function extraireLieu(p) {
+  return p.replace(/emm(e|è)ne[- ]?(moi|nous)?|am(e|è)ne[- ]?(moi|nous)?|conduis[- ]?(moi|nous)?|je veux aller|comment aller|quelle est la direction de|itin(e|é)raire (vers|pour|de)?|direction|o(u|ù) se trouve|o(u|ù) est|adresse de|va (a|à)|allons (a|à)|vers|s'il (te|vous) pla(i|î)t|stp/gi, " ")
+          .replace(/\s+/g, " ").trim();
+}
+
+async function naviguerVers(phrase) {
+  if (!dernierePos) {
+    await parlerEtAttendre("Activez d'abord le mode automatique, pour que je connaisse notre position.");
+    return;
+  }
+  const lieu = extraireLieu(phrase) || phrase;
+  await parlerEtAttendre("Un instant, je cherche " + lieu + ".");
+
+  try {
+    // 1. Trouver le lieu (priorite au Benin)
+    const rep = await fetch("https://nominatim.openstreetmap.org/search?format=json&limit=1&accept-language=fr&countrycodes=bj&q=" + encodeURIComponent(lieu));
+    const resultats = await rep.json();
+    if (!resultats.length) {
+      await parlerEtAttendre("Desole, je ne trouve pas " + lieu + " sur la carte. Essayez avec le nom du quartier.");
+      return;
+    }
+    const dest = { lat: parseFloat(resultats[0].lat), lng: parseFloat(resultats[0].lon),
+                   nom: resultats[0].display_name.split(",")[0] };
+
+    // 2. Calculer la route
+    const repRoute = await fetch("https://router.project-osrm.org/route/v1/driving/" +
+      dernierePos.lng + "," + dernierePos.lat + ";" + dest.lng + "," + dest.lat +
+      "?overview=full&geometries=geojson");
+    const dataRoute = await repRoute.json();
+    if (!dataRoute.routes || !dataRoute.routes.length) {
+      await parlerEtAttendre("Je trouve " + dest.nom + ", mais je n'arrive pas a calculer la route.");
+      return;
+    }
+    const r = dataRoute.routes[0];
+    const points = r.geometry.coordinates.map(c => [c[1], c[0]]);
+
+    // 3. Tracer sur la carte
+    effacerNavigation();
+    routeNav = L.polyline(points, { color: "#2563EB", weight: 7, opacity: .9 }).addTo(map);
+    marqueurDest = L.marker([dest.lat, dest.lng], {
+      icon: L.divIcon({ className: "", html: '<div style="font-size:34px;line-height:34px;transform:translate(-4px,-26px)">📍</div>', iconSize: [34, 34] })
+    }).addTo(map);
+    map.fitBounds(routeNav.getBounds(), { padding: [60, 60] });
+
+    const km = (r.distance / 1000).toFixed(1);
+    const min = Math.round(r.duration / 60);
+    navActive = true;
+    destinationNav = dest;
+    infoNav = { km: km, min: min, nom: dest.nom };
+
+    await parlerEtAttendre("C'est parti pour " + dest.nom + ". " + km + " kilometres, environ " + min +
+      " minutes. Suivez la ligne bleue sur l'ecran. Je vous previendrai a l'arrivee.");
+  } catch (e) {
+    await parlerEtAttendre("Je n'arrive pas a joindre le service de cartes. Verifiez la connexion internet.");
+  }
+}
 </script>
 </body>
 </html>
