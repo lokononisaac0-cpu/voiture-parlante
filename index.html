@@ -872,6 +872,8 @@ async function demanderIA(question, contexte) {
 
   if (langueVocale === "en") {
     const consigneEN = "You are VISION, the professional voice assistant of a taxi in Cotonou, Benin. Today is " + dateDuJour + ". " +
+      "IMPORTANT: you can and must talk about ALL topics worldwide: France, Europe, Africa, history, geography, sports, culture, science, famous people, everything. " +
+      "You are NEVER limited to car or Benin topics. Never refuse a question by saying you are only a vehicle assistant: always answer with pleasure. " +
       "Answer in English, in 3 to 6 sentences: confident, warm, precise, as your answer will be read aloud. " +
       "Never talk about your limitations, your training date, or being an AI, unless directly asked. " +
       "Only state facts you are sure of; if you lack a fact, say simply that you do not have that information, then share what you do know. " +
@@ -891,6 +893,8 @@ async function demanderIA(question, contexte) {
 
   const consigne = "Tu es VISION, l'assistant vocal professionnel d'un taxi a Cotonou au Benin. " +
     "Nous sommes le " + dateDuJour + ". " +
+    "IMPORTANT : tu peux et tu dois parler de TOUS les sujets du monde entier : la France, l'Europe, l'Afrique, l'histoire, la geographie, le sport, la culture, les sciences, les personnalites, tout. " +
+    "Tu n'es JAMAIS limite aux sujets de la voiture ou du Benin. Ne refuse jamais une question en disant que tu es seulement un assistant de vehicule : reponds toujours a la question posee, avec plaisir. " +
     "Reponds en francais, en 3 a 6 phrases : assure, chaleureux, precis et complet, car ta reponse sera lue a voix haute. " +
     "Ne parle JAMAIS de tes limites, de ta date d'entrainement, ou du fait que tu es une intelligence artificielle, sauf si on te le demande directement. " +
     "REGLE ABSOLUE : ne donne que des faits dont tu es sur. S'il te manque une information, dis simplement en une phrase que tu ne l'as pas, puis partage ce que tu sais. " +
@@ -957,7 +961,7 @@ async function assistantVocal() {
     // LA VOIX = TON IA. L'ECRAN = le panneau Google News sur le sujet (toujours du visuel).
     let promesseArticles = null;
     const sujetVisuel = extraireSujetActu(question);
-    if (sujetVisuel && sujetVisuel !== "B\u00e9nin") {
+    if (sujetVisuel) {
       // La recherche part EN PARALLELE pendant que l'IA reflechit
       promesseArticles = construirePanneauActus(sujetVisuel);
     }
@@ -1120,16 +1124,21 @@ async function direMeteo() {
 
 // --- ACTUALITES DU BENIN (via ton mini-worker, flux gratuit) ---
 function estQuestionActu(p) {
-  return /actualit(e|\u00e9)|les nouvelles|nouvelles du|infos du jour|les infos|quoi de neuf|quoi de nouveau|derni(e|\u00e8)res infos|les titres|google news|les news|la presse/i.test(p);
+  return /actualit(e|\u00e9)|les nouvelles|nouvelles du|infos du jour|les infos|quoi de neuf|quoi de nouveau|derni(e|\u00e8)res infos|les titres|google news|les news|la presse|montre[- ]moi/i.test(p);
 }
 
 // Le sujet demande : "les actualites sur le football" -> "football", sinon Benin
 function extraireSujetActu(q) {
-  const m = q.toLowerCase()
-    .replace(/vision|les|la|le|actualit(e|\u00e9)s?|nouvelles|infos?|titres|news|google|quoi de neuf|quoi de nouveau|du jour|derni(e|\u00e8)res|donne[- ]moi|montre[- ]moi|dis[- ]moi|je veux|s'il te plait|stp/gi, " ")
-    .replace(/\b(sur|de|du|des|d'|a propos|\u00e0 propos|concernant)\b/gi, " ")
-    .replace(/[?!.]/g, " ").replace(/\s+/g, " ").trim();
-  return m.length > 2 ? m : "B\u00e9nin";
+  const m = (q || "").toLowerCase()
+    // Les tournures de phrases (on garde seulement le SUJET)
+    .replace(/parle[- ]?(moi|nous)?|raconte[- ]?(moi|nous)?|explique[- ]?(moi|nous)?|c'est quoi|c est quoi|qu'est[- ]ce que?|qui est|qui etait|qui \u00e9tait|peux[- ]tu|sais[- ]tu|connais[- ]tu|est[- ]ce que?|comment|pourquoi|donne[- ]moi|montre[- ]moi|dis[- ]moi|je veux (voir|savoir|conna(i|\u00ee)tre)?|j'aimerais|informations?/gi, " ")
+    // Les mots de commande actus
+    .replace(/vision|actualit(e|\u00e9)s?|nouvelles|infos?|titres|news|google|quoi de neuf|quoi de nouveau|du jour|derni(e|\u00e8)res|la presse|s'il (te|vous) pla(i|\u00ee)t|stp|merci/gi, " ")
+    // Les petits mots de liaison
+    .replace(/\b(sur|de|du|des|d'|l'|le|la|les|un|une|au|aux|en|a|\u00e0|propos|concernant|situation|histoire|\u00e7a|ca|va|bien|tr(e|\u00e8)s|toi|tu|vous|moi|nous|ton|ta|tes|mon|ma|mes|oui|non|bonjour|bonsoir|salut)\b/gi, " ")
+    .replace(/[?!.,]/g, " ").replace(/\s+/g, " ").trim();
+  // Renvoie le sujet trouve, ou rien du tout si la phrase n'en contient pas
+  return m.length > 2 ? m : "";
 }
 
 function tempsRelatif(dateTexte) {
@@ -1192,7 +1201,7 @@ async function direActus(question) {
     await parlerEtAttendre("Le service d'actualites n'est pas encore active sur ce vehicule.");
     return;
   }
-  const sujet = extraireSujetActu(question || "");
+  const sujet = extraireSujetActu(question || "") || "B\u00e9nin";
   const articles = await construirePanneauActus(sujet);
 
   if (articles === null) {
