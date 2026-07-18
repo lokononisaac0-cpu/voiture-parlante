@@ -335,7 +335,7 @@ function afficher(principal, sous) {
 }
 
 // ============ LA VRAIE CARTE (OpenStreetMap) ============
-const map = L.map("map", { zoomControl: false }).setView([6.3703, 2.3912], 16); // Cotonou
+const map = L.map("map", { zoomControl: false }).setView([6.3703, 2.3912], 14); // Cotonou
 
 // --- Les deux mondes : Plan epure + Satellite ---
 const fondPlan = L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
@@ -366,12 +366,14 @@ btnCouche.onclick = () => {
     map.removeLayer(fondPlan);
     fondSatellite.addTo(map);
     etiquettes.addTo(map);
+    map.setZoom(17);
     btnCouche.querySelector("span").textContent = "Plan";
     btnCouche.style.backgroundImage = "url('" + APERCU_PLAN + "')";
   } else {
     map.removeLayer(fondSatellite);
     map.removeLayer(etiquettes);
     fondPlan.addTo(map);
+    map.setZoom(14);
     btnCouche.querySelector("span").textContent = "Satellite";
     btnCouche.style.backgroundImage = "url('" + APERCU_SAT + "')";
   }
@@ -579,16 +581,18 @@ $("btnAuto").onclick = async () => {
     window.addEventListener("devicemotion", surMouvement);
     await garderEcran();
     demarrerGPS();
+    demarrerEcouteNom();
     auto = true;
     ptEtat.classList.add("on");
     btn.textContent = "Arrêter le mode automatique";
     btn.classList.add("stop");
     afficher("Surveillance active", "Pose le téléphone. J'accueille dès qu'un client monte.");
-    parler("Système VISION activé.");
+    parler("Système VISION activé. Dites, Vision, pour me parler a tout moment.");
   } else {
     window.removeEventListener("devicemotion", surMouvement);
     if (wakeLock) { wakeLock.release(); wakeLock = null; }
     arreterGPS();
+    arreterEcouteNom();
     speechSynthesis.cancel();
     clearTimeout(timerDemarrage);
     clearTimeout(timerMi);
@@ -607,19 +611,71 @@ const WORKER_URL = "https://vision-ia.lokononisaac0.workers.dev";
 const Reco = window.SpeechRecognition || window.webkitSpeechRecognition;
 let enConversation = false;
 
+let hotwordPause = false;
+
 function ecouterUneFois() {
   return new Promise(resolve => {
     if (!Reco) { resolve(null); return; }
-    const rec = new Reco();
-    rec.lang = "fr-FR";
-    rec.interimResults = false;
-    rec.maxAlternatives = 1;
-    let fini = false;
-    rec.onresult = e => { fini = true; resolve(e.results[0][0].transcript); };
-    rec.onerror = () => { fini = true; resolve(null); };
-    rec.onend = () => { if (!fini) resolve(null); };
-    rec.start();
+    // On met l'ecoute du nom en pause pour liberer le micro
+    hotwordPause = true;
+    try { if (ecouteNom) ecouteNom.stop(); } catch (e) {}
+
+    const fin = t => { hotwordPause = false; resolve(t); };
+    setTimeout(() => {
+      const rec = new Reco();
+      rec.lang = "fr-FR";
+      rec.interimResults = false;
+      rec.maxAlternatives = 1;
+      let fini = false;
+      rec.onresult = e => { fini = true; fin(e.results[0][0].transcript); };
+      rec.onerror = () => { fini = true; fin(null); };
+      rec.onend = () => { if (!fini) fin(null); };
+      try { rec.start(); } catch (e) { fin(null); }
+    }, 250);
   });
+}
+
+// ============ DIRE "VISION" POUR L'APPELER ============
+let ecouteNom = null, ecouteNomActive = false;
+
+function lancerEcouteNom() {
+  if (!ecouteNomActive || !Reco) return;
+  ecouteNom = new Reco();
+  ecouteNom.lang = "fr-FR";
+  ecouteNom.continuous = true;
+  ecouteNom.interimResults = true;
+  ecouteNom.onresult = e => {
+    if (enConversation || enSequence || hotwordPause || speechSynthesis.speaking) return;
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const t = e.results[i][0].transcript.toLowerCase();
+      if (/\bvision\b/.test(t)) {
+        try { ecouteNom.stop(); } catch (err) {}
+        assistantVocal();
+        return;
+      }
+    }
+  };
+  ecouteNom.onerror = () => {};
+  ecouteNom.onend = () => {
+    if (ecouteNomActive && !hotwordPause && !enConversation) {
+      setTimeout(lancerEcouteNom, 500);
+    } else if (ecouteNomActive) {
+      // On reprendra quand la conversation sera finie
+      setTimeout(() => { if (ecouteNomActive && !hotwordPause && !enConversation) lancerEcouteNom(); }, 2500);
+    }
+  };
+  try { ecouteNom.start(); } catch (e) {}
+}
+
+function demarrerEcouteNom() {
+  if (ecouteNomActive) return;
+  ecouteNomActive = true;
+  lancerEcouteNom();
+}
+
+function arreterEcouteNom() {
+  ecouteNomActive = false;
+  try { if (ecouteNom) ecouteNom.stop(); } catch (e) {}
 }
 
 function parlerEtAttendre(texte) {
@@ -669,8 +725,11 @@ async function essaiIA(corps) {
 
 async function demanderIA(question) {
   const consigne = "Tu es VISION, l'assistant vocal d'un taxi a Cotonou au Benin. " +
-    "Reponds en francais, en 1 a 3 phrases courtes maximum, car ta reponse sera lue a voix haute. " +
-    "Sois chaleureux. Question du passager : ";
+    "Reponds en francais, en 3 a 6 phrases : sincere, precis et complet, sans etre trop long, car ta reponse sera lue a voix haute. " +
+    "IMPORTANT : ne donne que des faits exacts. Si tu n'es pas certain d'une information, dis-le honnetement au lieu d'inventer. " +
+    "Reperes exacts a respecter : la statue de l'Amazone de Cotonou, haute de 30 metres, a ete inauguree en 2022 sous le president Patrice Talon (et non sous Kerekou). " +
+    "Cotonou est la capitale economique du Benin, avec sa lagune, le marche Dantokpa (l'un des plus grands d'Afrique de l'Ouest), et ses quartiers : Gbegamey, Akpakpa, Cadjehoun, Fidjrosse, Zongo, Sainte-Rita, Agla, Houeyiho, Menontin, Vodje, Gbedegbe. " +
+    "Question du passager : ";
 
   // On essaie les formats les plus courants, l'un apres l'autre
   const formats = [
@@ -688,7 +747,7 @@ async function demanderIA(question) {
 
 const btnMicIA = document.getElementById("btnMicIA");
 
-btnMicIA.onclick = async () => {
+async function assistantVocal() {
   if (enConversation) return;
   if (!Reco) {
     afficher("Micro indisponible", "Utilise Chrome sur Android pour parler a VISION.");
@@ -701,7 +760,9 @@ btnMicIA.onclick = async () => {
   const question = await ecouterUneFois();
 
   if (!question) {
-    await parlerEtAttendre("Pardon, je n'ai pas bien entendu. Appuyez et reessayez.");
+    await parlerEtAttendre("Pardon, je n'ai pas bien entendu.");
+  } else if (estQuestionPosition(question)) {
+    await direPosition();
   } else if (estDemandeItineraire(question)) {
     await naviguerVers(question);
   } else {
@@ -715,7 +776,11 @@ btnMicIA.onclick = async () => {
 
   btnMicIA.classList.remove("ecoute");
   enConversation = false;
-};
+  // L'ecoute du nom reprend toute seule
+  if (ecouteNomActive && !hotwordPause) setTimeout(lancerEcouteNom, 800);
+}
+
+btnMicIA.onclick = assistantVocal;
 
 // ============ LES VIDEOS (modifie librement : titre + identifiant YouTube) ============
 // L'identifiant, c'est ce qui suit "watch?v=" dans le lien YouTube.
@@ -793,6 +858,35 @@ function effacerNavigation() {
   navActive = false; destinationNav = null; infoNav = null;
   if (routeNav) { map.removeLayer(routeNav); routeNav = null; }
   if (marqueurDest) { map.removeLayer(marqueurDest); marqueurDest = null; }
+}
+
+// La phrase demande-t-elle notre position actuelle ?
+function estQuestionPosition(p) {
+  return /o(u|\u00f9) sommes[- ]nous|on est o(u|\u00f9)|nous sommes o(u|\u00f9)|notre position|ma position|o(u|\u00f9) est[- ]on|o(u|\u00f9) on est|dans quel quartier/i.test(p);
+}
+
+async function direPosition() {
+  if (!dernierePos) {
+    await parlerEtAttendre("Activez d'abord le mode automatique, pour que le GPS me donne notre position.");
+    return;
+  }
+  try {
+    const rep = await fetch("https://nominatim.openstreetmap.org/reverse?format=json&accept-language=fr&zoom=16&lat=" +
+      dernierePos.lat + "&lon=" + dernierePos.lng);
+    const data = await rep.json();
+    const a = data.address || {};
+    const rue = a.road || a.pedestrian || "";
+    const quartier = a.suburb || a.neighbourhood || a.quarter || a.city_district || "";
+    const ville = a.city || a.town || a.village || "";
+    let phrase = "Nous sommes actuellement ";
+    if (rue) phrase += "sur " + rue + ", ";
+    if (quartier) phrase += "dans le quartier " + quartier + ", ";
+    if (ville) phrase += "a " + ville + ".";
+    if (!rue && !quartier && !ville) phrase = "Je vois notre position sur la carte, mais je n'ai pas le nom exact de cette rue.";
+    await parlerEtAttendre(phrase);
+  } catch (e) {
+    await parlerEtAttendre("Je n'arrive pas a joindre le service de cartes pour nommer notre position.");
+  }
 }
 
 // La phrase demande-t-elle un itineraire ?
