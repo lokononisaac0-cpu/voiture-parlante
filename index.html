@@ -26,6 +26,7 @@
 
   /* ---------- LA VRAIE CARTE ---------- */
   #map { position: fixed; inset: 0; z-index: 1; }
+  .leaflet-tile { filter: saturate(1.22) contrast(1.06) brightness(1.02); }
 
   /* Marqueur taxi */
   .marqueurTaxi {
@@ -77,9 +78,30 @@
     border-radius: 24px 24px 0 0;
     box-shadow: 0 -6px 30px rgba(27,36,48,.18);
     padding: 10px 18px calc(18px + env(safe-area-inset-bottom));
-    z-index: 10;
+    z-index: 15;
     max-width: 480px; margin: 0 auto;
+    transform: translateY(115%);
+    transition: transform .3s ease;
   }
+  .panneau.ouvert { transform: translateY(0); }
+
+  /* ---------- BOUTON MENU ---------- */
+  #btnMenu {
+    position: fixed;
+    left: 16px;
+    bottom: 16px;
+    width: 64px; height: 64px;
+    border-radius: 50%;
+    background: #0F172A;
+    border: none;
+    box-shadow: 0 6px 18px rgba(15,23,42,.4);
+    cursor: pointer;
+    z-index: 16;
+    padding: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: transform .1s;
+  }
+  #btnMenu:active { transform: scale(.92); }
   .poignee { width: 44px; height: 5px; border-radius: 3px; background: #E1E6EC; margin: 2px auto 12px; }
   #statut { font-size: 17px; font-weight: 800; }
   #sousStatut { font-size: 13px; color: var(--gris); margin-top: 2px; min-height: 18px; }
@@ -150,7 +172,7 @@
   #panneauVideo {
     position: fixed;
     right: 12px;
-    bottom: 236px;
+    bottom: 16px;
     width: min(360px, calc(100vw - 24px));
     background: #fff;
     border-radius: 18px;
@@ -166,6 +188,18 @@
     opacity: 1;
     transform: translateY(0);
     pointer-events: auto;
+  }
+  .fermerFlottant {
+    position: absolute;
+    top: 4px; right: 4px;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(15,23,42,.85);
+    color: #fff;
+    font-size: 15px; font-weight: 800;
+    cursor: pointer; padding: 0;
+    z-index: 2;
   }
   .videoHaut {
     display: flex; align-items: center; justify-content: space-between;
@@ -238,15 +272,13 @@
 <button id="btnVideo" title="Vidéos"><svg viewBox="0 0 24 24" width="27" height="27" fill="none" stroke="#1B2430" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="3"/><polygon points="10 9 15 12 10 15" fill="#1B2430" stroke="none"/></svg></button>
 
 <div id="panneauVideo">
-  <div class="videoHaut">
-    <b>📺 Divertissement a bord</b>
-    <button id="fermerVideo">✕</button>
-  </div>
+  <button id="fermerVideo" class="fermerFlottant">✕</button>
   <div class="cadreVideo"><iframe id="iframeVideo" src="" allow="autoplay; encrypted-media; fullscreen" allowfullscreen title="Video"></iframe></div>
-  <div class="chipsVideo" id="chipsVideo"></div>
 </div>
 
 <button id="btnMicIA" title="Parler à VISION"><svg viewBox="0 0 24 24" width="27" height="27" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></button>
+
+<button id="btnMenu" title="Menu"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg></button>
 
 <div class="panneau">
   <div class="poignee"></div>
@@ -605,38 +637,53 @@ function parlerEtAttendre(texte) {
   });
 }
 
-async function demanderIA(question) {
+function lireReponseIA(data) {
+  if (!data) return null;
+  if (typeof data === "string") return data.trim() || null;
+  const t = data.reponse || data.response || data.answer || data.text || data.message ||
+            (data.result && (data.result.response || data.result.text)) ||
+            (data.choices && data.choices[0] && (data.choices[0].text ||
+              (data.choices[0].message && data.choices[0].message.content)));
+  return t ? String(t).trim() : null;
+}
+
+async function essaiIA(corps) {
   const ctrl = new AbortController();
-  const chrono = setTimeout(() => ctrl.abort(), 20000);
-
-  const consigne = "Tu es VISION, l'assistant vocal d'un taxi a Cotonou. " +
-    "Reponds en francais, en 1 a 3 phrases courtes maximum, car ta reponse sera lue a voix haute. " +
-    "Sois chaleureux et poli. Question du passager : ";
-
+  const chrono = setTimeout(() => ctrl.abort(), 15000);
   try {
     const rep = await fetch(WORKER_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        message: consigne + question,
-        prompt: consigne + question,
-        question: consigne + question
-      }),
+      body: JSON.stringify(corps),
       signal: ctrl.signal
     });
     clearTimeout(chrono);
-    const data = await rep.json();
-
-    // On lit la reponse quel que soit le nom du champ renvoye par le worker
-    const texte = data.reponse || data.response || data.answer || data.text ||
-                  (data.result && (data.result.response || data.result.text)) ||
-                  (typeof data === "string" ? data : null);
-
-    return texte ? String(texte).trim() : null;
+    if (!rep.ok) return null;
+    const data = await rep.json().catch(() => null);
+    return lireReponseIA(data);
   } catch (e) {
     clearTimeout(chrono);
     return null;
   }
+}
+
+async function demanderIA(question) {
+  const consigne = "Tu es VISION, l'assistant vocal d'un taxi a Cotonou au Benin. " +
+    "Reponds en francais, en 1 a 3 phrases courtes maximum, car ta reponse sera lue a voix haute. " +
+    "Sois chaleureux. Question du passager : ";
+
+  // On essaie les formats les plus courants, l'un apres l'autre
+  const formats = [
+    { message: consigne + question },
+    { messages: [{ role: "user", content: consigne + question }] },
+    { prompt: consigne + question },
+    { question: consigne + question }
+  ];
+  for (const corps of formats) {
+    const texte = await essaiIA(corps);
+    if (texte) return texte;
+  }
+  return null;
 }
 
 const btnMicIA = document.getElementById("btnMicIA");
@@ -673,27 +720,21 @@ btnMicIA.onclick = async () => {
 // ============ LES VIDEOS (modifie librement : titre + identifiant YouTube) ============
 // L'identifiant, c'est ce qui suit "watch?v=" dans le lien YouTube.
 const VIDEOS = [
-  { titre: "Louange & adoration", id: "PxEBb6mCB_8" },
-  { titre: "1 h de louange", id: "A1rhszHt5Go" },
-  { titre: "20 chants chretiens", id: "zizto_iKwcY" }
+  { titre: "Dena Mwana - Je Benirai L'Eternel", id: "XR9vBZa9cjo" },
+  { titre: "KS Bloom - Pardonner", id: "JXJm9rT5yr0" },
+  { titre: "KS Bloom - C'est Dieu", id: "m0N965nXmXY" },
+  { titre: "Louange & adoration (mix)", id: "PxEBb6mCB_8" }
 ];
 
 const panneauVideo = document.getElementById("panneauVideo");
 const iframeVideo = document.getElementById("iframeVideo");
-const chipsVideo = document.getElementById("chipsVideo");
 let videoActive = -1;
-
-VIDEOS.forEach((v, i) => {
-  const b = document.createElement("button");
-  b.textContent = v.titre;
-  b.onclick = () => chargerVideo(i);
-  chipsVideo.appendChild(b);
-});
 
 function chargerVideo(i) {
   videoActive = i;
-  iframeVideo.src = "https://www.youtube-nocookie.com/embed/" + VIDEOS[i].id + "?enablejsapi=1&rel=0";
-  [...chipsVideo.children].forEach((b, j) => b.classList.toggle("actifV", j === i));
+  // autoplay=1 : la video demarre toute seule, sans appuyer sur lecture
+  iframeVideo.src = "https://www.youtube-nocookie.com/embed/" + VIDEOS[i].id +
+    "?enablejsapi=1&rel=0&playsinline=1&autoplay=1";
 }
 
 function pauserVideo() {
@@ -702,17 +743,29 @@ function pauserVideo() {
   }
 }
 
-document.getElementById("btnVideo").onclick = () => {
-  panneauVideo.classList.add("ouvert");
-  if (videoActive === -1) chargerVideo(0);
-};
-
 document.getElementById("fermerVideo").onclick = () => {
   panneauVideo.classList.remove("ouvert");
   iframeVideo.src = ""; // coupe le son en fermant
   videoActive = -1;
-  [...chipsVideo.children].forEach(b => b.classList.remove("actifV"));
 };
+
+// Bouton video manuel : ouvre et joue directement (change de clip a chaque appui)
+document.getElementById("btnVideo").onclick = () => {
+  panneauVideo.classList.add("ouvert");
+  chargerVideo(videoActive === -1 ? 0 : (videoActive + 1) % VIDEOS.length);
+};
+
+// ============ MENU : ouvrir / fermer le panneau du bas ============
+const panneauBas = document.querySelector(".panneau");
+document.getElementById("btnMenu").onclick = () => {
+  panneauBas.classList.toggle("ouvert");
+};
+// Apres un appui sur un bouton du panneau, il se referme tout seul
+["btnAuto", "btnBye", "btnManuel"].forEach(id => {
+  document.getElementById(id).addEventListener("click", () => {
+    setTimeout(() => panneauBas.classList.remove("ouvert"), 350);
+  });
+});
 
 // ============ COMPRENDRE OUI / NON ============
 function estOui(t) {
