@@ -257,6 +257,50 @@
     padding: 3px 0;
   }
 
+  /* ---------- BANDEAU ACTUALITES (style Google News) ---------- */
+  #panneauActus {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 36vh; min-height: 270px;
+    background: #fff;
+    border-radius: 0 0 22px 22px;
+    box-shadow: 0 12px 40px rgba(27,36,48,.3);
+    z-index: 14;
+    transform: translateY(-105%);
+    transition: transform .5s cubic-bezier(.2,.8,.2,1);
+    display: flex; flex-direction: column;
+  }
+  #panneauActus.ouvert { transform: translateY(0); }
+  .actusHaut {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 16px 8px;
+  }
+  .actusHaut b { font-size: 16px; }
+  #fermerActus {
+    width: 34px; height: 34px; border-radius: 50%;
+    border: none; background: #EEF2F7; color: var(--encre);
+    font-size: 15px; font-weight: 800; cursor: pointer; padding: 0;
+  }
+  #listeActus { flex: 1; overflow-y: auto; padding: 0 16px; }
+  .actuItem {
+    display: flex; gap: 12px; align-items: flex-start;
+    padding: 10px 0; border-bottom: 1px solid #EEF2F7;
+  }
+  .actuItem img { width: 22px; height: 22px; border-radius: 6px; margin-top: 3px; }
+  .actuSource { font-size: 11.5px; color: var(--gris); font-weight: 700; }
+  a.actuTitre {
+    font-size: 13.5px; font-weight: 700; line-height: 1.35;
+    color: var(--encre); text-decoration: none; display: block; margin-top: 1px;
+  }
+  .actuDate { font-size: 11px; color: #9AA6B3; margin-top: 2px; }
+  .actusPied { padding: 10px 16px 14px; }
+  .actusPied a {
+    display: block; text-align: center;
+    background: #EEF2F7; border-radius: 12px; padding: 12px;
+    font-weight: 800; font-size: 14px;
+    color: var(--route); text-decoration: none;
+  }
+
   /* ---------- CARTE D'INFORMATION (resultats jolis) ---------- */
   #infoCarte {
     position: fixed;
@@ -321,6 +365,12 @@
 <button id="btnCouche" title="Changer de vue"><span>Satellite</span></button>
 
 <button id="btnVideo" title="Vidéos"><svg viewBox="0 0 24 24" width="27" height="27" fill="none" stroke="#1B2430" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="3"/><polygon points="10 9 15 12 10 15" fill="#1B2430" stroke="none"/></svg></button>
+
+<div id="panneauActus">
+  <div class="actusHaut"><b>📰 Actualités</b><button id="fermerActus">✕</button></div>
+  <div id="listeActus"></div>
+  <div class="actusPied"><a id="lienPlusActus" href="https://news.google.com/?hl=fr" target="_blank" rel="noopener">Voir plus de titres et de points de vue</a></div>
+</div>
 
 <div id="infoCarte"></div>
 
@@ -816,14 +866,16 @@ async function essaiIA(corps) {
   }
 }
 
-async function demanderIA(question) {
+async function demanderIA(question, contexte) {
   const maintenant = new Date();
   const dateDuJour = maintenant.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 
   if (langueVocale === "en") {
-    const consigneEN = "You are VISION, the voice assistant of a taxi in Cotonou, Benin. Today is " + dateDuJour + ". " +
-      "Answer in English, in 3 to 6 sentences, sincere and precise, as your answer will be read aloud. " +
-      "Only state facts you are sure of; if unsure, say so honestly. Your knowledge ends around 2023: for recent events (2024 to 2026), say you may not have the latest information. " +
+    const consigneEN = "You are VISION, the professional voice assistant of a taxi in Cotonou, Benin. Today is " + dateDuJour + ". " +
+      "Answer in English, in 3 to 6 sentences: confident, warm, precise, as your answer will be read aloud. " +
+      "Never talk about your limitations, your training date, or being an AI, unless directly asked. " +
+      "Only state facts you are sure of; if you lack a fact, say simply that you do not have that information, then share what you do know. " +
+      (contexte ? "TODAY'S PRESS HEADLINES you can rely on as current facts: " + contexte + ". " : "") +
       "Passenger question: ";
     const formatsEN = [
       { message: consigneEN + question },
@@ -837,11 +889,12 @@ async function demanderIA(question) {
     return null;
   }
 
-  const consigne = "Tu es VISION, l'assistant vocal d'un taxi a Cotonou au Benin. " +
+  const consigne = "Tu es VISION, l'assistant vocal professionnel d'un taxi a Cotonou au Benin. " +
     "Nous sommes le " + dateDuJour + ". " +
-    "Reponds en francais, en 3 a 6 phrases : sincere, precis et complet, sans etre trop long, car ta reponse sera lue a voix haute. " +
-    "REGLE ABSOLUE : ne donne que des faits dont tu es sur. Si tu n'es pas certain, dis honnetement : je ne suis pas sur, au lieu d'inventer. " +
-    "Tes connaissances s'arretent vers 2023 : pour toute question sur l'actualite recente (elections, prix actuels, evenements de 2024 a 2026), dis clairement que tu n'as pas les dernieres informations et invite a verifier aupres d'une source recente. " +
+    "Reponds en francais, en 3 a 6 phrases : assure, chaleureux, precis et complet, car ta reponse sera lue a voix haute. " +
+    "Ne parle JAMAIS de tes limites, de ta date d'entrainement, ou du fait que tu es une intelligence artificielle, sauf si on te le demande directement. " +
+    "REGLE ABSOLUE : ne donne que des faits dont tu es sur. S'il te manque une information, dis simplement en une phrase que tu ne l'as pas, puis partage ce que tu sais. " +
+    (contexte ? "TITRES DE PRESSE DU JOUR, que tu peux utiliser comme faits actuels et recents : " + contexte + ". " : "") +
     "Reperes exacts a respecter : la statue de l'Amazone de Cotonou, haute de 30 metres, a ete inauguree en 2022 sous le president Patrice Talon (et non sous Kerekou). " +
     "Cotonou est la capitale economique du Benin, avec sa lagune, le marche Dantokpa (l'un des plus grands d'Afrique de l'Ouest), et ses quartiers : Gbegamey, Akpakpa, Cadjehoun, Fidjrosse, Zongo, Sainte-Rita, Agla, Houeyiho, Menontin, Vodje, Gbedegbe. " +
     "Question du passager : ";
@@ -897,32 +950,45 @@ async function assistantVocal() {
   } else if (estQuestionMeteo(question)) {
     await direMeteo();
   } else if (estQuestionActu(question)) {
-    await direActus();
+    await direActus(question);
   } else if (estDemandeItineraire(question)) {
     await naviguerVers(question);
   } else {
-    // DOUBLE BENEFICE : l'ecran montre la belle carte Wikipedia (avec image),
-    // pendant que la voix lit la reponse de TON IA.
-    let texteWiki = null;
-    if (estQuestionDefinition(question)) {
-      const sujet = extraireSujet(question);
-      if (sujet) texteWiki = await chercherWikipedia(sujet); // affiche la carte a l'ecran
+    // LA VOIX = TON IA. L'ECRAN = le panneau Google News sur le sujet (toujours du visuel).
+    let promesseArticles = null;
+    const sujetVisuel = extraireSujetActu(question);
+    if (sujetVisuel && sujetVisuel !== "B\u00e9nin") {
+      // La recherche part EN PARALLELE pendant que l'IA reflechit
+      promesseArticles = construirePanneauActus(sujetVisuel);
     }
-    const reponse = await demanderIA(question);
+
+    // On attend les resultats de presse pour les donner a l'IA (elle devient a jour !)
+    let articles = null;
+    if (promesseArticles) articles = await promesseArticles;
+    let contextePresse = "";
+    if (articles && articles.length) {
+      contextePresse = articles.slice(0, 4).map(a => (a.titre || "").replace(/ - [^-]+$/, "")).join(" | ");
+    }
+
+    const reponse = await demanderIA(question, contextePresse);
     if (reponse) {
-      // Si aucune carte Wikipedia n'est affichee, on montre la reponse de l'IA a l'ecran
-      if (!texteWiki) {
+      // Pas de panneau de resultats ? On montre la reponse ecrite de l'IA.
+      if (!promesseArticles) {
         montrerInfo("bas",
           '<div class="infoLigneTitre"><span class="infoEmoji">\uD83E\uDD16</span>' +
           '<div class="infoTitre">VISION</div></div>' +
           '<div class="infoTexte">' + texteSur(reponse) + '</div>');
       }
       await parlerEtAttendre(reponse);
-    } else if (texteWiki) {
-      // IA injoignable : on lit au moins le resume Wikipedia (secours)
-      await parlerEtAttendre(texteWiki);
     } else {
-      await parlerEtAttendre("Je n'arrive pas a joindre mon intelligence pour le moment. Reessayez dans un instant.");
+      // IA injoignable : secours = lire les titres de la presse sur le sujet
+      if (articles && articles.length) {
+        let phrase = "Mon intelligence est injoignable, mais voici ce que dit la presse sur " + sujetVisuel + ". ";
+        articles.slice(0, 2).forEach(a => { phrase += (a.titre || "").replace(/ - [^-]+$/, "") + ". "; });
+        await parlerEtAttendre(phrase);
+      } else {
+        await parlerEtAttendre("Je n'arrive pas a joindre mon intelligence pour le moment. Reessayez dans un instant.");
+      }
     }
   }
 
@@ -1057,63 +1123,92 @@ function estQuestionActu(p) {
   return /actualit(e|\u00e9)|les nouvelles|nouvelles du|infos du jour|les infos|quoi de neuf|quoi de nouveau|derni(e|\u00e8)res infos|les titres|google news|les news|la presse/i.test(p);
 }
 
-async function direActus() {
+// Le sujet demande : "les actualites sur le football" -> "football", sinon Benin
+function extraireSujetActu(q) {
+  const m = q.toLowerCase()
+    .replace(/vision|les|la|le|actualit(e|\u00e9)s?|nouvelles|infos?|titres|news|google|quoi de neuf|quoi de nouveau|du jour|derni(e|\u00e8)res|donne[- ]moi|montre[- ]moi|dis[- ]moi|je veux|s'il te plait|stp/gi, " ")
+    .replace(/\b(sur|de|du|des|d'|a propos|\u00e0 propos|concernant)\b/gi, " ")
+    .replace(/[?!.]/g, " ").replace(/\s+/g, " ").trim();
+  return m.length > 2 ? m : "B\u00e9nin";
+}
+
+function tempsRelatif(dateTexte) {
+  const d = new Date(dateTexte);
+  if (isNaN(d)) return "";
+  const min = Math.round((Date.now() - d.getTime()) / 60000);
+  if (min < 60) return "Il y a " + min + " min";
+  const h = Math.round(min / 60);
+  if (h < 24) return "Il y a " + h + " heure" + (h > 1 ? "s" : "");
+  return "Il y a " + Math.round(h / 24) + " jour" + (h >= 48 ? "s" : "");
+}
+
+function fermerActus() {
+  document.getElementById("panneauActus").classList.remove("ouvert");
+}
+document.getElementById("fermerActus").onclick = fermerActus;
+
+// Construit et ouvre le panneau de resultats pour N'IMPORTE QUEL sujet.
+// Renvoie les articles trouves (ou null si service injoignable).
+async function construirePanneauActus(sujet) {
+  if (!URL_ACTU) return null;
+  try {
+    const rep = await fetch(URL_ACTU + "?q=" + encodeURIComponent(sujet));
+    const data = await rep.json();
+    const articles = data.articles || (data.titres || []).map(t => ({ titre: t }));
+
+    if (articles.length) {
+      // Construire le bandeau style Google News
+      let lignes = "";
+      articles.slice(0, 8).forEach(a => {
+        let domaine = "";
+        try { domaine = a.urlSource ? new URL(a.urlSource).hostname : ""; } catch (e) {}
+        const favicon = domaine
+          ? '<img src="https://www.google.com/s2/favicons?domain=' + domaine + '&sz=64" alt="">'
+          : '<img src="https://www.google.com/s2/favicons?domain=news.google.com&sz=64" alt="">';
+        lignes +=
+          '<div class="actuItem">' + favicon + '<div>' +
+          (a.source ? '<div class="actuSource">' + texteSur(a.source) + '</div>' : "") +
+          '<a class="actuTitre" href="' + (a.lien || "#") + '" target="_blank" rel="noopener">' +
+          texteSur((a.titre || "").replace(/ - [^-]+$/, "")) + '</a>' +
+          (a.date ? '<div class="actuDate">' + tempsRelatif(a.date) + '</div>' : "") +
+          '</div></div>';
+      });
+      document.getElementById("listeActus").innerHTML = lignes;
+      document.querySelector("#panneauActus .actusHaut b").textContent =
+        "\uD83D\uDCF0 Actualit\u00e9s : " + sujet.charAt(0).toUpperCase() + sujet.slice(1);
+      document.getElementById("lienPlusActus").href =
+        "https://news.google.com/search?q=" + encodeURIComponent(sujet) + "&hl=fr";
+      document.getElementById("panneauActus").classList.add("ouvert");
+    }
+    return articles;
+  } catch (e) {
+    return null;
+  }
+}
+
+// La commande vocale "actualites" : le panneau + la lecture des titres
+async function direActus(question) {
   if (!URL_ACTU) {
     await parlerEtAttendre("Le service d'actualites n'est pas encore active sur ce vehicule.");
     return;
   }
-  try {
-    const rep = await fetch(URL_ACTU);
-    const data = await rep.json();
-    if (data.titres && data.titres.length) {
-      let phrase = "Voici les titres du moment au Benin. ";
-      let liste = "";
-      data.titres.slice(0, 3).forEach((t, i) => {
-        phrase += "Titre " + (i + 1) + " : " + t + ". ";
-        liste += "<li>" + t + "</li>";
-      });
-      montrerInfo("bas",
-        '<div class="infoLigneTitre"><span class="infoEmoji">\uD83D\uDCF0</span>' +
-        '<div class="infoTitre">Actualites du Benin</div></div>' +
-        '<ul class="infoListe">' + liste + '</ul>');
-      await parlerEtAttendre(phrase);
-    } else {
-      await parlerEtAttendre("Je n'ai pas de titres d'actualite pour le moment.");
-    }
-  } catch (e) {
+  const sujet = extraireSujetActu(question || "");
+  const articles = await construirePanneauActus(sujet);
+
+  if (articles === null) {
     await parlerEtAttendre("Je n'arrive pas a joindre le service d'actualites.");
+  } else if (articles.length) {
+    let phrase = "Voici les dernieres actualites" + (sujet !== "B\u00e9nin" ? " sur " + sujet : " du Benin") + ". ";
+    articles.slice(0, 3).forEach((a, i) => {
+      phrase += "Titre " + (i + 1) + " : " + (a.titre || "").replace(/ - [^-]+$/, "") + ". ";
+    });
+    await parlerEtAttendre(phrase);
+  } else {
+    await parlerEtAttendre("Je n'ai pas trouve d'actualites sur " + sujet + " pour le moment.");
   }
 }
 
-// --- WIKIPEDIA (gratuit, a jour) : c'est quoi X ? qui est X ? ---
-function estQuestionDefinition(p) {
-  return /c'est quoi|c est quoi|qu'est[- ]ce qu|qui est|qui etait|parle[- ]moi d|explique|raconte|d(e|\u00e9)finis|connais[- ]tu|informations sur|histoire d/i.test(p);
-}
-
-function extraireSujet(p) {
-  return p.replace(/c'est quoi|c est quoi|qu'est[- ]ce que|qu'est[- ]ce qu'|qui est|qui etait|parle[- ]moi de|parle[- ]moi du|explique[- ]moi|explique|raconte[- ]moi|raconte|d(e|\u00e9)finis[- ]moi|d(e|\u00e9)finis|connais[- ]tu|informations sur|l'histoire de|l'histoire du|histoire de|histoire du|donc|exactement|s'il (te|vous) plait|stp/gi, " ")
-          .replace(/[?!.]/g, " ").replace(/\s+/g, " ").trim();
-}
-
-async function chercherWikipedia(sujet) {
-  try {
-    const rep = await fetch("https://fr.wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(sujet));
-    if (!rep.ok) return null;
-    const data = await rep.json();
-    if (data.extract && data.type === "standard") {
-      // On garde les 2-3 premieres phrases pour la voix
-      const phrases = data.extract.split(". ").slice(0, 3).join(". ");
-      const image = (data.thumbnail && data.thumbnail.source) ? data.thumbnail.source : null;
-      montrerInfo("haut",
-        (image ? '<img class="infoImage" src="' + image + '" alt="">' : "") +
-        '<div class="infoLigneTitre"><span class="infoEmoji">\uD83D\uDCD6</span>' +
-        '<div class="infoTitre">' + (data.title || sujet) + '</div></div>' +
-        '<div class="infoTexte">' + data.extract + '</div>');
-      return phrases.endsWith(".") ? phrases : phrases + ".";
-    }
-    return null;
-  } catch (e) { return null; }
-}
+// (Wikipedia retire : Google News est le moteur visuel unique)
 
 // ============ CARTE D'INFORMATION A L'ECRAN ============
 const infoCarte = document.getElementById("infoCarte");
