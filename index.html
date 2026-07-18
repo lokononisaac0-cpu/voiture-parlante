@@ -257,6 +257,57 @@
     padding: 3px 0;
   }
 
+  /* ---------- CARTE D'INFORMATION (resultats jolis) ---------- */
+  #infoCarte {
+    position: fixed;
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: 0 10px 40px rgba(27,36,48,.3);
+    padding: 14px;
+    z-index: 12;
+    opacity: 0;
+    pointer-events: none;
+    transition: transform .5s cubic-bezier(.2,.8,.2,1), opacity .4s ease;
+  }
+  #infoCarte.ouvert { opacity: 1; pointer-events: auto; }
+
+  /* Descend du haut et s'arrete au milieu */
+  #infoCarte.style-haut, #infoCarte.style-bas, #infoCarte.style-centre {
+    top: 50%; left: 50%;
+    width: min(380px, calc(100vw - 24px));
+    max-height: 62vh; overflow-y: auto;
+  }
+  #infoCarte.style-haut { transform: translate(-50%, -95vh); }
+  #infoCarte.style-haut.ouvert { transform: translate(-50%, -50%); }
+
+  /* Monte du bas et s'arrete au milieu */
+  #infoCarte.style-bas { transform: translate(-50%, 60vh); }
+  #infoCarte.style-bas.ouvert { transform: translate(-50%, -50%); }
+
+  /* Au centre avec effet zoom (jeux, scores) */
+  #infoCarte.style-centre { transform: translate(-50%, -50%) scale(.6); }
+  #infoCarte.style-centre.ouvert { transform: translate(-50%, -50%) scale(1); }
+
+  /* Petit cadre discret, comme la video */
+  #infoCarte.style-pip {
+    left: 12px; bottom: 92px;
+    width: 235px; padding: 10px;
+    transform: translateY(26px);
+  }
+  #infoCarte.style-pip.ouvert { transform: translateY(0); }
+  #infoCarte.style-pip .infoTexte { font-size: 12px; }
+  #infoCarte.style-pip .infoGrand { font-size: 24px; }
+  #infoCarte.style-pip .infoEmoji { font-size: 26px; }
+  #infoCarte.style-pip .infoTitre { font-size: 14px; }
+  .infoLigneTitre { display: flex; gap: 10px; align-items: center; margin-bottom: 6px; padding-right: 30px; }
+  .infoEmoji { font-size: 34px; line-height: 1; }
+  .infoTitre { font-weight: 800; font-size: 16px; }
+  .infoTexte { font-size: 13.5px; color: #3A4657; line-height: 1.5; }
+  .infoImage { width: 100%; border-radius: 12px; margin-bottom: 8px; max-height: 170px; object-fit: cover; display: block; }
+  .infoGrand { font-size: 30px; font-weight: 800; }
+  .infoListe { margin: 0; padding-left: 18px; font-size: 13.5px; color: #3A4657; }
+  .infoListe li { margin: 6px 0; }
+
   @media (prefers-reduced-motion: reduce) { .chipHaut .pt.on { animation: none; } }
 </style>
 </head>
@@ -264,12 +315,14 @@
 
 <div id="map"></div>
 
-<div class="chipHaut"><span class="pt" id="ptEtat"></span> VISION <span id="vitesse"></span></div>
+<div class="chipHaut"><span class="pt" id="ptEtat"></span> VISION <span id="micBadge" style="display:none">🎙️</span> <span id="vitesse"></span></div>
 <div id="chipTemps">— <small>en attente</small></div>
 
 <button id="btnCouche" title="Changer de vue"><span>Satellite</span></button>
 
 <button id="btnVideo" title="Vidéos"><svg viewBox="0 0 24 24" width="27" height="27" fill="none" stroke="#1B2430" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="3"/><polygon points="10 9 15 12 10 15" fill="#1B2430" stroke="none"/></svg></button>
+
+<div id="infoCarte"></div>
 
 <div id="panneauVideo">
   <button id="fermerVideo" class="fermerFlottant">✕</button>
@@ -328,6 +381,7 @@ let auto = false, enCourse = false, miDit = false;
 let dernierAccueil = 0, finMiPrevue = 0;
 let wakeLock = null, watchGPS = null;
 let dernierePos = null;
+let derniereAlerteVitesse = 0;
 
 function afficher(principal, sous) {
   statut.textContent = principal;
@@ -412,7 +466,14 @@ function demarrerGPS() {
 
     // Vitesse réelle en km/h
     if (pos.coords.speed !== null && !isNaN(pos.coords.speed)) {
-      vitesseEl.textContent = "· " + Math.round(pos.coords.speed * 3.6) + " km/h";
+      const kmh = Math.round(pos.coords.speed * 3.6);
+      vitesseEl.textContent = "· " + kmh + " km/h";
+
+      // Alerte prudence : au-dela de 90 km/h, un rappel calme (max une fois toutes les 5 min)
+      if (kmh > 90 && Date.now() - derniereAlerteVitesse > 300000 && !speechSynthesis.speaking) {
+        derniereAlerteVitesse = Date.now();
+        parler("Prudence, la vitesse est elevee. La route est longue, arrivons-y en paix.");
+      }
     }
 
     // Trace bleue du trajet en cours
@@ -441,13 +502,22 @@ function traiter(texte) {
   return texte.replaceAll("{salutation}", salutation);
 }
 
+let voixAnglaise = null;
+let langueVocale = "fr"; // "fr" ou "en"
+
 function chargerVoix() {
-  const fr = speechSynthesis.getVoices().filter(v => v.lang.toLowerCase().startsWith("fr"));
-  if (fr.length === 0) return;
-  voixChoisie = fr.find(v =>
-    /male|homme|masculin|frb|frd|paul|nicolas|thomas|henri|claude|antoine/i.test(v.name)
-    && !/female|femme/i.test(v.name)
-  ) || fr[0];
+  const toutes = speechSynthesis.getVoices();
+  const fr = toutes.filter(v => v.lang.toLowerCase().startsWith("fr"));
+  if (fr.length) {
+    voixChoisie = fr.find(v =>
+      /male|homme|masculin|frb|frd|paul|nicolas|thomas|henri|claude|antoine/i.test(v.name)
+      && !/female|femme/i.test(v.name)
+    ) || fr[0];
+  }
+  const en = toutes.filter(v => v.lang.toLowerCase().startsWith("en"));
+  if (en.length) {
+    voixAnglaise = en.find(v => /male/i.test(v.name) && !/female/i.test(v.name)) || en[0];
+  }
 }
 speechSynthesis.onvoiceschanged = chargerVoix;
 chargerVoix();
@@ -455,10 +525,11 @@ chargerVoix();
 function parler(texte) {
   if (typeof pauserVideo === "function") pauserVideo();
   const u = new SpeechSynthesisUtterance(traiter(texte));
-  u.lang = "fr-FR";
+  u.lang = (langueVocale === "en") ? "en-US" : "fr-FR";
   u.rate = VITESSE_VOIX;
   u.pitch = TON_VOIX;
-  if (voixChoisie) u.voice = voixChoisie;
+  const voix = (langueVocale === "en") ? voixAnglaise : voixChoisie;
+  if (voix) u.voice = voix;
   speechSynthesis.cancel();
   speechSynthesis.speak(u);
 }
@@ -487,6 +558,7 @@ setInterval(() => {
 function demarrerCourse() {
   if (enCourse) return;
   enCourse = true;
+  ajouterCourse();
   miDit = false;
   finMiPrevue = 0;
   dernierAccueil = Date.now();
@@ -540,7 +612,15 @@ $("btnBye").onclick = () => {
   afficher("Course terminée", auto ? "Prêt pour le prochain client." : "Mode automatique arrêté.");
 };
 
-$("btnManuel").onclick = () => {
+$("btnManuel").onclick = async () => {
+  // L'accueil manuel ouvre AUSSI le micro : VISION ecoute son nom des maintenant
+  try {
+    const flux = await navigator.mediaDevices.getUserMedia({ audio: true });
+    flux.getTracks().forEach(t => t.stop());
+    demarrerEcouteNom();
+  } catch (e) {
+    afficher("Micro refuse", "Autorise le microphone (icone cadenas pres de l'adresse).");
+  }
   enCourse = false;
   demarrerCourse();
 };
@@ -578,6 +658,15 @@ $("btnAuto").onclick = async () => {
       const rep = await DeviceMotionEvent.requestPermission();
       if (rep !== "granted") { afficher("Permission refusée", "Autorise le capteur de mouvement dans Chrome."); return; }
     }
+    // On ouvre le micro une bonne fois pour toutes (autorisation Chrome)
+    try {
+      const flux = await navigator.mediaDevices.getUserMedia({ audio: true });
+      flux.getTracks().forEach(t => t.stop());
+    } catch (e) {
+      afficher("Micro refuse", "Autorise le microphone (icone cadenas pres de l'adresse) puis reactive le mode automatique.");
+      return;
+    }
+
     window.addEventListener("devicemotion", surMouvement);
     await garderEcran();
     demarrerGPS();
@@ -623,7 +712,7 @@ function ecouterUneFois() {
     const fin = t => { hotwordPause = false; resolve(t); };
     setTimeout(() => {
       const rec = new Reco();
-      rec.lang = "fr-FR";
+      rec.lang = (langueVocale === "en") ? "en-US" : "fr-FR";
       rec.interimResults = false;
       rec.maxAlternatives = 1;
       let fini = false;
@@ -636,45 +725,70 @@ function ecouterUneFois() {
 }
 
 // ============ DIRE "VISION" POUR L'APPELER ============
-let ecouteNom = null, ecouteNomActive = false;
+let ecouteNom = null, ecouteNomActive = false, ecouteEnMarche = false;
+let gardienEcoute = null;
 
 function lancerEcouteNom() {
-  if (!ecouteNomActive || !Reco) return;
+  if (!ecouteNomActive || !Reco || ecouteEnMarche) return;
   ecouteNom = new Reco();
   ecouteNom.lang = "fr-FR";
   ecouteNom.continuous = true;
   ecouteNom.interimResults = true;
+
+  ecouteNom.onstart = () => {
+    ecouteEnMarche = true;
+    document.getElementById("micBadge").style.display = "inline";
+  };
+
   ecouteNom.onresult = e => {
     if (enConversation || enSequence || hotwordPause || speechSynthesis.speaking) return;
     for (let i = e.resultIndex; i < e.results.length; i++) {
       const t = e.results[i][0].transcript.toLowerCase();
-      if (/\bvision\b/.test(t)) {
+      // "vision" mais aussi les mots proches que le micro croit entendre
+      if (/vision|visio|vizion|virgin/.test(t)) {
         try { ecouteNom.stop(); } catch (err) {}
         assistantVocal();
         return;
       }
     }
   };
-  ecouteNom.onerror = () => {};
-  ecouteNom.onend = () => {
-    if (ecouteNomActive && !hotwordPause && !enConversation) {
-      setTimeout(lancerEcouteNom, 500);
-    } else if (ecouteNomActive) {
-      // On reprendra quand la conversation sera finie
-      setTimeout(() => { if (ecouteNomActive && !hotwordPause && !enConversation) lancerEcouteNom(); }, 2500);
+
+  ecouteNom.onerror = e => {
+    if (e.error === "not-allowed") {
+      afficher("Micro refuse", "Autorise le microphone (icone cadenas pres de l'adresse).");
+      arreterEcouteNom();
     }
   };
-  try { ecouteNom.start(); } catch (e) {}
+
+  ecouteNom.onend = () => {
+    ecouteEnMarche = false;
+    document.getElementById("micBadge").style.display = "none";
+    if (ecouteNomActive && !hotwordPause && !enConversation) {
+      setTimeout(lancerEcouteNom, 300);
+    }
+  };
+
+  try { ecouteNom.start(); } catch (e) { ecouteEnMarche = false; }
 }
 
 function demarrerEcouteNom() {
   if (ecouteNomActive) return;
   ecouteNomActive = true;
   lancerEcouteNom();
+
+  // Le gardien : toutes les 8 secondes, si l'ecoute s'est endormie, on la reveille
+  gardienEcoute = setInterval(() => {
+    if (ecouteNomActive && !ecouteEnMarche && !hotwordPause &&
+        !enConversation && !speechSynthesis.speaking) {
+      lancerEcouteNom();
+    }
+  }, 8000);
 }
 
 function arreterEcouteNom() {
   ecouteNomActive = false;
+  if (gardienEcoute) { clearInterval(gardienEcoute); gardienEcoute = null; }
+  document.getElementById("micBadge").style.display = "none";
   try { if (ecouteNom) ecouteNom.stop(); } catch (e) {}
 }
 
@@ -682,10 +796,11 @@ function parlerEtAttendre(texte) {
   if (typeof pauserVideo === "function") pauserVideo();
   return new Promise(fin => {
     const u = new SpeechSynthesisUtterance(traiter(texte));
-    u.lang = "fr-FR";
+    u.lang = (langueVocale === "en") ? "en-US" : "fr-FR";
     u.rate = VITESSE_VOIX;
     u.pitch = TON_VOIX;
-    if (voixChoisie) u.voice = voixChoisie;
+    const voix = (langueVocale === "en") ? voixAnglaise : voixChoisie;
+    if (voix) u.voice = voix;
     u.onend = fin;
     u.onerror = fin;
     speechSynthesis.cancel();
@@ -724,9 +839,31 @@ async function essaiIA(corps) {
 }
 
 async function demanderIA(question) {
+  const maintenant = new Date();
+  const dateDuJour = maintenant.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+
+  if (langueVocale === "en") {
+    const consigneEN = "You are VISION, the voice assistant of a taxi in Cotonou, Benin. Today is " + dateDuJour + ". " +
+      "Answer in English, in 3 to 6 sentences, sincere and precise, as your answer will be read aloud. " +
+      "Only state facts you are sure of; if unsure, say so honestly. Your knowledge ends around 2023: for recent events (2024 to 2026), say you may not have the latest information. " +
+      "Passenger question: ";
+    const formatsEN = [
+      { message: consigneEN + question },
+      { messages: [{ role: "user", content: consigneEN + question }] },
+      { prompt: consigneEN + question }
+    ];
+    for (const corps of formatsEN) {
+      const texte = await essaiIA(corps);
+      if (texte) return texte;
+    }
+    return null;
+  }
+
   const consigne = "Tu es VISION, l'assistant vocal d'un taxi a Cotonou au Benin. " +
+    "Nous sommes le " + dateDuJour + ". " +
     "Reponds en francais, en 3 a 6 phrases : sincere, precis et complet, sans etre trop long, car ta reponse sera lue a voix haute. " +
-    "IMPORTANT : ne donne que des faits exacts. Si tu n'es pas certain d'une information, dis-le honnetement au lieu d'inventer. " +
+    "REGLE ABSOLUE : ne donne que des faits dont tu es sur. Si tu n'es pas certain, dis honnetement : je ne suis pas sur, au lieu d'inventer. " +
+    "Tes connaissances s'arretent vers 2023 : pour toute question sur l'actualite recente (elections, prix actuels, evenements de 2024 a 2026), dis clairement que tu n'as pas les dernieres informations et invite a verifier aupres d'une source recente. " +
     "Reperes exacts a respecter : la statue de l'Amazone de Cotonou, haute de 30 metres, a ete inauguree en 2022 sous le president Patrice Talon (et non sous Kerekou). " +
     "Cotonou est la capitale economique du Benin, avec sa lagune, le marche Dantokpa (l'un des plus grands d'Afrique de l'Ouest), et ses quartiers : Gbegamey, Akpakpa, Cadjehoun, Fidjrosse, Zongo, Sainte-Rita, Agla, Houeyiho, Menontin, Vodje, Gbedegbe. " +
     "Question du passager : ";
@@ -756,18 +893,59 @@ async function assistantVocal() {
   enConversation = true;
   btnMicIA.classList.add("ecoute");
 
-  await parlerEtAttendre("Je vous ecoute !");
+  await parlerEtAttendre(langueVocale === "en" ? "I am listening!" : "Je vous ecoute !");
   const question = await ecouterUneFois();
 
   if (!question) {
-    await parlerEtAttendre("Pardon, je n'ai pas bien entendu.");
+    await parlerEtAttendre(langueVocale === "en" ? "Sorry, I did not hear you well." : "Pardon, je n'ai pas bien entendu.");
+  } else if (veutAnglais(question)) {
+    langueVocale = "en";
+    await parlerEtAttendre("Alright! I will speak English from now on. How can I help you?");
+  } else if (veutFrancais(question)) {
+    langueVocale = "fr";
+    await parlerEtAttendre("Tres bien, je reparle francais ! Comment puis-je vous aider ?");
+  } else if (estArretVideo(question)) {
+    panneauVideo.classList.remove("ouvert");
+    iframeVideo.src = "";
+    videoActive = -1;
+    await parlerEtAttendre("Video arretee.");
+  } else if (estChangeVideo(question)) {
+    panneauVideo.classList.add("ouvert");
+    chargerVideo(videoActive === -1 ? 0 : (videoActive + 1) % VIDEOS.length);
+    await parlerEtAttendre("Voici une autre video !");
+  } else if (estDemandeVideo(question)) {
+    panneauVideo.classList.add("ouvert");
+    chargerVideo(videoActive === -1 ? 0 : videoActive);
+    await parlerEtAttendre("Voici la video, bon visionnage !");
+  } else if (estDemandePriere(question)) {
+    await direPriere();
+  } else if (estDemandeQuiz(question)) {
+    await lancerQuiz();
+  } else if (estQuestionChange(question)) {
+    await direChange(question);
+  } else if (estQuestionCourses(question)) {
+    await direCourses();
   } else if (estQuestionPosition(question)) {
     await direPosition();
+  } else if (estQuestionMeteo(question)) {
+    await direMeteo();
+  } else if (estQuestionActu(question)) {
+    await direActus();
   } else if (estDemandeItineraire(question)) {
     await naviguerVers(question);
   } else {
-    const reponse = await demanderIA(question);
+    // Pour "c'est quoi / qui est", on tente d'abord Wikipedia (a jour), sinon l'IA
+    let reponse = null;
+    if (estQuestionDefinition(question)) {
+      const sujet = extraireSujet(question);
+      if (sujet) reponse = await chercherWikipedia(sujet);
+    }
+    if (!reponse) reponse = await demanderIA(question);
     if (reponse) {
+      montrerInfo("bas",
+        '<div class="infoLigneTitre"><span class="infoEmoji">\uD83E\uDD16</span>' +
+        '<div class="infoTitre">VISION</div></div>' +
+        '<div class="infoTexte">' + texteSur(reponse) + '</div>');
       await parlerEtAttendre(reponse);
     } else {
       await parlerEtAttendre("Je n'arrive pas a joindre mon intelligence pour le moment. Reessayez dans un instant.");
@@ -860,6 +1038,258 @@ function effacerNavigation() {
   if (marqueurDest) { map.removeLayer(marqueurDest); marqueurDest = null; }
 }
 
+// ============ SOURCES REELLES ET GRATUITES (sans cle API) ============
+
+// URL de ton mini-worker actus (fichier worker-vision-actu.js). Laisse vide si pas encore deploye.
+const URL_ACTU = "https://vision-actu.lokononisaac0.workers.dev";
+
+// --- METEO REELLE (Open-Meteo, libre et gratuit) ---
+function estQuestionMeteo(p) {
+  return /m(e|\u00e9)t(e|\u00e9)o|temps fait|temps qu'il fait|il pleut|va pleuvoir|pluie|temp(e|\u00e9)rature|chaleur|il fait chaud|il fait froid/i.test(p);
+}
+
+const TEMPS_METEO = {
+  0:"ciel degage",1:"plutot degage",2:"partiellement nuageux",3:"couvert",45:"brouillard",48:"brouillard givrant",
+  51:"bruine legere",53:"bruine",55:"bruine forte",61:"pluie legere",63:"pluie",65:"forte pluie",
+  80:"averses legeres",81:"averses",82:"fortes averses",95:"orage",96:"orage avec grele",99:"violent orage"
+};
+
+async function direMeteo() {
+  const pos = dernierePos || { lat: 6.3703, lng: 2.3912 }; // Cotonou par defaut
+  try {
+    const rep = await fetch("https://api.open-meteo.com/v1/forecast?latitude=" + pos.lat +
+      "&longitude=" + pos.lng + "&current=temperature_2m,weather_code,wind_speed_10m&timezone=auto");
+    const data = await rep.json();
+    const c = data.current;
+    const desc = TEMPS_METEO[c.weather_code] || "temps variable";
+    const EMOJI = { 0:"\u2600\uFE0F",1:"\uD83C\uDF24\uFE0F",2:"\u26C5",3:"\u2601\uFE0F",45:"\uD83C\uDF2B\uFE0F",48:"\uD83C\uDF2B\uFE0F",
+      51:"\uD83C\uDF26\uFE0F",53:"\uD83C\uDF27\uFE0F",55:"\uD83C\uDF27\uFE0F",61:"\uD83C\uDF26\uFE0F",63:"\uD83C\uDF27\uFE0F",65:"\uD83C\uDF27\uFE0F",
+      80:"\uD83C\uDF26\uFE0F",81:"\uD83C\uDF27\uFE0F",82:"\u26C8\uFE0F",95:"\u26C8\uFE0F",96:"\u26C8\uFE0F",99:"\u26C8\uFE0F" };
+    montrerInfo("pip",
+      '<div class="infoLigneTitre"><span class="infoEmoji">' + (EMOJI[c.weather_code] || "\uD83C\uDF24\uFE0F") + '</span>' +
+      '<div><div class="infoGrand">' + Math.round(c.temperature_2m) + '\u00B0C</div>' +
+      '<div class="infoTitre">' + desc.charAt(0).toUpperCase() + desc.slice(1) + '</div></div></div>' +
+      '<div class="infoTexte">\uD83D\uDCA8 Vent : ' + Math.round(c.wind_speed_10m) + ' km/h \u00B7 \uD83D\uDCCD Position actuelle</div>');
+    await parlerEtAttendre("En ce moment, il fait " + Math.round(c.temperature_2m) +
+      " degres, avec un " + desc + ", et un vent d'environ " + Math.round(c.wind_speed_10m) +
+      " kilometres heure.");
+  } catch (e) {
+    await parlerEtAttendre("Je n'arrive pas a joindre le service meteo pour le moment.");
+  }
+}
+
+// --- ACTUALITES DU BENIN (via ton mini-worker, flux gratuit) ---
+function estQuestionActu(p) {
+  return /actualit(e|\u00e9)|les nouvelles|infos du jour|quoi de neuf|derni(e|\u00e8)res infos|les titres/i.test(p);
+}
+
+async function direActus() {
+  if (!URL_ACTU) {
+    await parlerEtAttendre("Le service d'actualites n'est pas encore active sur ce vehicule.");
+    return;
+  }
+  try {
+    const rep = await fetch(URL_ACTU);
+    const data = await rep.json();
+    if (data.titres && data.titres.length) {
+      let phrase = "Voici les titres du moment au Benin. ";
+      let liste = "";
+      data.titres.slice(0, 3).forEach((t, i) => {
+        phrase += "Titre " + (i + 1) + " : " + t + ". ";
+        liste += "<li>" + t + "</li>";
+      });
+      montrerInfo("bas",
+        '<div class="infoLigneTitre"><span class="infoEmoji">\uD83D\uDCF0</span>' +
+        '<div class="infoTitre">Actualites du Benin</div></div>' +
+        '<ul class="infoListe">' + liste + '</ul>');
+      await parlerEtAttendre(phrase);
+    } else {
+      await parlerEtAttendre("Je n'ai pas de titres d'actualite pour le moment.");
+    }
+  } catch (e) {
+    await parlerEtAttendre("Je n'arrive pas a joindre le service d'actualites.");
+  }
+}
+
+// --- WIKIPEDIA (gratuit, a jour) : c'est quoi X ? qui est X ? ---
+function estQuestionDefinition(p) {
+  return /c'est quoi |c est quoi |qu'est[- ]ce que |qui est |qui etait |parle[- ]moi de /i.test(p);
+}
+
+function extraireSujet(p) {
+  return p.replace(/c'est quoi|c est quoi|qu'est[- ]ce que|qu'est[- ]ce qu'|qui est|qui etait|parle[- ]moi de|donc|exactement|s'il (te|vous) plait|stp/gi, " ")
+          .replace(/[?!.]/g, " ").replace(/\s+/g, " ").trim();
+}
+
+async function chercherWikipedia(sujet) {
+  try {
+    const rep = await fetch("https://fr.wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(sujet));
+    if (!rep.ok) return null;
+    const data = await rep.json();
+    if (data.extract && data.type === "standard") {
+      // On garde les 2-3 premieres phrases pour la voix
+      const phrases = data.extract.split(". ").slice(0, 3).join(". ");
+      const image = (data.thumbnail && data.thumbnail.source) ? data.thumbnail.source : null;
+      montrerInfo("haut",
+        (image ? '<img class="infoImage" src="' + image + '" alt="">' : "") +
+        '<div class="infoLigneTitre"><span class="infoEmoji">\uD83D\uDCD6</span>' +
+        '<div class="infoTitre">' + (data.title || sujet) + '</div></div>' +
+        '<div class="infoTexte">' + data.extract + '</div>');
+      return phrases.endsWith(".") ? phrases : phrases + ".";
+    }
+    return null;
+  } catch (e) { return null; }
+}
+
+// ============ CARTE D'INFORMATION A L'ECRAN ============
+const infoCarte = document.getElementById("infoCarte");
+let timerInfo = null;
+
+function montrerInfo(style, contenu) {
+  infoCarte.classList.remove("ouvert");
+  infoCarte.className = "style-" + (style || "haut");
+  infoCarte.innerHTML = '<button class="fermerFlottant" onclick="cacherInfo()">\u2715</button>' + contenu;
+  // Petit temps pour que l'animation parte du bon cote
+  setTimeout(() => infoCarte.classList.add("ouvert"), 60);
+  clearTimeout(timerInfo);
+  timerInfo = setTimeout(cacherInfo, 45000); // se range toute seule apres 45 s
+}
+
+function cacherInfo() {
+  infoCarte.classList.remove("ouvert");
+}
+
+function texteSur(t) {
+  return String(t).replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+// ============ PRIERES DE VOYAGE ============
+const PRIERES = [
+  "Seigneur, nous te confions ce trajet. Protege chaque passager de ce vehicule, guide les mains du conducteur, et conduis-nous a bon port. Que ta paix regne dans cette voiture. Au nom de Jesus, amen.",
+  "Pere celeste, merci pour cette journee. Couvre cette route de ta protection, eloigne de nous tout danger, et benis chaque personne a bord ainsi que sa famille. Amen.",
+  "Eternel, tu gardes notre depart et notre arrivee. Nous remettons ce voyage entre tes mains. Donne la vigilance au chauffeur et la serenite aux passagers. Amen."
+];
+
+function estDemandePriere(p) {
+  return /prie pour|une pri(e|\u00e8)re|b(e|\u00e9)nis (mon|notre|ce) (voyage|trajet)|priere de voyage/i.test(p);
+}
+
+async function direPriere() {
+  const priere = PRIERES[Math.floor(Math.random() * PRIERES.length)];
+  montrerInfo("haut",
+    '<div class="infoLigneTitre"><span class="infoEmoji">\uD83D\uDE4F</span>' +
+    '<div class="infoTitre">Priere de voyage</div></div>' +
+    '<div class="infoTexte" style="font-style:italic">' + priere + '</div>');
+  await parlerEtAttendre(priere);
+}
+
+// ============ TAUX DE CHANGE (gratuit, sans cle) ============
+function estQuestionChange(p) {
+  return /taux de change|combien vaut|le dollar|l euro|l'euro|le naira|le cedi|livre sterling|le yuan|cours du/i.test(p);
+}
+
+async function direChange(question) {
+  const q = question.toLowerCase();
+  let code = "USD", nom = "un dollar americain";
+  if (q.includes("euro")) { code = "EUR"; nom = "un euro"; }
+  else if (q.includes("naira")) { code = "NGN"; nom = "un naira nigerian"; }
+  else if (q.includes("cedi")) { code = "GHS"; nom = "un cedi ghaneen"; }
+  else if (q.includes("livre")) { code = "GBP"; nom = "une livre sterling"; }
+  else if (q.includes("yuan")) { code = "CNY"; nom = "un yuan chinois"; }
+  try {
+    const rep = await fetch("https://open.er-api.com/v6/latest/" + code);
+    const data = await rep.json();
+    if (data.rates && data.rates.XOF) {
+      const taux = Math.round(data.rates.XOF);
+      const DRAPEAUX = { USD:"\uD83C\uDDFA\uD83C\uDDF8", EUR:"\uD83C\uDDEA\uD83C\uDDFA", NGN:"\uD83C\uDDF3\uD83C\uDDEC", GHS:"\uD83C\uDDEC\uD83C\uDDED", GBP:"\uD83C\uDDEC\uD83C\uDDE7", CNY:"\uD83C\uDDE8\uD83C\uDDF3" };
+      montrerInfo("pip",
+        '<div class="infoLigneTitre"><span class="infoEmoji">' + (DRAPEAUX[code] || "\uD83D\uDCB1") + '</span>' +
+        '<div><div class="infoGrand">1 ' + code + ' = ' + taux.toLocaleString("fr-FR") + ' FCFA</div>' +
+        '<div class="infoTexte">Taux du jour \u00B7 mis a jour aujourd\u0027hui</div></div></div>');
+      await parlerEtAttendre("Aujourd'hui, " + nom + " vaut environ " +
+        Math.round(data.rates.XOF) + " francs CFA.");
+    } else {
+      await parlerEtAttendre("Je n'ai pas ce taux de change pour le moment.");
+    }
+  } catch (e) {
+    await parlerEtAttendre("Je n'arrive pas a joindre le service de change.");
+  }
+}
+
+// ============ QUIZ DU TRAJET ============
+const QUIZ = [
+  { q: "Quelle est la capitale officielle du Benin ?", mots: ["porto"], bonne: "Porto-Novo" },
+  { q: "Qui a vaincu Goliath dans la Bible ?", mots: ["david"], bonne: "David" },
+  { q: "Combien de couleurs a le drapeau du Benin ?", mots: ["trois", "3"], bonne: "trois : vert, jaune et rouge" },
+  { q: "Dans quelle ville se trouve la Porte du Non-Retour ?", mots: ["ouidah"], bonne: "Ouidah" },
+  { q: "Combien de jours Dieu a-t-il pris pour creer le monde, avant de se reposer ?", mots: ["six", "6"], bonne: "six jours" }
+];
+
+function estDemandeQuiz(p) {
+  return /quiz|un jeu|devinette|pose[- ]moi (une|des) question/i.test(p);
+}
+
+async function lancerQuiz() {
+  const questions = [...QUIZ].sort(() => Math.random() - 0.5).slice(0, 3);
+  let score = 0;
+  await parlerEtAttendre("Tres bien, petit quiz en trois questions ! C'est parti.");
+  for (let i = 0; i < questions.length; i++) {
+    const item = questions[i];
+    await parlerEtAttendre("Question " + (i + 1) + " : " + item.q);
+    const rep = await ecouterUneFois();
+    const bon = rep && item.mots.some(m => rep.toLowerCase().includes(m));
+    if (bon) {
+      score++;
+      await parlerEtAttendre("Bravo, bonne reponse !");
+    } else {
+      await parlerEtAttendre("Ce n'est pas ca. La bonne reponse etait : " + item.bonne + ".");
+    }
+  }
+  const fin = score === 3 ? "Felicitations, champion !" : (score >= 1 ? "Pas mal du tout !" : "On se rattrapera au prochain trajet !");
+  montrerInfo("centre",
+    '<div class="infoLigneTitre"><span class="infoEmoji">' + (score === 3 ? "\uD83C\uDFC6" : "\uD83C\uDFAF") + '</span>' +
+    '<div><div class="infoGrand">' + score + ' / 3</div>' +
+    '<div class="infoTitre">' + fin + '</div></div></div>');
+  await parlerEtAttendre("Score final : " + score + " sur 3. " + fin);
+}
+
+// ============ COMPTEUR DE COURSES ============
+function cleCoursesDuJour() {
+  return "vp_courses_" + new Date().toISOString().slice(0, 10);
+}
+
+function ajouterCourse() {
+  const cle = cleCoursesDuJour();
+  const n = parseInt(localStorage.getItem(cle) || "0") + 1;
+  localStorage.setItem(cle, String(n));
+}
+
+function estQuestionCourses(p) {
+  return /combien de courses|combien de clients|nombre de courses|clients aujourd/i.test(p);
+}
+
+async function direCourses() {
+  const n = parseInt(localStorage.getItem(cleCoursesDuJour()) || "0");
+  if (n === 0) await parlerEtAttendre("Aucune course enregistree aujourd'hui pour l'instant.");
+  else if (n === 1) await parlerEtAttendre("Une seule course aujourd'hui pour le moment.");
+  else await parlerEtAttendre(n + " courses accueillies aujourd'hui. Beau travail !");
+}
+
+// ============ COMMANDES VIDEO A LA VOIX ============
+function estDemandeVideo(p) {
+  return /je veux (voir |regarder )?(une |la )?vid(e|\u00e9)o|mets (la |une )?vid(e|\u00e9)o|montre (la |une )?vid(e|\u00e9)o|lance (la |une )?vid(e|\u00e9)o|joue (la |une )?vid(e|\u00e9)o/i.test(p);
+}
+function estChangeVideo(p) {
+  return /change de vid(e|\u00e9)o|vid(e|\u00e9)o suivante|autre vid(e|\u00e9)o|clip suivant/i.test(p);
+}
+function estArretVideo(p) {
+  return /arr(e|\u00ea)te (la )?vid(e|\u00e9)o|ferme (la )?vid(e|\u00e9)o|stoppe (la )?vid(e|\u00e9)o|coupe (la )?vid(e|\u00e9)o|enl(e|\u00e8)ve (la )?vid(e|\u00e9)o/i.test(p);
+}
+
+// ============ CHANGEMENT DE LANGUE ============
+function veutAnglais(p) { return /speak english|in english|english please/i.test(p); }
+function veutFrancais(p) { return /parle fran(c|\u00e7)ais|en fran(c|\u00e7)ais|speak french/i.test(p); }
+
 // La phrase demande-t-elle notre position actuelle ?
 function estQuestionPosition(p) {
   return /o(u|\u00f9) sommes[- ]nous|on est o(u|\u00f9)|nous sommes o(u|\u00f9)|notre position|ma position|o(u|\u00f9) est[- ]on|o(u|\u00f9) on est|dans quel quartier/i.test(p);
@@ -883,6 +1313,12 @@ async function direPosition() {
     if (quartier) phrase += "dans le quartier " + quartier + ", ";
     if (ville) phrase += "a " + ville + ".";
     if (!rue && !quartier && !ville) phrase = "Je vois notre position sur la carte, mais je n'ai pas le nom exact de cette rue.";
+    else {
+      montrerInfo("pip",
+        '<div class="infoLigneTitre"><span class="infoEmoji">\uD83D\uDCCD</span>' +
+        '<div class="infoTitre">Notre position</div></div>' +
+        '<div class="infoTexte">' + (rue ? rue + "<br>" : "") + (quartier ? "Quartier " + quartier + "<br>" : "") + (ville || "") + '</div>');
+    }
     await parlerEtAttendre(phrase);
   } catch (e) {
     await parlerEtAttendre("Je n'arrive pas a joindre le service de cartes pour nommer notre position.");
