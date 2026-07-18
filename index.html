@@ -336,11 +336,11 @@
 <div class="panneau">
   <div class="poignee"></div>
   <div id="statut">Assistant de bord</div>
-  <div id="sousStatut">Active le mode automatique et pose le téléphone.</div>
+  <div id="sousStatut">Appuie sur Démarrer VISION, puis Accueillir à chaque client.</div>
   <div class="boutons">
-    <button id="btnAuto">Mode automatique</button>
+    <button id="btnAuto">▶️ Démarrer VISION</button>
     <button id="btnBye">👋 Fin de course</button>
-    <button id="btnManuel">Accueil manuel</button>
+    <button id="btnManuel">🙋 Accueillir le client</button>
   </div>
 </div>
 
@@ -366,7 +366,6 @@ const MSG_AUREVOIR =
 const DELAI_DEMARRAGE_SEC = 3;
 const DELAI_MI_TRAJET_MIN = 5;
 const PAUSE_ENTRE_CLIENTS_SEC = 90;
-const SEUIL_DETECTION = 2.0;
 const TON_VOIX = 0.55;
 const VITESSE_VOIX = 0.88;
 
@@ -626,20 +625,7 @@ $("btnManuel").onclick = async () => {
 };
 
 // ============ DÉTECTION AUTOMATIQUE ============
-let dX = null, dY = null, dZ = null;
-
-function surMouvement(e) {
-  if (!auto || enCourse) return;
-  const a = e.accelerationIncludingGravity;
-  if (!a || a.x === null) return;
-
-  if (dX !== null) {
-    const delta = Math.abs(a.x - dX) + Math.abs(a.y - dY) + Math.abs(a.z - dZ);
-    const pauseOk = (Date.now() - dernierAccueil) > PAUSE_ENTRE_CLIENTS_SEC * 1000;
-    if (delta > SEUIL_DETECTION && pauseOk) demarrerCourse();
-  }
-  dX = a.x; dY = a.y; dZ = a.z;
-}
+// Capteur de mouvement retire : tout se fait aux boutons ou a la voix.
 
 async function garderEcran() {
   try {
@@ -653,11 +639,6 @@ document.addEventListener("visibilitychange", () => {
 $("btnAuto").onclick = async () => {
   const btn = $("btnAuto");
   if (!auto) {
-    if (typeof DeviceMotionEvent !== "undefined" &&
-        typeof DeviceMotionEvent.requestPermission === "function") {
-      const rep = await DeviceMotionEvent.requestPermission();
-      if (rep !== "granted") { afficher("Permission refusée", "Autorise le capteur de mouvement dans Chrome."); return; }
-    }
     // On ouvre le micro une bonne fois pour toutes (autorisation Chrome)
     try {
       const flux = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -666,19 +647,16 @@ $("btnAuto").onclick = async () => {
       afficher("Micro refuse", "Autorise le microphone (icone cadenas pres de l'adresse) puis reactive le mode automatique.");
       return;
     }
-
-    window.addEventListener("devicemotion", surMouvement);
     await garderEcran();
     demarrerGPS();
     demarrerEcouteNom();
     auto = true;
     ptEtat.classList.add("on");
-    btn.textContent = "Arrêter le mode automatique";
+    btn.textContent = "⏹️ Arrêter VISION";
     btn.classList.add("stop");
-    afficher("Surveillance active", "Pose le téléphone. J'accueille dès qu'un client monte.");
+    afficher("VISION en marche", "Micro ouvert. Dis Vision pour me parler, et appuie sur Accueillir quand un client monte.");
     parler("Système VISION activé. Dites, Vision, pour me parler a tout moment.");
   } else {
-    window.removeEventListener("devicemotion", surMouvement);
     if (wakeLock) { wakeLock.release(); wakeLock = null; }
     arreterGPS();
     arreterEcouteNom();
@@ -687,7 +665,7 @@ $("btnAuto").onclick = async () => {
     clearTimeout(timerMi);
     auto = false; enCourse = false; miDit = false;
     ptEtat.classList.remove("on");
-    btn.textContent = "Mode automatique";
+    btn.textContent = "▶️ Démarrer VISION";
     btn.classList.remove("stop");
     afficher("Système arrêté", "Active le mode automatique et pose le téléphone.");
   }
@@ -904,19 +882,8 @@ async function assistantVocal() {
   } else if (veutFrancais(question)) {
     langueVocale = "fr";
     await parlerEtAttendre("Tres bien, je reparle francais ! Comment puis-je vous aider ?");
-  } else if (estArretVideo(question)) {
-    panneauVideo.classList.remove("ouvert");
-    iframeVideo.src = "";
-    videoActive = -1;
-    await parlerEtAttendre("Video arretee.");
-  } else if (estChangeVideo(question)) {
-    panneauVideo.classList.add("ouvert");
-    chargerVideo(videoActive === -1 ? 0 : (videoActive + 1) % VIDEOS.length);
-    await parlerEtAttendre("Voici une autre video !");
-  } else if (estDemandeVideo(question)) {
-    panneauVideo.classList.add("ouvert");
-    chargerVideo(videoActive === -1 ? 0 : videoActive);
-    await parlerEtAttendre("Voici la video, bon visionnage !");
+  } else if (estParleVideo(question)) {
+    await gererVideo(question);
   } else if (estDemandePriere(question)) {
     await direPriere();
   } else if (estDemandeQuiz(question)) {
@@ -934,19 +901,26 @@ async function assistantVocal() {
   } else if (estDemandeItineraire(question)) {
     await naviguerVers(question);
   } else {
-    // Pour "c'est quoi / qui est", on tente d'abord Wikipedia (a jour), sinon l'IA
-    let reponse = null;
+    // DOUBLE BENEFICE : l'ecran montre la belle carte Wikipedia (avec image),
+    // pendant que la voix lit la reponse de TON IA.
+    let texteWiki = null;
     if (estQuestionDefinition(question)) {
       const sujet = extraireSujet(question);
-      if (sujet) reponse = await chercherWikipedia(sujet);
+      if (sujet) texteWiki = await chercherWikipedia(sujet); // affiche la carte a l'ecran
     }
-    if (!reponse) reponse = await demanderIA(question);
+    const reponse = await demanderIA(question);
     if (reponse) {
-      montrerInfo("bas",
-        '<div class="infoLigneTitre"><span class="infoEmoji">\uD83E\uDD16</span>' +
-        '<div class="infoTitre">VISION</div></div>' +
-        '<div class="infoTexte">' + texteSur(reponse) + '</div>');
+      // Si aucune carte Wikipedia n'est affichee, on montre la reponse de l'IA a l'ecran
+      if (!texteWiki) {
+        montrerInfo("bas",
+          '<div class="infoLigneTitre"><span class="infoEmoji">\uD83E\uDD16</span>' +
+          '<div class="infoTitre">VISION</div></div>' +
+          '<div class="infoTexte">' + texteSur(reponse) + '</div>');
+      }
       await parlerEtAttendre(reponse);
+    } else if (texteWiki) {
+      // IA injoignable : on lit au moins le resume Wikipedia (secours)
+      await parlerEtAttendre(texteWiki);
     } else {
       await parlerEtAttendre("Je n'arrive pas a joindre mon intelligence pour le moment. Reessayez dans un instant.");
     }
@@ -1080,7 +1054,7 @@ async function direMeteo() {
 
 // --- ACTUALITES DU BENIN (via ton mini-worker, flux gratuit) ---
 function estQuestionActu(p) {
-  return /actualit(e|\u00e9)|les nouvelles|infos du jour|quoi de neuf|derni(e|\u00e8)res infos|les titres/i.test(p);
+  return /actualit(e|\u00e9)|les nouvelles|nouvelles du|infos du jour|les infos|quoi de neuf|quoi de nouveau|derni(e|\u00e8)res infos|les titres|google news|les news|la presse/i.test(p);
 }
 
 async function direActus() {
@@ -1113,11 +1087,11 @@ async function direActus() {
 
 // --- WIKIPEDIA (gratuit, a jour) : c'est quoi X ? qui est X ? ---
 function estQuestionDefinition(p) {
-  return /c'est quoi |c est quoi |qu'est[- ]ce que |qui est |qui etait |parle[- ]moi de /i.test(p);
+  return /c'est quoi|c est quoi|qu'est[- ]ce qu|qui est|qui etait|parle[- ]moi d|explique|raconte|d(e|\u00e9)finis|connais[- ]tu|informations sur|histoire d/i.test(p);
 }
 
 function extraireSujet(p) {
-  return p.replace(/c'est quoi|c est quoi|qu'est[- ]ce que|qu'est[- ]ce qu'|qui est|qui etait|parle[- ]moi de|donc|exactement|s'il (te|vous) plait|stp/gi, " ")
+  return p.replace(/c'est quoi|c est quoi|qu'est[- ]ce que|qu'est[- ]ce qu'|qui est|qui etait|parle[- ]moi de|parle[- ]moi du|explique[- ]moi|explique|raconte[- ]moi|raconte|d(e|\u00e9)finis[- ]moi|d(e|\u00e9)finis|connais[- ]tu|informations sur|l'histoire de|l'histoire du|histoire de|histoire du|donc|exactement|s'il (te|vous) plait|stp/gi, " ")
           .replace(/[?!.]/g, " ").replace(/\s+/g, " ").trim();
 }
 
@@ -1276,14 +1250,40 @@ async function direCourses() {
 }
 
 // ============ COMMANDES VIDEO A LA VOIX ============
-function estDemandeVideo(p) {
-  return /je veux (voir |regarder )?(une |la )?vid(e|\u00e9)o|mets (la |une )?vid(e|\u00e9)o|montre (la |une )?vid(e|\u00e9)o|lance (la |une )?vid(e|\u00e9)o|joue (la |une )?vid(e|\u00e9)o/i.test(p);
+// Filet large : DES QUE la phrase parle de video/clip/musique, c'est ce module qui gere (jamais l'IA)
+function estParleVideo(p) {
+  return /vid(e|\u00e9)o|youtube|clip|gospel|chanson|musique/i.test(p);
 }
-function estChangeVideo(p) {
-  return /change de vid(e|\u00e9)o|vid(e|\u00e9)o suivante|autre vid(e|\u00e9)o|clip suivant/i.test(p);
+
+function jouerVideo() {
+  if (iframeVideo.src) {
+    iframeVideo.contentWindow.postMessage(JSON.stringify({ event: "command", func: "playVideo", args: [] }), "*");
+  }
 }
-function estArretVideo(p) {
-  return /arr(e|\u00ea)te (la )?vid(e|\u00e9)o|ferme (la )?vid(e|\u00e9)o|stoppe (la )?vid(e|\u00e9)o|coupe (la )?vid(e|\u00e9)o|enl(e|\u00e8)ve (la )?vid(e|\u00e9)o/i.test(p);
+
+async function gererVideo(q) {
+  const p = q.toLowerCase();
+  if (/arr(e|\u00ea)te|ferme|stoppe|coupe|enl(e|\u00e8)ve|(e|\u00e9)teins/.test(p)) {
+    panneauVideo.classList.remove("ouvert");
+    iframeVideo.src = "";
+    videoActive = -1;
+    await parlerEtAttendre("Video arretee.");
+  } else if (/pause|attends/.test(p)) {
+    pauserVideo();
+    await parlerEtAttendre("Video en pause. Dites, Vision, continue la video, pour reprendre.");
+  } else if (/continue|reprend|relance|remets|play/.test(p)) {
+    if (videoActive === -1) { panneauVideo.classList.add("ouvert"); chargerVideo(0); }
+    else { panneauVideo.classList.add("ouvert"); jouerVideo(); }
+    await parlerEtAttendre("C'est reparti !");
+  } else if (/change|suivant|autre/.test(p)) {
+    panneauVideo.classList.add("ouvert");
+    chargerVideo(videoActive === -1 ? 0 : (videoActive + 1) % VIDEOS.length);
+    await parlerEtAttendre("Voici une autre video !");
+  } else {
+    panneauVideo.classList.add("ouvert");
+    chargerVideo(videoActive === -1 ? 0 : videoActive);
+    await parlerEtAttendre("Voici la video, bon visionnage !");
+  }
 }
 
 // ============ CHANGEMENT DE LANGUE ============
