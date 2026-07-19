@@ -741,6 +741,7 @@ $("btnAuto").onclick = async () => {
 // ============ CONVERSATION VOCALE (invisible, tout en voix) ============
 const Reco = window.SpeechRecognition || window.webkitSpeechRecognition;
 let enConversation = false;
+let enSequence = false; // (variable manquante : provoquait un plantage silencieux un peu partout)
 
 let hotwordPause = false;
 
@@ -783,15 +784,19 @@ function lancerEcouteNom() {
   };
 
   ecouteNom.onresult = e => {
-    if (enConversation || enSequence || hotwordPause || speechSynthesis.speaking) return;
-    for (let i = e.resultIndex; i < e.results.length; i++) {
-      const t = e.results[i][0].transcript.toLowerCase();
-      // "vision" mais aussi les mots proches que le micro croit entendre
-      if (/vision|visio|vizion|virgin/.test(t)) {
-        try { ecouteNom.stop(); } catch (err) {}
-        assistantVocal();
-        return;
+    try {
+      if (enConversation || enSequence || hotwordPause || speechSynthesis.speaking) return;
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const t = e.results[i][0].transcript.toLowerCase();
+        // "vision" mais aussi les mots proches que le micro croit entendre
+        if (/vision|visio|vizion|virgin/.test(t)) {
+          try { ecouteNom.stop(); } catch (err) {}
+          assistantVocal();
+          return;
+        }
       }
+    } catch (err) {
+      console.error("Erreur ecoute du nom:", err);
     }
   };
 
@@ -955,24 +960,31 @@ async function assistantVocal() {
   enConversation = true;
   btnMicIA.classList.add("ecoute");
 
-  await parlerEtAttendre(langueVocale === "en" ? "I am listening!" : "Je vous ecoute !");
-  etat.textContent = "\uD83D\uDC42 Parlez maintenant...";
-  const question = await ecouterUneFois();
+  try {
+    await parlerEtAttendre(langueVocale === "en" ? "I am listening!" : "Je vous ecoute !");
+    afficher("VISION vous ecoute", "\uD83D\uDC42 Parlez maintenant...");
+    const question = await ecouterUneFois();
 
-  if (!question) {
-    await parlerEtAttendre(langueVocale === "en" ? "Sorry, I did not hear you well." : "Pardon, je n'ai pas bien entendu.");
-  } else {
-    compris.textContent = "\u00AB " + question + " \u00BB";
-    await traiterQuestion(question);
+    if (!question) {
+      await parlerEtAttendre(langueVocale === "en" ? "Sorry, I did not hear you well." : "Pardon, je n'ai pas bien entendu.");
+    } else {
+      afficher("VISION a compris", "\u00AB " + question + " \u00BB");
+      await traiterQuestion(question);
+    }
+  } catch (e) {
+    console.error("Erreur assistantVocal:", e);
+  } finally {
+    // Ce bloc s'execute TOUJOURS, meme en cas d'erreur : le bouton ne reste
+    // plus jamais bloque en mode "ecoute" fantome.
+    btnMicIA.classList.remove("ecoute");
+    enConversation = false;
+    afficher(auto ? "VISION en marche" : "Assistant de bord",
+             auto ? "Micro ouvert. Dis Vision pour me parler." : "");
+    // L'ecoute du nom reprend toute seule
+    if (ecouteNomActive && !hotwordPause) setTimeout(lancerEcouteNom, 800);
+    // Quelques secondes apres, VISION affiche une notification silencieuse
+    programmerNotif(8000);
   }
-
-  compris.textContent = "";
-  btnMicIA.classList.remove("ecoute");
-  enConversation = false;
-  // L'ecoute du nom reprend toute seule
-  if (ecouteNomActive && !hotwordPause) setTimeout(lancerEcouteNom, 800);
-  // Quelques secondes apres, VISION affiche une notification silencieuse
-  programmerNotif(8000);
 }
 
 btnMicIA.onclick = assistantVocal;
