@@ -217,6 +217,11 @@
     border-radius: 12px; overflow: hidden;
     background: #000;
   }
+  .cadreVideo.pageWeb {
+    aspect-ratio: auto;
+    height: min(440px, 58vh);
+    background: #fff;
+  }
   .cadreVideo iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
   .chipsVideo { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
   .chipsVideo button {
@@ -257,48 +262,52 @@
     padding: 3px 0;
   }
 
-  /* ---------- BANDEAU ACTUALITES (style Google News) ---------- */
-  #panneauActus {
+  /* ---------- ECRAN-BOUTON (toucher n'importe ou pour ouvrir) ---------- */
+  #toucheOuvrir {
+    position: fixed; inset: 0;
+    background: rgba(10, 18, 33, .82);
+    z-index: 30;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    cursor: pointer;
+    color: #fff;
+  }
+  #toucheOuvrir.ouvert { display: flex; }
+  #toucheOuvrir .toEmoji { font-size: 74px; animation: pulseTouche 1.2s infinite; }
+  #toucheOuvrir .toTitre { font-size: 22px; font-weight: 800; margin-top: 14px; }
+  #toucheOuvrir .toSous { font-size: 14px; color: #B8C8E0; margin-top: 6px; }
+  @keyframes pulseTouche {
+    0%,100% { transform: scale(1); }
+    50%     { transform: scale(1.12); }
+  }
+
+  /* ---------- TOAST VERSET (haut droite, 8 secondes) ---------- */
+  #notifVerset {
     position: fixed;
-    top: 0; left: 0; right: 0;
-    height: 36vh; min-height: 270px;
-    background: #fff;
-    border-radius: 0 0 22px 22px;
-    box-shadow: 0 12px 40px rgba(27,36,48,.3);
-    z-index: 14;
-    transform: translateY(-105%);
-    transition: transform .5s cubic-bezier(.2,.8,.2,1);
-    display: flex; flex-direction: column;
+    top: 110px; right: 12px;
+    width: min(300px, calc(100vw - 24px));
+    background: #FFFDF4;
+    border: 1px solid #E8D284;
+    border-left: 5px solid #C9A227;
+    border-radius: 14px;
+    box-shadow: 0 8px 26px rgba(27,36,48,.22);
+    padding: 12px 14px;
+    z-index: 13;
+    transform: translateX(115%);
+    opacity: 0;
+    transition: transform .45s cubic-bezier(.2,.8,.2,1), opacity .4s;
+    pointer-events: none;
   }
-  #panneauActus.ouvert { transform: translateY(0); }
-  .actusHaut {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 12px 16px 8px;
+  #notifVerset.ouvert { transform: translateX(0); opacity: 1; }
+  #notifVerset .vTexte {
+    font-size: 12.5px; font-style: italic; color: #4A3F1E; line-height: 1.45;
   }
-  .actusHaut b { font-size: 16px; }
-  #fermerActus {
-    width: 34px; height: 34px; border-radius: 50%;
-    border: none; background: #EEF2F7; color: var(--encre);
-    font-size: 15px; font-weight: 800; cursor: pointer; padding: 0;
-  }
-  #listeActus { flex: 1; overflow-y: auto; padding: 0 16px; }
-  .actuItem {
-    display: flex; gap: 12px; align-items: flex-start;
-    padding: 10px 0; border-bottom: 1px solid #EEF2F7;
-  }
-  .actuItem img { width: 22px; height: 22px; border-radius: 6px; margin-top: 3px; }
-  .actuSource { font-size: 11.5px; color: var(--gris); font-weight: 700; }
-  a.actuTitre {
-    font-size: 13.5px; font-weight: 700; line-height: 1.35;
-    color: var(--encre); text-decoration: none; display: block; margin-top: 1px;
-  }
-  .actuDate { font-size: 11px; color: #9AA6B3; margin-top: 2px; }
-  .actusPied { padding: 10px 16px 14px; }
-  .actusPied a {
-    display: block; text-align: center;
-    background: #EEF2F7; border-radius: 12px; padding: 12px;
-    font-weight: 800; font-size: 14px;
-    color: var(--route); text-decoration: none;
+  #notifVerset .vRef {
+    font-size: 11.5px; font-weight: 800; color: #C9A227;
+    margin-top: 5px; text-align: right;
   }
 
   /* ---------- CARTE D'INFORMATION (resultats jolis) ---------- */
@@ -366,11 +375,9 @@
 
 <button id="btnVideo" title="Vidéos"><svg viewBox="0 0 24 24" width="27" height="27" fill="none" stroke="#1B2430" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="3"/><polygon points="10 9 15 12 10 15" fill="#1B2430" stroke="none"/></svg></button>
 
-<div id="panneauActus">
-  <div class="actusHaut"><b>📰 Actualités</b><button id="fermerActus">✕</button></div>
-  <div id="listeActus"></div>
-  <div class="actusPied"><a id="lienPlusActus" href="https://news.google.com/?hl=fr" target="_blank" rel="noopener">Voir plus de titres et de points de vue</a></div>
-</div>
+<div id="toucheOuvrir"></div>
+
+<div id="notifVerset"></div>
 
 <div id="infoCarte"></div>
 
@@ -392,6 +399,11 @@
     <button id="btnBye">👋 Fin de course</button>
     <button id="btnManuel">🙋 Accueillir le client</button>
   </div>
+  <label style="display:block;font-size:12.5px;color:var(--gris);font-weight:700;margin:14px 2px 5px">
+    📱 WhatsApp du chauffeur (reste uniquement sur ce téléphone)
+  </label>
+  <input type="tel" id="numWhatsapp" placeholder="Ex : 22997000000"
+    style="width:100%;padding:13px;border-radius:12px;border:1.5px solid #DDE3EA;font-family:inherit;font-size:14.5px;font-weight:700">
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -647,6 +659,7 @@ function demarrerCourse() {
       // Si rien compris : on n'insiste pas, les boutons restent la en secours.
     }
 
+    programmerNotif(20000); // notification silencieuse apres l'accueil
   }, DELAI_DEMARRAGE_SEC * 1000);
 }
 
@@ -659,6 +672,7 @@ $("btnBye").onclick = () => {
   miDit = false;
   dernierAccueil = Date.now();
   afficher("Course terminée", auto ? "Prêt pour le prochain client." : "Mode automatique arrêté.");
+  programmerNotif(12000); // notification silencieuse apres l'au revoir
 };
 
 $("btnManuel").onclick = async () => {
@@ -706,10 +720,14 @@ $("btnAuto").onclick = async () => {
     btn.classList.add("stop");
     afficher("VISION en marche", "Micro ouvert. Dis Vision pour me parler, et appuie sur Accueillir quand un client monte.");
     parler("Système VISION activé. Dites, Vision, pour me parler a tout moment.");
+    programmerNotif(15000); // premiere notification silencieuse peu apres
+    demarrerVersets(); // un verset d'encouragement chaque minute
   } else {
     if (wakeLock) { wakeLock.release(); wakeLock = null; }
     arreterGPS();
     arreterEcouteNom();
+    clearTimeout(timerNotif);
+    arreterVersets();
     speechSynthesis.cancel();
     clearTimeout(timerDemarrage);
     clearTimeout(timerMi);
@@ -720,10 +738,6 @@ $("btnAuto").onclick = async () => {
     afficher("Système arrêté", "Active le mode automatique et pose le téléphone.");
   }
 };
-// ============ TON IA (Worker Cloudflare) ============
-// Mets ici l'URL de ton Worker (voir le fichier worker-vision-taxi.js)
-const WORKER_URL = "https://vision-ia.lokononisaac0.workers.dev";
-
 // ============ CONVERSATION VOCALE (invisible, tout en voix) ============
 const Reco = window.SpeechRecognition || window.webkitSpeechRecognition;
 let enConversation = false;
@@ -836,88 +850,101 @@ function parlerEtAttendre(texte) {
   });
 }
 
-function lireReponseIA(data) {
-  if (!data) return null;
-  if (typeof data === "string") return data.trim() || null;
-  const t = data.reponse || data.response || data.answer || data.text || data.message ||
-            (data.result && (data.result.response || data.result.text)) ||
-            (data.choices && data.choices[0] && (data.choices[0].text ||
-              (data.choices[0].message && data.choices[0].message.content)));
-  return t ? String(t).trim() : null;
-}
-
-async function essaiIA(corps) {
-  const ctrl = new AbortController();
-  const chrono = setTimeout(() => ctrl.abort(), 15000);
-  try {
-    const rep = await fetch(WORKER_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(corps),
-      signal: ctrl.signal
-    });
-    clearTimeout(chrono);
-    if (!rep.ok) return null;
-    const data = await rep.json().catch(() => null);
-    return lireReponseIA(data);
-  } catch (e) {
-    clearTimeout(chrono);
-    return null;
-  }
-}
-
-async function demanderIA(question, contexte) {
-  const maintenant = new Date();
-  const dateDuJour = maintenant.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
-
-  if (langueVocale === "en") {
-    const consigneEN = "You are VISION, the professional voice assistant of a taxi in Cotonou, Benin. Today is " + dateDuJour + ". " +
-      "IMPORTANT: you can and must talk about ALL topics worldwide: France, Europe, Africa, history, geography, sports, culture, science, famous people, everything. " +
-      "You are NEVER limited to car or Benin topics. Never refuse a question by saying you are only a vehicle assistant: always answer with pleasure. " +
-      "Answer in English, in 3 to 6 sentences: confident, warm, precise, as your answer will be read aloud. " +
-      "Never talk about your limitations, your training date, or being an AI, unless directly asked. " +
-      "Only state facts you are sure of; if you lack a fact, say simply that you do not have that information, then share what you do know. " +
-      (contexte ? "TODAY'S PRESS HEADLINES you can rely on as current facts: " + contexte + ". " : "") +
-      "Passenger question: ";
-    const formatsEN = [
-      { message: consigneEN + question },
-      { messages: [{ role: "user", content: consigneEN + question }] },
-      { prompt: consigneEN + question }
-    ];
-    for (const corps of formatsEN) {
-      const texte = await essaiIA(corps);
-      if (texte) return texte;
-    }
-    return null;
-  }
-
-  const consigne = "Tu es VISION, l'assistant vocal professionnel d'un taxi a Cotonou au Benin. " +
-    "Nous sommes le " + dateDuJour + ". " +
-    "IMPORTANT : tu peux et tu dois parler de TOUS les sujets du monde entier : la France, l'Europe, l'Afrique, l'histoire, la geographie, le sport, la culture, les sciences, les personnalites, tout. " +
-    "Tu n'es JAMAIS limite aux sujets de la voiture ou du Benin. Ne refuse jamais une question en disant que tu es seulement un assistant de vehicule : reponds toujours a la question posee, avec plaisir. " +
-    "Reponds en francais, en 3 a 6 phrases : assure, chaleureux, precis et complet, car ta reponse sera lue a voix haute. " +
-    "Ne parle JAMAIS de tes limites, de ta date d'entrainement, ou du fait que tu es une intelligence artificielle, sauf si on te le demande directement. " +
-    "REGLE ABSOLUE : ne donne que des faits dont tu es sur. S'il te manque une information, dis simplement en une phrase que tu ne l'as pas, puis partage ce que tu sais. " +
-    (contexte ? "TITRES DE PRESSE DU JOUR, que tu peux utiliser comme faits actuels et recents : " + contexte + ". " : "") +
-    "Reperes exacts a respecter : la statue de l'Amazone de Cotonou, haute de 30 metres, a ete inauguree en 2022 sous le president Patrice Talon (et non sous Kerekou). " +
-    "Cotonou est la capitale economique du Benin, avec sa lagune, le marche Dantokpa (l'un des plus grands d'Afrique de l'Ouest), et ses quartiers : Gbegamey, Akpakpa, Cadjehoun, Fidjrosse, Zongo, Sainte-Rita, Agla, Houeyiho, Menontin, Vodje, Gbedegbe. " +
-    "Question du passager : ";
-
-  // On essaie les formats les plus courants, l'un apres l'autre
-  const formats = [
-    { message: consigne + question },
-    { messages: [{ role: "user", content: consigne + question }] },
-    { prompt: consigne + question },
-    { question: consigne + question }
-  ];
-  for (const corps of formats) {
-    const texte = await essaiIA(corps);
-    if (texte) return texte;
-  }
-  return null;
-}
+// (IA distante retiree : VISION repond avec son cerveau local embarque)
 
 const btnMicIA = document.getElementById("btnMicIA");
+
+// ============ LE CERVEAU LOCAL DE VISION (aucun serveur) ============
+function repondreLocal(phrase) {
+  const p = phrase.toLowerCase();
+
+  if (p.includes("heure") || p.includes("quel jour")) return "{heure}.";
+  if (p.includes("blague") || p.includes("rire") || p.includes("drole") || p.includes("dr\u00f4le")) {
+    return BLAGUES[Math.floor(Math.random() * BLAGUES.length)];
+  }
+  if (p.includes("verset") || p.includes("bible") || p.includes("parole")) {
+    const v = VERSETS_NOTIF[Math.floor(Math.random() * VERSETS_NOTIF.length)];
+    return v.t + " " + v.r + ".";
+  }
+  if (p.includes("sant\u00e9") || p.includes("sante") || p.includes("conseil") || p.includes("astuce")) {
+    return duJour(ASTUCES_SANTE);
+  }
+  if (p.includes("bonjour") || p.includes("salut") || p.includes("bonsoir")) {
+    return "{salutation} ! Ravi de vous accueillir a bord. Bonne route !";
+  }
+  if (p.includes("\u00e7a va") || p.includes("ca va") || p.includes("comment vas")) {
+    return "Je vais tres bien, moteur au top ! Et vous, pret pour la route ?";
+  }
+  if (p.includes("qui es") || p.includes("tu es qui") || p.includes("ton nom")) {
+    return "Je suis VISION, l'assistant de bord de ce vehicule. Je veille sur vos trajets !";
+  }
+  if (p.includes("merci")) return "Avec plaisir ! Bonne route et que Dieu vous garde.";
+  if (p.includes("au revoir") || p.includes("bye") || p.includes("bient\u00f4t") || p.includes("bientot")) {
+    return "Au revoir, a tres bientot ! Prudence sur la route.";
+  }
+  if (p.includes("ceinture")) return "La ceinture sauve des vies ! Attachez-la avant de demarrer.";
+
+  return "Je ne connais pas encore cette question. Essayez : quelle heure il est, un verset, une astuce sante, une blague, la meteo, le taux du dollar, ou dites : emmene-moi a, suivi d'un lieu.";
+}
+
+// Traite une question et repond.
+async function traiterQuestion(question) {
+  if (veutAnglais(question)) {
+    langueVocale = "en";
+    await parlerEtAttendre("Alright! I will speak English. I can tell the time, the weather, or guide you to a place.");
+    return;
+  } else if (veutFrancais(question)) {
+    langueVocale = "fr";
+    await parlerEtAttendre("Tres bien, je reparle francais ! Comment puis-je vous aider ?");
+    return;
+  } else if (estDemandeWhatsapp(question)) {
+    await ouvrirWhatsapp();
+    return;
+  } else if (chercherSitePip(question)) {
+    const site = chercherSitePip(question);
+    if (/ferme|arr(e|\u00ea)te|coupe|enl(e|\u00e8)ve|quitte/i.test(question)) {
+      panneauVideo.classList.remove("ouvert");
+      document.querySelector(".cadreVideo").classList.remove("pageWeb");
+      iframeVideo.src = "";
+      await parlerEtAttendre(site.nom + " est ferme.");
+    } else {
+      await ouvrirSitePip(site);
+    }
+    return;
+  } else if (estParleVideo(question)) {
+    await gererVideo(question);
+    return;
+  } else if (estDemandePriere(question)) {
+    await direPriere();
+    return;
+  } else if (estDemandeQuiz(question)) {
+    await lancerQuiz();
+    return;
+  } else if (estQuestionChange(question)) {
+    await direChange(question);
+    return;
+  } else if (estQuestionCourses(question)) {
+    await direCourses();
+    return;
+  } else if (estQuestionPosition(question)) {
+    await direPosition();
+    return;
+  } else if (estQuestionMeteo(question)) {
+    await direMeteo();
+    return;
+  } else if (estDemandeItineraire(question)) {
+    await naviguerVers(question);
+    return;
+  }
+
+  // Le cerveau local repond, et l'ecran affiche la reponse
+  const reponse = repondreLocal(question);
+  montrerInfo("bas",
+    '<div class="infoLigneTitre"><span class="infoEmoji">\uD83E\uDD16</span>' +
+    '<div class="infoTitre">VISION</div></div>' +
+    '<div class="infoTexte">' + texteSur(traiter(reponse)) + '</div>');
+  await parlerEtAttendre(reponse);
+}
 
 async function assistantVocal() {
   if (enConversation) return;
@@ -929,77 +956,23 @@ async function assistantVocal() {
   btnMicIA.classList.add("ecoute");
 
   await parlerEtAttendre(langueVocale === "en" ? "I am listening!" : "Je vous ecoute !");
+  etat.textContent = "\uD83D\uDC42 Parlez maintenant...";
   const question = await ecouterUneFois();
 
   if (!question) {
     await parlerEtAttendre(langueVocale === "en" ? "Sorry, I did not hear you well." : "Pardon, je n'ai pas bien entendu.");
-  } else if (veutAnglais(question)) {
-    langueVocale = "en";
-    await parlerEtAttendre("Alright! I will speak English from now on. How can I help you?");
-  } else if (veutFrancais(question)) {
-    langueVocale = "fr";
-    await parlerEtAttendre("Tres bien, je reparle francais ! Comment puis-je vous aider ?");
-  } else if (estParleVideo(question)) {
-    await gererVideo(question);
-  } else if (estDemandePriere(question)) {
-    await direPriere();
-  } else if (estDemandeQuiz(question)) {
-    await lancerQuiz();
-  } else if (estQuestionChange(question)) {
-    await direChange(question);
-  } else if (estQuestionCourses(question)) {
-    await direCourses();
-  } else if (estQuestionPosition(question)) {
-    await direPosition();
-  } else if (estQuestionMeteo(question)) {
-    await direMeteo();
-  } else if (estQuestionActu(question)) {
-    await direActus(question);
-  } else if (estDemandeItineraire(question)) {
-    await naviguerVers(question);
   } else {
-    // LA VOIX = TON IA. L'ECRAN = le panneau Google News sur le sujet (toujours du visuel).
-    let promesseArticles = null;
-    const sujetVisuel = extraireSujetActu(question);
-    if (sujetVisuel) {
-      // La recherche part EN PARALLELE pendant que l'IA reflechit
-      promesseArticles = construirePanneauActus(sujetVisuel);
-    }
-
-    // On attend les resultats de presse pour les donner a l'IA (elle devient a jour !)
-    let articles = null;
-    if (promesseArticles) articles = await promesseArticles;
-    let contextePresse = "";
-    if (articles && articles.length) {
-      contextePresse = articles.slice(0, 4).map(a => (a.titre || "").replace(/ - [^-]+$/, "")).join(" | ");
-    }
-
-    const reponse = await demanderIA(question, contextePresse);
-    if (reponse) {
-      // Pas de panneau de resultats ? On montre la reponse ecrite de l'IA.
-      if (!promesseArticles) {
-        montrerInfo("bas",
-          '<div class="infoLigneTitre"><span class="infoEmoji">\uD83E\uDD16</span>' +
-          '<div class="infoTitre">VISION</div></div>' +
-          '<div class="infoTexte">' + texteSur(reponse) + '</div>');
-      }
-      await parlerEtAttendre(reponse);
-    } else {
-      // IA injoignable : secours = lire les titres de la presse sur le sujet
-      if (articles && articles.length) {
-        let phrase = "Mon intelligence est injoignable, mais voici ce que dit la presse sur " + sujetVisuel + ". ";
-        articles.slice(0, 2).forEach(a => { phrase += (a.titre || "").replace(/ - [^-]+$/, "") + ". "; });
-        await parlerEtAttendre(phrase);
-      } else {
-        await parlerEtAttendre("Je n'arrive pas a joindre mon intelligence pour le moment. Reessayez dans un instant.");
-      }
-    }
+    compris.textContent = "\u00AB " + question + " \u00BB";
+    await traiterQuestion(question);
   }
 
+  compris.textContent = "";
   btnMicIA.classList.remove("ecoute");
   enConversation = false;
   // L'ecoute du nom reprend toute seule
   if (ecouteNomActive && !hotwordPause) setTimeout(lancerEcouteNom, 800);
+  // Quelques secondes apres, VISION affiche une notification silencieuse
+  programmerNotif(8000);
 }
 
 btnMicIA.onclick = assistantVocal;
@@ -1018,6 +991,7 @@ const iframeVideo = document.getElementById("iframeVideo");
 let videoActive = -1;
 
 function chargerVideo(i) {
+  document.querySelector(".cadreVideo").classList.remove("pageWeb");
   videoActive = i;
   // autoplay=1 : la video demarre toute seule, sans appuyer sur lecture
   iframeVideo.src = "https://www.youtube-nocookie.com/embed/" + VIDEOS[i].id +
@@ -1032,6 +1006,7 @@ function pauserVideo() {
 
 document.getElementById("fermerVideo").onclick = () => {
   panneauVideo.classList.remove("ouvert");
+  document.querySelector(".cadreVideo").classList.remove("pageWeb");
   iframeVideo.src = ""; // coupe le son en fermant
   videoActive = -1;
 };
@@ -1084,8 +1059,6 @@ function effacerNavigation() {
 
 // ============ SOURCES REELLES ET GRATUITES (sans cle API) ============
 
-// URL de ton mini-worker actus (fichier worker-vision-actu.js). Laisse vide si pas encore deploye.
-const URL_ACTU = "https://vision-actu.lokononisaac0.workers.dev";
 
 // --- METEO REELLE (Open-Meteo, libre et gratuit) ---
 function estQuestionMeteo(p) {
@@ -1098,124 +1071,72 @@ const TEMPS_METEO = {
   80:"averses legeres",81:"averses",82:"fortes averses",95:"orage",96:"orage avec grele",99:"violent orage"
 };
 
-async function direMeteo() {
+const EMOJI_METEO = { 0:"\u2600\uFE0F",1:"\uD83C\uDF24\uFE0F",2:"\u26C5",3:"\u2601\uFE0F",45:"\uD83C\uDF2B\uFE0F",48:"\uD83C\uDF2B\uFE0F",
+  51:"\uD83C\uDF26\uFE0F",53:"\uD83C\uDF27\uFE0F",55:"\uD83C\uDF27\uFE0F",61:"\uD83C\uDF26\uFE0F",63:"\uD83C\uDF27\uFE0F",65:"\uD83C\uDF27\uFE0F",
+  80:"\uD83C\uDF26\uFE0F",81:"\uD83C\uDF27\uFE0F",82:"\u26C8\uFE0F",95:"\u26C8\uFE0F",96:"\u26C8\uFE0F",99:"\u26C8\uFE0F" };
+
+async function obtenirMeteo() {
   const pos = dernierePos || { lat: 6.3703, lng: 2.3912 }; // Cotonou par defaut
+  const rep = await fetch("https://api.open-meteo.com/v1/forecast?latitude=" + pos.lat +
+    "&longitude=" + pos.lng + "&current=temperature_2m,weather_code,wind_speed_10m&timezone=auto");
+  const data = await rep.json();
+  const c = data.current;
+  return {
+    temp: Math.round(c.temperature_2m),
+    vent: Math.round(c.wind_speed_10m),
+    desc: TEMPS_METEO[c.weather_code] || "temps variable",
+    emoji: EMOJI_METEO[c.weather_code] || "\uD83C\uDF24\uFE0F"
+  };
+}
+
+function afficherCarteMeteo(mto) {
+  montrerInfo("pip",
+    '<div class="infoLigneTitre"><span class="infoEmoji">' + mto.emoji + '</span>' +
+    '<div><div class="infoGrand">' + mto.temp + '\u00B0C</div>' +
+    '<div class="infoTitre">' + mto.desc.charAt(0).toUpperCase() + mto.desc.slice(1) + '</div></div></div>' +
+    '<div class="infoTexte">\uD83D\uDCA8 Vent : ' + mto.vent + ' km/h \u00B7 \uD83D\uDCCD Position actuelle</div>');
+}
+
+// Quand ON LUI DEMANDE : elle montre ET elle parle
+async function direMeteo() {
   try {
-    const rep = await fetch("https://api.open-meteo.com/v1/forecast?latitude=" + pos.lat +
-      "&longitude=" + pos.lng + "&current=temperature_2m,weather_code,wind_speed_10m&timezone=auto");
-    const data = await rep.json();
-    const c = data.current;
-    const desc = TEMPS_METEO[c.weather_code] || "temps variable";
-    const EMOJI = { 0:"\u2600\uFE0F",1:"\uD83C\uDF24\uFE0F",2:"\u26C5",3:"\u2601\uFE0F",45:"\uD83C\uDF2B\uFE0F",48:"\uD83C\uDF2B\uFE0F",
-      51:"\uD83C\uDF26\uFE0F",53:"\uD83C\uDF27\uFE0F",55:"\uD83C\uDF27\uFE0F",61:"\uD83C\uDF26\uFE0F",63:"\uD83C\uDF27\uFE0F",65:"\uD83C\uDF27\uFE0F",
-      80:"\uD83C\uDF26\uFE0F",81:"\uD83C\uDF27\uFE0F",82:"\u26C8\uFE0F",95:"\u26C8\uFE0F",96:"\u26C8\uFE0F",99:"\u26C8\uFE0F" };
-    montrerInfo("pip",
-      '<div class="infoLigneTitre"><span class="infoEmoji">' + (EMOJI[c.weather_code] || "\uD83C\uDF24\uFE0F") + '</span>' +
-      '<div><div class="infoGrand">' + Math.round(c.temperature_2m) + '\u00B0C</div>' +
-      '<div class="infoTitre">' + desc.charAt(0).toUpperCase() + desc.slice(1) + '</div></div></div>' +
-      '<div class="infoTexte">\uD83D\uDCA8 Vent : ' + Math.round(c.wind_speed_10m) + ' km/h \u00B7 \uD83D\uDCCD Position actuelle</div>');
-    await parlerEtAttendre("En ce moment, il fait " + Math.round(c.temperature_2m) +
-      " degres, avec un " + desc + ", et un vent d'environ " + Math.round(c.wind_speed_10m) +
+    const mto = await obtenirMeteo();
+    afficherCarteMeteo(mto);
+    await parlerEtAttendre("En ce moment, il fait " + mto.temp +
+      " degres, avec un " + mto.desc + ", et un vent d'environ " + mto.vent +
       " kilometres heure.");
   } catch (e) {
     await parlerEtAttendre("Je n'arrive pas a joindre le service meteo pour le moment.");
   }
 }
 
-// --- ACTUALITES DU BENIN (via ton mini-worker, flux gratuit) ---
-function estQuestionActu(p) {
-  return /actualit(e|\u00e9)|les nouvelles|nouvelles du|infos du jour|les infos|quoi de neuf|quoi de nouveau|derni(e|\u00e8)res infos|les titres|google news|les news|la presse|montre[- ]moi/i.test(p);
+// ============ NOTIFICATIONS SILENCIEUSES ============
+// VISION affiche d'elle-meme des infos a l'ecran, SANS parler.
+let timerNotif = null;
+
+function programmerNotif(ms) {
+  clearTimeout(timerNotif);
+  timerNotif = setTimeout(notifSilencieuse, ms);
 }
 
-// Le sujet demande : "les actualites sur le football" -> "football", sinon Benin
-function extraireSujetActu(q) {
-  const m = (q || "").toLowerCase()
-    // Les tournures de phrases (on garde seulement le SUJET)
-    .replace(/parle[- ]?(moi|nous)?|raconte[- ]?(moi|nous)?|explique[- ]?(moi|nous)?|c'est quoi|c est quoi|qu'est[- ]ce que?|qui est|qui etait|qui \u00e9tait|peux[- ]tu|sais[- ]tu|connais[- ]tu|est[- ]ce que?|comment|pourquoi|donne[- ]moi|montre[- ]moi|dis[- ]moi|je veux (voir|savoir|conna(i|\u00ee)tre)?|j'aimerais|informations?/gi, " ")
-    // Les mots de commande actus
-    .replace(/vision|actualit(e|\u00e9)s?|nouvelles|infos?|titres|news|google|quoi de neuf|quoi de nouveau|du jour|derni(e|\u00e8)res|la presse|s'il (te|vous) pla(i|\u00ee)t|stp|merci/gi, " ")
-    // Les petits mots de liaison
-    .replace(/\b(sur|de|du|des|d'|l'|le|la|les|un|une|au|aux|en|a|\u00e0|propos|concernant|situation|histoire|\u00e7a|ca|va|bien|tr(e|\u00e8)s|toi|tu|vous|moi|nous|ton|ta|tes|mon|ma|mes|oui|non|bonjour|bonsoir|salut)\b/gi, " ")
-    .replace(/[?!.,]/g, " ").replace(/\s+/g, " ").trim();
-  // Renvoie le sujet trouve, ou rien du tout si la phrase n'en contient pas
-  return m.length > 2 ? m : "";
-}
-
-function tempsRelatif(dateTexte) {
-  const d = new Date(dateTexte);
-  if (isNaN(d)) return "";
-  const min = Math.round((Date.now() - d.getTime()) / 60000);
-  if (min < 60) return "Il y a " + min + " min";
-  const h = Math.round(min / 60);
-  if (h < 24) return "Il y a " + h + " heure" + (h > 1 ? "s" : "");
-  return "Il y a " + Math.round(h / 24) + " jour" + (h >= 48 ? "s" : "");
-}
-
-function fermerActus() {
-  document.getElementById("panneauActus").classList.remove("ouvert");
-}
-document.getElementById("fermerActus").onclick = fermerActus;
-
-// Construit et ouvre le panneau de resultats pour N'IMPORTE QUEL sujet.
-// Renvoie les articles trouves (ou null si service injoignable).
-async function construirePanneauActus(sujet) {
-  if (!URL_ACTU) return null;
-  try {
-    const rep = await fetch(URL_ACTU + "?q=" + encodeURIComponent(sujet));
-    const data = await rep.json();
-    const articles = data.articles || (data.titres || []).map(t => ({ titre: t }));
-
-    if (articles.length) {
-      // Construire le bandeau style Google News
-      let lignes = "";
-      articles.slice(0, 8).forEach(a => {
-        let domaine = "";
-        try { domaine = a.urlSource ? new URL(a.urlSource).hostname : ""; } catch (e) {}
-        const favicon = domaine
-          ? '<img src="https://www.google.com/s2/favicons?domain=' + domaine + '&sz=64" alt="">'
-          : '<img src="https://www.google.com/s2/favicons?domain=news.google.com&sz=64" alt="">';
-        lignes +=
-          '<div class="actuItem">' + favicon + '<div>' +
-          (a.source ? '<div class="actuSource">' + texteSur(a.source) + '</div>' : "") +
-          '<a class="actuTitre" href="' + (a.lien || "#") + '" target="_blank" rel="noopener">' +
-          texteSur((a.titre || "").replace(/ - [^-]+$/, "")) + '</a>' +
-          (a.date ? '<div class="actuDate">' + tempsRelatif(a.date) + '</div>' : "") +
-          '</div></div>';
-      });
-      document.getElementById("listeActus").innerHTML = lignes;
-      document.querySelector("#panneauActus .actusHaut b").textContent =
-        "\uD83D\uDCF0 Actualit\u00e9s : " + sujet.charAt(0).toUpperCase() + sujet.slice(1);
-      document.getElementById("lienPlusActus").href =
-        "https://news.google.com/search?q=" + encodeURIComponent(sujet) + "&hl=fr";
-      document.getElementById("panneauActus").classList.add("ouvert");
-    }
-    return articles;
-  } catch (e) {
-    return null;
-  }
-}
-
-// La commande vocale "actualites" : le panneau + la lecture des titres
-async function direActus(question) {
-  if (!URL_ACTU) {
-    await parlerEtAttendre("Le service d'actualites n'est pas encore active sur ce vehicule.");
+async function notifSilencieuse() {
+  if (!auto) return; // seulement quand VISION est en marche
+  // Jamais pendant qu'elle parle ou ecoute : on repousse
+  if (speechSynthesis.speaking || enConversation || enSequence ||
+      notifVerset.classList.contains("ouvert")) {
+    programmerNotif(30000);
     return;
   }
-  const sujet = extraireSujetActu(question || "") || "B\u00e9nin";
-  const articles = await construirePanneauActus(sujet);
-
-  if (articles === null) {
-    await parlerEtAttendre("Je n'arrive pas a joindre le service d'actualites.");
-  } else if (articles.length) {
-    let phrase = "Voici les dernieres actualites" + (sujet !== "B\u00e9nin" ? " sur " + sujet : " du Benin") + ". ";
-    articles.slice(0, 3).forEach((a, i) => {
-      phrase += "Titre " + (i + 1) + " : " + (a.titre || "").replace(/ - [^-]+$/, "") + ". ";
-    });
-    await parlerEtAttendre(phrase);
-  } else {
-    await parlerEtAttendre("Je n'ai pas trouve d'actualites sur " + sujet + " pour le moment.");
-  }
+  try {
+    const mto = await obtenirMeteo();
+    afficherCarteMeteo(mto); // affichage seulement, pas un mot
+  } catch (e) {}
+  programmerNotif(10 * 60000); // prochaine notification dans 10 minutes
 }
+
+// --- ACTUALITES DU BENIN (via ton mini-worker, flux gratuit) ---
+
+// (Module actualites retire avec le worker)
 
 // (Wikipedia retire : Google News est le moteur visuel unique)
 
@@ -1224,6 +1145,7 @@ const infoCarte = document.getElementById("infoCarte");
 let timerInfo = null;
 
 function montrerInfo(style, contenu) {
+  if (typeof notifVerset !== "undefined" && notifVerset) notifVerset.classList.remove("ouvert");
   infoCarte.classList.remove("ouvert");
   infoCarte.className = "style-" + (style || "haut");
   infoCarte.innerHTML = '<button class="fermerFlottant" onclick="cacherInfo()">\u2715</button>' + contenu;
@@ -1239,6 +1161,198 @@ function cacherInfo() {
 
 function texteSur(t) {
   return String(t).replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+// ============ VERSETS EN NOTIFICATION (haut droite, 8 s, 1/min) ============
+const VERSETS_NOTIF = [
+{t:"Fortifie-toi et prends courage. Ne t'effraie point, car l'Eternel ton Dieu est avec toi partout ou tu iras.",r:"Josue 1:9"},
+{t:"Ne crains rien, car je suis avec toi ; ne promene pas des regards inquiets, car je suis ton Dieu.",r:"Esaie 41:10"},
+{t:"Je puis tout par celui qui me fortifie.",r:"Philippiens 4:13"},
+{t:"L'Eternel est ma lumiere et mon salut : de qui aurais-je crainte ?",r:"Psaume 27:1"},
+{t:"Dieu est pour nous un refuge et un appui, un secours qui ne manque jamais dans la detresse.",r:"Psaume 46:2"},
+{t:"Fortifiez-vous et que votre coeur s'affermisse, vous tous qui esperez en l'Eternel !",r:"Psaume 31:25"},
+{t:"Ceux qui se confient en l'Eternel renouvellent leur force. Ils prennent le vol comme les aigles.",r:"Esaie 40:31"},
+{t:"Car ce n'est pas un esprit de timidite que Dieu nous a donne, mais un esprit de force, d'amour et de sagesse.",r:"2 Timothee 1:7"},
+{t:"L'Eternel est ma force et mon bouclier ; en lui mon coeur se confie, et je suis secouru.",r:"Psaume 28:7"},
+{t:"La joie de l'Eternel sera votre force.",r:"Nehemie 8:10"},
+{t:"Veillez, demeurez fermes dans la foi, soyez des hommes, fortifiez-vous.",r:"1 Corinthiens 16:13"},
+{t:"Fortifiez-vous dans le Seigneur, et par sa force toute-puissante.",r:"Ephesiens 6:10"},
+{t:"Ne vous laissez pas effrayer, et ne soyez pas dans l'epouvante ; car l'Eternel ton Dieu marche lui-meme avec toi.",r:"Deuteronome 31:6"},
+{t:"L'Eternel combattra pour vous ; et vous, gardez le silence.",r:"Exode 14:14"},
+{t:"Si Dieu est pour nous, qui sera contre nous ?",r:"Romains 8:31"},
+{t:"Je connais les projets que j'ai formes sur vous, projets de paix et non de malheur, afin de vous donner un avenir et de l'esperance.",r:"Jeremie 29:11"},
+{t:"Toutes choses concourent au bien de ceux qui aiment Dieu.",r:"Romains 8:28"},
+{t:"L'Eternel est mon berger : je ne manquerai de rien.",r:"Psaume 23:1"},
+{t:"Il me fait reposer dans de verts paturages, il me dirige pres des eaux paisibles.",r:"Psaume 23:2"},
+{t:"Quand je marche dans la vallee de l'ombre de la mort, je ne crains aucun mal, car tu es avec moi.",r:"Psaume 23:4"},
+{t:"Je leve mes yeux vers les montagnes : d'ou me viendra le secours ? Le secours me vient de l'Eternel.",r:"Psaume 121:1-2"},
+{t:"L'Eternel gardera ton depart et ton arrivee, des maintenant et a jamais.",r:"Psaume 121:8"},
+{t:"Venez a moi, vous tous qui etes fatigues et charges, et je vous donnerai du repos.",r:"Matthieu 11:28"},
+{t:"Je vous laisse la paix, je vous donne ma paix. Que votre coeur ne se trouble point.",r:"Jean 14:27"},
+{t:"Ne vous inquietez de rien ; mais en toute chose faites connaitre vos besoins a Dieu par des prieres.",r:"Philippiens 4:6"},
+{t:"Et la paix de Dieu, qui surpasse toute intelligence, gardera vos coeurs et vos pensees.",r:"Philippiens 4:7"},
+{t:"Dechargez-vous sur lui de tous vos soucis, car lui-meme prend soin de vous.",r:"1 Pierre 5:7"},
+{t:"Le malheur atteint souvent le juste, mais l'Eternel l'en delivre toujours.",r:"Psaume 34:20"},
+{t:"Les bontes de l'Eternel ne sont pas epuisees, ses compassions se renouvellent chaque matin.",r:"Lamentations 3:22-23"},
+{t:"Que le Dieu de l'esperance vous remplisse de toute joie et de toute paix dans la foi !",r:"Romains 15:13"},
+{t:"Fais de l'Eternel tes delices, et il te donnera ce que ton coeur desire.",r:"Psaume 37:4"},
+{t:"Recommande ton sort a l'Eternel, mets en lui ta confiance, et il agira.",r:"Psaume 37:5"},
+{t:"Confie-toi en l'Eternel de tout ton coeur, et ne t'appuie pas sur ta sagesse.",r:"Proverbes 3:5"},
+{t:"Reconnais-le dans toutes tes voies, et il aplanira tes sentiers.",r:"Proverbes 3:6"},
+{t:"Remets ton sort a l'Eternel, et il te soutiendra ; il ne laissera jamais chanceler le juste.",r:"Psaume 55:23"},
+{t:"A celui qui est ferme dans ses sentiments tu assures la paix, parce qu'il se confie en toi.",r:"Esaie 26:3"},
+{t:"Prenez courage, j'ai vaincu le monde.",r:"Jean 16:33"},
+{t:"Pourquoi t'abats-tu, mon ame ? Espere en Dieu, car je le louerai encore.",r:"Psaume 42:12"},
+{t:"Le Seigneur est mon aide, je ne craindrai rien.",r:"Hebreux 13:6"},
+{t:"Celui qui demeure sous l'abri du Tres-Haut repose a l'ombre du Tout-Puissant.",r:"Psaume 91:1"},
+{t:"Je dis a l'Eternel : Mon refuge et ma forteresse, mon Dieu en qui je me confie !",r:"Psaume 91:2"},
+{t:"Il ordonnera a ses anges de te garder dans toutes tes voies.",r:"Psaume 91:11"},
+{t:"Oui, c'est en Dieu que mon ame se confie ; de lui vient mon salut.",r:"Psaume 62:2"},
+{t:"L'Eternel te gardera de tout mal, il gardera ton ame.",r:"Psaume 121:7"},
+{t:"Ce livre de la loi ne s'eloignera point de ta bouche ; medite-le jour et nuit, car c'est alors que tu reussiras.",r:"Josue 1:8"},
+{t:"Si vous m'aimez, gardez mes commandements.",r:"Jean 14:15"},
+{t:"Mettez en pratique la parole, et ne vous bornez pas a l'ecouter.",r:"Jacques 1:22"},
+{t:"L'obeissance vaut mieux que les sacrifices.",r:"1 Samuel 15:22"},
+{t:"Ta parole est une lampe a mes pieds, et une lumiere sur mon sentier.",r:"Psaume 119:105"},
+{t:"Si vous gardez mes commandements, vous demeurerez dans mon amour.",r:"Jean 15:10"},
+{t:"Heureux ceux qui ecoutent la parole de Dieu, et qui la gardent !",r:"Luc 11:28"},
+{t:"Quiconque entend mes paroles et les met en pratique sera semblable a un homme prudent qui a bati sa maison sur le roc.",r:"Matthieu 7:24"},
+{t:"Tout ce que vous faites, faites-le de bon coeur, comme pour le Seigneur et non pour des hommes.",r:"Colossiens 3:23"},
+{t:"Crains Dieu et observe ses commandements. C'est la ce que doit faire tout homme.",r:"Ecclesiaste 12:13"},
+{t:"On t'a fait connaitre ce qui est bien : pratiquer la justice, aimer la misericorde, marcher humblement avec ton Dieu.",r:"Michee 6:8"},
+{t:"Ne vous conformez pas au siecle present, mais soyez transformes par le renouvellement de l'intelligence.",r:"Romains 12:2"},
+{t:"Si tu obeis a la voix de l'Eternel ton Dieu, toutes ces benedictions viendront sur toi.",r:"Deuteronome 28:2"},
+{t:"Mon fils, n'oublie pas mes enseignements, et que ton coeur garde mes preceptes ; car ils prolongeront tes jours.",r:"Proverbes 3:1-2"},
+{t:"Vous suivrez entierement la voie que l'Eternel vous a prescrite, afin que vous viviez et que vous soyez heureux.",r:"Deuteronome 5:33"},
+{t:"La foi est une ferme assurance des choses qu'on espere, une demonstration de celles qu'on ne voit point.",r:"Hebreux 11:1"},
+{t:"Tout est possible a celui qui croit.",r:"Marc 9:23"},
+{t:"Si vous aviez de la foi comme un grain de seneve, rien ne vous serait impossible.",r:"Matthieu 17:20"},
+{t:"Nous marchons par la foi et non par la vue.",r:"2 Corinthiens 5:7"},
+{t:"La foi vient de ce qu'on entend, et ce qu'on entend vient de la parole de Christ.",r:"Romains 10:17"},
+{t:"Qu'il demande avec foi, sans douter.",r:"Jacques 1:6"},
+{t:"Sans la foi, il est impossible de lui etre agreable.",r:"Hebreux 11:6"},
+{t:"Ne crains point, crois seulement.",r:"Marc 5:36"},
+{t:"Si quelqu'un manque de sagesse, qu'il la demande a Dieu, qui donne a tous simplement.",r:"Jacques 1:5"},
+{t:"La crainte de l'Eternel est le commencement de la sagesse.",r:"Proverbes 9:10"},
+{t:"Heureux l'homme qui a trouve la sagesse, et l'homme qui possede l'intelligence !",r:"Proverbes 3:13"},
+{t:"Ne nous lassons pas de faire le bien ; car nous moissonnerons au temps convenable, si nous ne nous relachons pas.",r:"Galates 6:9"},
+{t:"Heureux l'homme qui supporte patiemment l'epreuve ; car il recevra la couronne de vie.",r:"Jacques 1:12"},
+{t:"La tribulation produit la perseverance, la perseverance la victoire dans l'epreuve, et cette victoire l'esperance.",r:"Romains 5:3-4"},
+{t:"Courons avec perseverance dans la carriere qui nous est ouverte, les regards sur Jesus.",r:"Hebreux 12:1-2"},
+{t:"Celui qui perseverera jusqu'a la fin sera sauve.",r:"Matthieu 24:13"},
+{t:"Rendez graces en toutes choses, car c'est a votre egard la volonte de Dieu en Jesus-Christ.",r:"1 Thessaloniciens 5:18"},
+{t:"Entrez dans ses portes avec des louanges, dans ses parvis avec des cantiques !",r:"Psaume 100:4"},
+{t:"Je benirai l'Eternel en tout temps ; sa louange sera toujours dans ma bouche.",r:"Psaume 34:2"},
+{t:"Rendez graces a l'Eternel, car il est bon, car sa misericorde dure a toujours !",r:"Psaume 107:1"},
+{t:"Que tout ce qui respire loue l'Eternel !",r:"Psaume 150:6"},
+{t:"C'est ici la journee que l'Eternel a faite : qu'elle soit pour nous un sujet d'allegresse et de joie !",r:"Psaume 118:24"},
+{t:"L'amour est patient, il est plein de bonte ; l'amour n'est point envieux.",r:"1 Corinthiens 13:4"},
+{t:"Aimez-vous les uns les autres, comme je vous ai aimes.",r:"Jean 13:34"},
+{t:"L'amour parfait bannit la crainte.",r:"1 Jean 4:18"},
+{t:"Nous l'aimons, parce qu'il nous a aimes le premier.",r:"1 Jean 4:19"},
+{t:"Rien ne pourra nous separer de l'amour de Dieu manifeste en Jesus-Christ notre Seigneur.",r:"Romains 8:39"},
+{t:"Car Dieu a tant aime le monde qu'il a donne son Fils unique.",r:"Jean 3:16"},
+{t:"Que tout ce que vous faites se fasse avec amour.",r:"1 Corinthiens 16:14"},
+{t:"Cherchez premierement le royaume et la justice de Dieu, et toutes ces choses vous seront donnees par-dessus.",r:"Matthieu 6:33"},
+{t:"Ne vous inquietez donc pas du lendemain ; car le lendemain aura soin de lui-meme.",r:"Matthieu 6:34"},
+{t:"Mon Dieu pourvoira a tous vos besoins selon sa richesse, avec gloire, en Jesus-Christ.",r:"Philippiens 4:19"},
+{t:"Regardez les oiseaux du ciel : votre Pere celeste les nourrit. Ne valez-vous pas beaucoup plus qu'eux ?",r:"Matthieu 6:26"},
+{t:"J'ai ete jeune, j'ai vieilli ; et je n'ai point vu le juste abandonne.",r:"Psaume 37:25"},
+{t:"L'Eternel est bon, il est un refuge au jour de la detresse ; il connait ceux qui se confient en lui.",r:"Nahum 1:7"},
+{t:"Demandez, et l'on vous donnera ; cherchez, et vous trouverez ; frappez, et l'on vous ouvrira.",r:"Matthieu 7:7"},
+{t:"Invoque-moi, et je te repondrai ; je t'annoncerai de grandes choses, des choses cachees.",r:"Jeremie 33:3"},
+{t:"L'Eternel est pres de tous ceux qui l'invoquent, de tous ceux qui l'invoquent avec sincerite.",r:"Psaume 145:18"},
+{t:"Avant qu'ils m'invoquent, je repondrai ; avant qu'ils aient cesse de parler, j'exaucerai.",r:"Esaie 65:24"},
+{t:"Priez sans cesse.",r:"1 Thessaloniciens 5:17"},
+{t:"Confessez donc vos peches les uns aux autres, et priez les uns pour les autres. La priere du juste a une grande efficacite.",r:"Jacques 5:16"},
+{t:"Si mon peuple s'humilie, prie et cherche ma face, je pardonnerai son peche et je guerirai son pays.",r:"2 Chroniques 7:14"},
+{t:"Voici, je suis avec vous tous les jours, jusqu'a la fin du monde.",r:"Matthieu 28:20"},
+{t:"Je ne te delaisserai point, et je ne t'abandonnerai point.",r:"Hebreux 13:5"},
+{t:"Quand tu traverseras les eaux, je serai avec toi ; et les fleuves, ils ne te submergeront point.",r:"Esaie 43:2"},
+{t:"L'Eternel marchera lui-meme devant toi, il sera lui-meme avec toi.",r:"Deuteronome 31:8"},
+{t:"Meme les cheveux de votre tete sont tous comptes. Ne craignez donc point.",r:"Luc 12:7"},
+{t:"L'Eternel ton Dieu est au milieu de toi, comme un heros qui sauve.",r:"Sophonie 3:17"},
+{t:"Il donne de la force a celui qui est fatigue, et il augmente la vigueur de celui qui tombe en defaillance.",r:"Esaie 40:29"},
+{t:"C'est par la grace que vous etes sauves, par le moyen de la foi. Cela ne vient pas de vous, c'est le don de Dieu.",r:"Ephesiens 2:8"},
+{t:"Ma grace te suffit, car ma puissance s'accomplit dans la faiblesse.",r:"2 Corinthiens 12:9"},
+{t:"Si nous confessons nos peches, il est fidele et juste pour nous les pardonner.",r:"1 Jean 1:9"},
+{t:"Autant l'orient est eloigne de l'occident, autant il eloigne de nous nos transgressions.",r:"Psaume 103:12"},
+{t:"Si quelqu'un est en Christ, il est une nouvelle creature. Les choses anciennes sont passees ; toutes choses sont devenues nouvelles.",r:"2 Corinthiens 5:17"},
+{t:"Venez et plaidons ! Quand vos peches seraient comme le cramoisi, ils deviendront blancs comme la neige.",r:"Esaie 1:18"},
+{t:"Heureux ceux qui procurent la paix, car ils seront appeles fils de Dieu !",r:"Matthieu 5:9"},
+{t:"Recherchez la paix avec tous, et la sanctification.",r:"Hebreux 12:14"},
+{t:"S'il est possible, autant que cela depend de vous, soyez en paix avec tous les hommes.",r:"Romains 12:18"},
+{t:"Que la paix de Christ regne dans vos coeurs.",r:"Colossiens 3:15"},
+{t:"Il y a plus de bonheur a donner qu'a recevoir.",r:"Actes 20:35"},
+{t:"Celui qui a pitie du pauvre prete a l'Eternel, qui lui rendra selon son oeuvre.",r:"Proverbes 19:17"},
+{t:"Que chacun donne comme il l'a resolu en son coeur, sans tristesse ni contrainte ; car Dieu aime celui qui donne avec joie.",r:"2 Corinthiens 9:7"},
+{t:"Donnez, et il vous sera donne : une bonne mesure, serree, secouee et qui deborde.",r:"Luc 6:38"},
+{t:"L'homme regarde a ce qui frappe les yeux, mais l'Eternel regarde au coeur.",r:"1 Samuel 16:7"},
+{t:"Garde ton coeur plus que toute autre chose, car de lui viennent les sources de la vie.",r:"Proverbes 4:23"},
+{t:"Heureux ceux qui ont le coeur pur, car ils verront Dieu !",r:"Matthieu 5:8"},
+{t:"Cree en moi un coeur pur, o Dieu, renouvelle en moi un esprit bien dispose.",r:"Psaume 51:12"},
+{t:"Une reponse douce calme la fureur, mais une parole dure excite la colere.",r:"Proverbes 15:1"},
+{t:"Que tout homme soit prompt a ecouter, lent a parler, lent a se mettre en colere.",r:"Jacques 1:19"},
+{t:"La mort et la vie sont au pouvoir de la langue.",r:"Proverbes 18:21"},
+{t:"Qu'il ne sorte de votre bouche aucune parole mauvaise, mais s'il y a lieu, quelque bonne parole qui edifie.",r:"Ephesiens 4:29"},
+{t:"Humiliez-vous devant le Seigneur, et il vous elevera.",r:"Jacques 4:10"},
+{t:"Quiconque s'elevera sera abaisse, et quiconque s'abaissera sera eleve.",r:"Matthieu 23:12"},
+{t:"L'orgueil precede la chute, et l'esprit hautain precede la ruine.",r:"Proverbes 16:18"},
+{t:"Quand la fierte vient, vient aussi l'ignominie ; mais la sagesse est avec les humbles.",r:"Proverbes 11:2"},
+{t:"Tu es mon Dieu, je te louerai ; mon Dieu, je t'exalterai.",r:"Psaume 118:28"},
+{t:"L'Eternel regne, que la terre soit dans l'allegresse !",r:"Psaume 97:1"},
+{t:"Grand est l'Eternel et tres digne de louange, sa grandeur est insondable.",r:"Psaume 145:3"},
+{t:"Les cieux racontent la gloire de Dieu, et l'etendue manifeste l'oeuvre de ses mains.",r:"Psaume 19:2"},
+{t:"Je te loue de ce que je suis une creature si merveilleuse. Tes oeuvres sont admirables.",r:"Psaume 139:14"},
+{t:"Avant que je t'eusse forme dans le ventre de ta mere, je te connaissais.",r:"Jeremie 1:5"},
+{t:"Nous sommes son ouvrage, ayant ete crees en Jesus-Christ pour de bonnes oeuvres.",r:"Ephesiens 2:10"},
+{t:"Vous etes le sel de la terre. Vous etes la lumiere du monde.",r:"Matthieu 5:13-14"},
+{t:"Que votre lumiere luise ainsi devant les hommes, afin qu'ils voient vos bonnes oeuvres.",r:"Matthieu 5:16"},
+{t:"Celui qui a commence en vous cette bonne oeuvre la rendra parfaite pour le jour de Jesus-Christ.",r:"Philippiens 1:6"},
+{t:"Oubliant ce qui est en arriere, je cours vers le but pour remporter le prix de la vocation celeste.",r:"Philippiens 3:13-14"},
+{t:"Ne dites pas : les temps anciens etaient meilleurs. Voici, je fais une chose nouvelle : elle va germer.",r:"Esaie 43:19"},
+{t:"Il y a un temps pour tout, un temps pour toute chose sous les cieux.",r:"Ecclesiaste 3:1"},
+{t:"Il fait toute chose belle en son temps.",r:"Ecclesiaste 3:11"},
+{t:"Le coeur de l'homme medite sa voie, mais c'est l'Eternel qui dirige ses pas.",r:"Proverbes 16:9"},
+{t:"Recommande a l'Eternel tes oeuvres, et tes projets reussiront.",r:"Proverbes 16:3"},
+{t:"Si l'Eternel ne batit la maison, ceux qui la batissent travaillent en vain.",r:"Psaume 127:1"},
+{t:"Le nom de l'Eternel est une tour forte ; le juste s'y refugie, et se trouve en surete.",r:"Proverbes 18:10"}
+];
+
+let timerVerset = null, timerVersetCache = null, dernierVersetIdx = -1;
+const notifVerset = document.getElementById("notifVerset");
+
+function afficherVersetNotif() {
+  if (!auto) return;
+  // JAMAIS deux notifications en meme temps (la video ne compte pas)
+  if (speechSynthesis.speaking || enConversation || enSequence) return;
+  if (infoCarte.classList.contains("ouvert")) return;
+
+  let i;
+  do { i = Math.floor(Math.random() * VERSETS_NOTIF.length); }
+  while (i === dernierVersetIdx && VERSETS_NOTIF.length > 1);
+  dernierVersetIdx = i;
+
+  const v = VERSETS_NOTIF[i];
+  notifVerset.innerHTML =
+    '<div class="vTexte">\uD83D\uDCD6 \u00AB ' + v.t + ' \u00BB</div>' +
+    '<div class="vRef">' + v.r + '</div>';
+  notifVerset.classList.add("ouvert");
+
+  clearTimeout(timerVersetCache);
+  timerVersetCache = setTimeout(() => notifVerset.classList.remove("ouvert"), 8000);
+}
+
+function demarrerVersets() {
+  clearInterval(timerVerset);
+  timerVerset = setInterval(afficherVersetNotif, 60000); // un verset par minute
+  setTimeout(afficherVersetNotif, 25000); // le premier peu apres le demarrage
+}
+
+function arreterVersets() {
+  clearInterval(timerVerset);
+  clearTimeout(timerVersetCache);
+  notifVerset.classList.remove("ouvert");
 }
 
 // ============ PRIERES DE VOYAGE ============
@@ -1351,6 +1465,82 @@ async function direCourses() {
   if (n === 0) await parlerEtAttendre("Aucune course enregistree aujourd'hui pour l'instant.");
   else if (n === 1) await parlerEtAttendre("Une seule course aujourd'hui pour le moment.");
   else await parlerEtAttendre(n + " courses accueillies aujourd'hui. Beau travail !");
+}
+
+// ============ FENETRES PIP : Facebook et tes propres sites ============
+// La page Facebook affichee (remplace par TA page publique quand tu veux) :
+const PAGE_FACEBOOK = "https://www.facebook.com/BBCnews";
+
+const SITES_PIP = [
+  { nom: "Facebook", mode: "pip",
+    mots: /facebook|face book/i,
+    url: "https://www.facebook.com/plugins/page.php?href=" + encodeURIComponent(PAGE_FACEBOOK) +
+         "&tabs=timeline&width=340&height=500&small_header=true" },
+  { nom: "Google", mode: "bouton",
+    mots: /google|internet|navigateur|chrome/i,
+    url: "https://www.google.com" }
+  // Ajoute ici TES sites (mode "pip" = petite fenetre, mode "bouton" = bouton a toucher).
+  // Exemple : { nom: "L'immobilier", mode: "pip", mots: /immobilier|maisons/i, url: "https://vhimmobilier.edgeone.dev" },
+];
+
+function chercherSitePip(p) {
+  return SITES_PIP.find(s => s.mots.test(p)) || null;
+}
+
+// ============ ECRAN-BOUTON : un toucher n'importe ou et ca s'ouvre ============
+const toucheOuvrir = document.getElementById("toucheOuvrir");
+let timerTouche = null;
+
+function proposerOuverture(emoji, nom, url) {
+  toucheOuvrir.innerHTML =
+    '<div class="toEmoji">' + emoji + '</div>' +
+    '<div class="toTitre">Touchez l\u2019\u00e9cran</div>' +
+    '<div class="toSous">pour ouvrir ' + nom + ' \u00B7 (se ferme tout seul dans 10 s)</div>';
+  toucheOuvrir.classList.add("ouvert");
+
+  toucheOuvrir.onclick = () => {
+    toucheOuvrir.classList.remove("ouvert");
+    clearTimeout(timerTouche);
+    window.open(url, "_blank"); // le toucher autorise l'ouverture
+  };
+
+  clearTimeout(timerTouche);
+  timerTouche = setTimeout(() => toucheOuvrir.classList.remove("ouvert"), 10000);
+}
+
+// ============ WHATSAPP PERSONNALISE (localStorage seulement, aucune collecte) ============
+const champWhatsapp = document.getElementById("numWhatsapp");
+champWhatsapp.value = localStorage.getItem("vp_whatsapp") || "";
+champWhatsapp.oninput = () => {
+  localStorage.setItem("vp_whatsapp", champWhatsapp.value);
+};
+
+function estDemandeWhatsapp(p) {
+  return /whatsapp|whats app|watsap|ouatsap/i.test(p);
+}
+
+async function ouvrirWhatsapp() {
+  const num = (localStorage.getItem("vp_whatsapp") || "").replace(/\D/g, "");
+  if (!num) {
+    await parlerEtAttendre("Aucun numero WhatsApp n'est enregistre. Le chauffeur peut l'ajouter dans le menu, en bas a gauche.");
+    return;
+  }
+  proposerOuverture("\uD83D\uDCAC", "le WhatsApp du chauffeur", "https://wa.me/" + num);
+  await parlerEtAttendre("Touchez l'ecran pour ouvrir WhatsApp.");
+}
+
+async function ouvrirSitePip(site) {
+  if (site.mode === "bouton") {
+    // Ce site refuse la petite fenetre : tout l'ecran devient le bouton
+    proposerOuverture("\uD83C\uDF10", site.nom, site.url);
+    await parlerEtAttendre("Touchez l'ecran pour ouvrir " + site.nom + ".");
+    return;
+  }
+  panneauVideo.classList.add("ouvert");
+  document.querySelector(".cadreVideo").classList.add("pageWeb");
+  videoActive = -1;
+  iframeVideo.src = site.url;
+  await parlerEtAttendre("Voici " + site.nom + " !");
 }
 
 // ============ COMMANDES VIDEO A LA VOIX ============
