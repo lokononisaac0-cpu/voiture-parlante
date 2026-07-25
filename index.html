@@ -1,1697 +1,707 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#FFFFFF">
-<title>VISION — Assistant de bord</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>VISION — Régie multi-caméras</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --route: #2563EB;
-    --arrivee: #E8453C;
-    --encre: #1B2430;
-    --gris: #5F6B7A;
+  :root{
+    --fond:#050f26;         /* bleu nuit profond */
+    --panneau:#0b1a3d;
+    --relief:#12244d;
+    --trait:#1e3565;
+    --texte:#e8eefb;
+    --sourdine:#8296bd;
+    --antenne:#ff2d38;      /* rouge tally — à l'antenne */
+    --pret:#f2a83c;         /* ambre — survol, prêt à envoyer */
+    --lueur:rgba(255,45,56,.24);
+
+    --corps:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+    --logo:"Archivo Black","Arial Black",system-ui,sans-serif;
+    --etiq:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+    --chiffre:"IBM Plex Mono",ui-monospace,monospace;
   }
-  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-  html, body { height:100%; }
-  body {
-    font-family: "Manrope", system-ui, sans-serif;
-    color: var(--encre);
-    overflow: hidden;
-    background:#EAEDF1;
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:var(--fond);
+    background-image:radial-gradient(120% 80% at 50% 0%,#0a1c44 0%,var(--fond) 62%);
+    background-attachment:fixed;
+    color:var(--texte);font-family:var(--corps);
+    -webkit-font-smoothing:antialiased;overscroll-behavior:none;
+  }
+  button{font:inherit;color:inherit;cursor:pointer;border:none;background:none}
+  input{font:inherit}
+  ::selection{background:var(--antenne);color:#fff}
+  :focus-visible{outline:2px solid var(--pret);outline-offset:2px}
+
+  .ecran{display:none;height:100%;flex-direction:column}
+  .ecran.actif{display:flex}
+
+  /* ================= ACCUEIL ================= */
+  #accueil{align-items:center;justify-content:center;padding:28px;gap:32px;text-align:center}
+
+  /* L'icône caméra, avec son seul témoin d'enregistrement */
+  .icone{width:72px;height:auto;color:var(--texte)}
+  .icone .temoin{fill:var(--antenne);animation:pulse 2.6s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+
+  .marque{
+    font-family:var(--logo);font-weight:400;
+    font-size:clamp(42px,12vw,66px);letter-spacing:.1em;line-height:.95;
+  }
+  .marque span{
+    display:inline-block;opacity:0;transform:translateY(16px);
+    animation:lettre .55s cubic-bezier(.2,.75,.3,1) forwards;
+  }
+  .marque span:nth-child(1){animation-delay:.06s}
+  .marque span:nth-child(2){animation-delay:.14s}
+  .marque span:nth-child(3){animation-delay:.22s}
+  .marque span:nth-child(4){animation-delay:.30s}
+  .marque span:nth-child(5){animation-delay:.38s}
+  .marque span:nth-child(6){animation-delay:.46s}
+  @keyframes lettre{to{opacity:1;transform:none}}
+
+  @media (prefers-reduced-motion:reduce){
+    .icone .temoin{animation:none}
+    .marque span{animation:none;opacity:1;transform:none}
+  }
+  .sous{font-family:var(--etiq);font-size:12px;letter-spacing:.34em;
+        color:var(--sourdine);margin-top:12px;text-transform:uppercase}
+
+  .roles{display:grid;gap:11px;width:min(360px,100%)}
+  .role{
+    display:flex;align-items:center;gap:14px;text-align:left;
+    background:var(--panneau);border:1px solid var(--trait);border-radius:3px;
+    padding:17px 18px;transition:border-color .16s,background .16s,transform .16s;
+  }
+  .role:hover,.role:focus-visible{border-color:var(--pret);background:var(--relief);transform:translateY(-1px)}
+  .role .num{font-family:var(--chiffre);font-size:12px;color:var(--sourdine);
+             border:1px solid var(--trait);border-radius:2px;padding:5px 7px;flex:0 0 auto}
+  .role b{display:block;font-size:16px;font-weight:600;margin-bottom:2px}
+  .role small{color:var(--sourdine);font-size:12.5px;line-height:1.5}
+
+  #zoneCode{display:none;flex-direction:column;gap:10px;width:min(360px,100%)}
+  #zoneCode.ouvert{display:flex}
+  .champ{
+    background:var(--panneau);border:1px solid var(--trait);border-radius:3px;
+    padding:15px;color:var(--texte);text-align:center;font-family:var(--chiffre);
+    font-size:30px;letter-spacing:.34em;
+  }
+  .champ:focus{outline:none;border-color:var(--pret)}
+
+  .note{color:var(--sourdine);font-size:12px;max-width:370px;line-height:1.75}
+  #erreur{color:var(--antenne);font-size:13px;min-height:18px;max-width:370px;line-height:1.6}
+
+  #local{
+    display:none;width:min(430px,100%);text-align:left;
+    border-left:2px solid var(--pret);background:var(--panneau);
+    padding:15px 17px;border-radius:0 3px 3px 0;
+  }
+  #local.visible{display:block}
+  #local b{display:block;font-family:var(--etiq);letter-spacing:.14em;text-transform:uppercase;
+           font-size:12px;color:var(--pret);margin-bottom:7px}
+  #local p{font-size:13px;color:var(--sourdine);line-height:1.65}
+
+  /* ================= BOUTONS ================= */
+  .bouton{
+    background:var(--relief);border:1px solid var(--trait);border-radius:3px;
+    padding:9px 15px;font-size:13px;transition:border-color .16s,background .16s;
+    white-space:nowrap;
+  }
+  .bouton:hover{border-color:var(--sourdine)}
+  .bouton.primaire{background:var(--texte);border-color:var(--texte);color:#0a0f16;font-weight:600}
+  .bouton.primaire:hover{background:#fff;border-color:#fff}
+  .bouton.rouge{background:transparent;border-color:var(--antenne);color:var(--antenne);font-weight:600}
+  .bouton.rouge:hover,.bouton.rouge.on{background:var(--antenne);color:#fff}
+
+  /* ================= INVITATION ================= */
+  #invite{align-items:center;justify-content:center;padding:28px;gap:26px;text-align:center}
+  .codeGeant{font-family:var(--chiffre);font-size:52px;letter-spacing:.26em;font-weight:600}
+  .gros{
+    background:var(--antenne);color:#fff;font-family:var(--etiq);font-weight:700;
+    font-size:17px;letter-spacing:.14em;text-transform:uppercase;
+    padding:21px 40px;border-radius:3px;box-shadow:0 0 30px var(--lueur);
   }
 
-  /* ---------- LA VRAIE CARTE ---------- */
-  #map { position: fixed; inset: 0; z-index: 1; }
-  .leaflet-tile { filter: saturate(1.22) contrast(1.06) brightness(1.02); }
+  /* ================= CAMÉRA ================= */
+  #cam{background:#000;position:relative}
+  #camVideo{width:100%;height:100%;object-fit:cover;background:#000}
+  #tally{
+    position:fixed;inset:0;pointer-events:none;
+    border:0 solid var(--antenne);transition:border-width .2s ease;
+  }
+  #tally.antenne{border-width:14px}
+  #onair{
+    position:fixed;top:0;left:50%;transform:translate(-50%,-100%);
+    background:var(--antenne);color:#fff;font-family:var(--etiq);font-weight:700;
+    font-size:13px;letter-spacing:.2em;text-transform:uppercase;
+    padding:9px 22px;border-radius:0 0 3px 3px;transition:transform .22s ease;
+  }
+  #onair.antenne{transform:translate(-50%,0)}
+  #camInfos{
+    position:fixed;left:0;right:0;bottom:0;
+    padding:16px 16px calc(16px + env(safe-area-inset-bottom));
+    background:linear-gradient(transparent,rgba(0,0,0,.9));
+    display:flex;align-items:center;gap:10px;
+  }
+  #camNom{
+    background:rgba(0,0,0,.55);border:1px solid var(--trait);border-radius:3px;
+    padding:9px 11px;color:var(--texte);width:120px;font-size:14px;
+  }
+  #camEtat{
+    margin-left:auto;font-family:var(--etiq);font-size:11.5px;text-transform:uppercase;
+    letter-spacing:.14em;color:var(--sourdine);text-align:right;
+  }
+  #camEtat.ok{color:var(--pret)}
 
-  /* Marqueur taxi */
-  .marqueurTaxi {
-    width: 46px; height: 46px;
-    display: flex; align-items: center; justify-content: center;
-    filter: drop-shadow(0 4px 7px rgba(0,0,0,.45));
+  /* ================= RÉGIE ================= */
+  /* Le bus PGM : la barre qui annonce ce qui sort à l'écran */
+  #bus{
+    flex:0 0 auto;display:flex;align-items:stretch;
+    background:var(--panneau);border-bottom:1px solid var(--trait);
   }
+  #busPgm{
+    display:flex;align-items:center;gap:13px;padding:13px 18px;
+    border-right:1px solid var(--trait);min-width:266px;
+    background:#071531;transition:background .25s;
+  }
+  #busPgm.actif{background:linear-gradient(90deg,rgba(255,45,56,.16),transparent)}
+  #busVoyant{
+    width:11px;height:11px;border-radius:50%;background:var(--trait);flex:0 0 auto;
+    transition:background .2s,box-shadow .2s;
+  }
+  #busPgm.actif #busVoyant{background:var(--antenne);box-shadow:0 0 0 4px var(--lueur)}
+  #busLabel{font-family:var(--etiq);font-size:10.5px;letter-spacing:.28em;
+            color:var(--sourdine);text-transform:uppercase}
+  #busNom{font-family:var(--etiq);font-size:19px;letter-spacing:.09em;
+          line-height:1.15;text-transform:uppercase}
+  #busPgm.actif #busNom{color:var(--antenne)}
 
-  /* ---------- CHIP DU HAUT ---------- */
-  .chipHaut {
-    position: fixed; top: 14px; left: 50%;
-    transform: translateX(-50%);
-    background: #fff;
-    border-radius: 999px;
-    padding: 10px 18px;
-    box-shadow: 0 2px 12px rgba(27,36,48,.2);
-    font-weight: 800; font-size: 15px;
-    display: flex; align-items: center; gap: 8px;
-    z-index: 10;
-    white-space: nowrap;
+  #busActions{display:flex;align-items:center;gap:9px;padding:13px 16px;flex:1}
+  #busCode{
+    font-family:var(--chiffre);font-size:17px;letter-spacing:.22em;
+    padding-right:16px;border-right:1px solid var(--trait);margin-right:4px;
   }
-  .chipHaut .pt { width:10px; height:10px; border-radius:50%; background:#B7C1CC; }
-  .chipHaut .pt.on { background:#22B573; animation: pulsePt 1.6s infinite; }
-  @keyframes pulsePt {
-    0%,100% { box-shadow: 0 0 0 0 rgba(34,181,115,.45); }
-    50%     { box-shadow: 0 0 0 6px rgba(34,181,115,0); }
-  }
-  .chipHaut #vitesse { color: var(--gris); font-weight: 700; font-size: 13px; }
+  #busCode i{display:block;font-family:var(--etiq);font-style:normal;font-size:9.5px;
+             letter-spacing:.26em;color:var(--sourdine);margin-bottom:1px;text-transform:uppercase}
+  .pousse{margin-left:auto}
 
-  /* ---------- CHIP TEMPS ---------- */
-  #chipTemps {
-    position: fixed; top: 64px; left: 50%;
-    transform: translateX(-50%);
-    background: var(--route); color: #fff;
-    border-radius: 12px; padding: 7px 14px;
-    font-weight: 800; font-size: 14px;
-    box-shadow: 0 3px 10px rgba(37,99,235,.35);
-    z-index: 10; text-align: center;
-    transition: background .3s;
-    white-space: nowrap;
+  #grille{
+    flex:1;display:grid;gap:11px;padding:13px;overflow:auto;
+    grid-template-columns:repeat(auto-fill,minmax(280px,1fr));align-content:start;
   }
-  #chipTemps.fin { background: var(--arrivee); }
-  #chipTemps small { display:block; font-weight:500; font-size:11px; opacity:.9; }
+  .tuile{
+    position:relative;background:#000;border:1px solid var(--trait);border-radius:3px;
+    overflow:hidden;aspect-ratio:16/9;
+    transition:border-color .16s,box-shadow .16s,transform .16s;
+  }
+  .tuile:hover{border-color:var(--pret);transform:translateY(-2px)}
+  .tuile video{width:100%;height:100%;object-fit:cover;display:block}
+  .tuile.antenne{border-color:var(--antenne);box-shadow:0 0 0 1px var(--antenne),0 0 26px var(--lueur)}
+  .tuile .num{
+    position:absolute;top:9px;left:9px;font-family:var(--chiffre);font-size:12px;
+    background:rgba(5,15,38,.85);border:1px solid var(--trait);
+    padding:3px 7px;border-radius:2px;
+  }
+  .tuile.antenne .num{background:var(--antenne);border-color:var(--antenne);color:#fff}
+  .tuile .etiquette{
+    position:absolute;left:0;right:0;bottom:0;padding:9px 11px;
+    background:linear-gradient(transparent,rgba(0,0,0,.9));
+    font-family:var(--etiq);font-size:12.5px;letter-spacing:.1em;text-transform:uppercase;
+  }
+  .tuile .pgm{
+    position:absolute;top:9px;right:9px;background:var(--antenne);color:#fff;
+    font-family:var(--etiq);font-size:10px;letter-spacing:.16em;font-weight:700;
+    text-transform:uppercase;padding:4px 8px;border-radius:2px;
+    opacity:0;transition:opacity .16s;
+  }
+  .tuile.antenne .pgm{opacity:1}
 
-  /* ---------- PANNEAU BAS ---------- */
-  .panneau {
-    position: fixed; left: 0; right: 0; bottom: 0;
-    background: #fff;
-    border-radius: 24px 24px 0 0;
-    box-shadow: 0 -6px 30px rgba(27,36,48,.18);
-    padding: 10px 18px calc(18px + env(safe-area-inset-bottom));
-    z-index: 15;
-    max-width: 480px; margin: 0 auto;
-    transform: translateY(115%);
-    transition: transform .3s ease;
+  #panneauQr{
+    grid-column:1/-1;display:flex;flex-direction:column;align-items:center;
+    gap:18px;padding:50px 20px;text-align:center;
   }
-  .panneau.ouvert { transform: translateY(0); }
+  #qr{background:#fff;padding:15px;border-radius:3px;line-height:0;min-height:40px}
+  #qr canvas{display:block}
+  #panneauQr h2{font-family:var(--etiq);font-size:16px;letter-spacing:.16em;
+                font-weight:600;text-transform:uppercase}
+  #panneauQr p{color:var(--sourdine);font-size:13px;line-height:1.75;max-width:400px}
+  #qrCode{font-family:var(--chiffre);font-size:38px;letter-spacing:.26em;font-weight:600}
 
-  /* ---------- BOUTON MENU ---------- */
-  #btnMenu {
-    position: fixed;
-    left: 16px;
-    bottom: 16px;
-    width: 64px; height: 64px;
-    border-radius: 50%;
-    background: #0F172A;
-    border: none;
-    box-shadow: 0 6px 18px rgba(15,23,42,.4);
-    cursor: pointer;
-    z-index: 16;
-    padding: 0;
-    display: flex; align-items: center; justify-content: center;
-    transition: transform .1s;
-  }
-  #btnMenu:active { transform: scale(.92); }
-  .poignee { width: 44px; height: 5px; border-radius: 3px; background: #E1E6EC; margin: 2px auto 12px; }
-  #statut { font-size: 17px; font-weight: 800; }
-  #sousStatut { font-size: 13px; color: var(--gris); margin-top: 2px; min-height: 18px; }
-  .boutons { margin-top: 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  button {
-    border: none; border-radius: 14px;
-    padding: 15px 12px;
-    font-family: inherit; font-size: 15px; font-weight: 800;
-    cursor: pointer; transition: transform .06s;
-  }
-  button:active { transform: scale(.97); }
-  #btnAuto {
-    grid-column: 1 / -1;
-    background: var(--route); color: #fff;
-    box-shadow: 0 4px 14px rgba(37,99,235,.35);
-  }
-  #btnAuto.stop { background: var(--arrivee); box-shadow: 0 4px 14px rgba(232,69,60,.3); }
-  #btnBye { background: #EEF2F7; color: var(--encre); }
-  #btnManuel { background: #EEF2F7; color: var(--gris); font-weight: 700; }
-
-
-  /* ---------- BOUTON MICRO IA (flottant) ---------- */
-  #btnMicIA {
-    position: fixed;
-    right: 16px;
-    bottom: 220px;
-    width: 64px; height: 64px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #2563EB, #1D4ED8);
-    border: none;
-    box-shadow: 0 6px 18px rgba(37,99,235,.45);
-    cursor: pointer;
-    z-index: 10;
-    transition: transform .1s, background .3s;
-    padding: 0;
-    display: flex; align-items: center; justify-content: center;
-  }
-  #btnMicIA:active { transform: scale(.92); }
-  #btnMicIA.ecoute {
-    background: linear-gradient(135deg, #E8453C, #C93A32);
-    box-shadow: 0 6px 18px rgba(232,69,60,.45);
-    animation: pulseMic 1.2s infinite;
-  }
-  @keyframes pulseMic {
-    0%,100% { box-shadow: 0 0 0 0 rgba(37,99,235,.4); }
-    50%     { box-shadow: 0 0 0 14px rgba(37,99,235,0); }
+  kbd{
+    font-family:var(--chiffre);font-size:11px;background:var(--relief);
+    border:1px solid var(--trait);border-bottom-width:2px;border-radius:2px;padding:2px 6px;
   }
 
-
-  /* ---------- BOUTON VIDEO + LECTEUR ---------- */
-  #btnVideo {
-    position: fixed;
-    right: 16px;
-    bottom: 296px;
-    width: 64px; height: 64px;
-    border-radius: 50%;
-    background: #fff;
-    border: none;
-    box-shadow: 0 4px 16px rgba(27,36,48,.25);
-    cursor: pointer;
-    z-index: 10;
-    padding: 0;
-    transition: transform .1s;
-    display: flex; align-items: center; justify-content: center;
+  @media (max-width:640px){
+    #bus{flex-direction:column}
+    #busPgm{border-right:none;border-bottom:1px solid var(--trait);min-width:0}
+    #busActions{flex-wrap:wrap}
+    #busCode{border-right:none}
   }
-  #btnVideo:active { transform: scale(.92); }
-
-  #panneauVideo {
-    position: fixed;
-    right: 12px;
-    bottom: 16px;
-    width: min(360px, calc(100vw - 24px));
-    background: #fff;
-    border-radius: 18px;
-    box-shadow: 0 10px 40px rgba(27,36,48,.35);
-    z-index: 20;
-    padding: 12px;
-    opacity: 0;
-    transform: translateY(26px);
-    pointer-events: none;
-    transition: transform .3s ease, opacity .3s ease;
-  }
-  #panneauVideo.ouvert {
-    opacity: 1;
-    transform: translateY(0);
-    pointer-events: auto;
-  }
-  .fermerFlottant {
-    position: absolute;
-    top: 4px; right: 4px;
-    width: 32px; height: 32px;
-    border-radius: 50%;
-    border: none;
-    background: rgba(15,23,42,.85);
-    color: #fff;
-    font-size: 15px; font-weight: 800;
-    cursor: pointer; padding: 0;
-    z-index: 2;
-  }
-  .videoHaut {
-    display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 10px;
-  }
-  .videoHaut b { font-size: 15px; }
-  #fermerVideo {
-    width: 34px; height: 34px; border-radius: 50%;
-    border: none; background: #EEF2F7; color: var(--encre);
-    font-size: 16px; font-weight: 800; cursor: pointer; padding: 0;
-  }
-  .cadreVideo {
-    position: relative; width: 100%;
-    aspect-ratio: 16 / 9;
-    border-radius: 12px; overflow: hidden;
-    background: #000;
-  }
-  .cadreVideo.pageWeb {
-    aspect-ratio: auto;
-    height: min(440px, 58vh);
-    background: #fff;
-  }
-  .cadreVideo iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
-  .chipsVideo { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
-  .chipsVideo button {
-    border: none; border-radius: 999px;
-    background: #EEF2F7; color: var(--encre);
-    font-family: inherit; font-size: 12.5px; font-weight: 700;
-    padding: 8px 12px; cursor: pointer;
-  }
-  .chipsVideo button.actifV { background: var(--route); color: #fff; }
-
-
-  /* ---------- BOUTON PLAN / SATELLITE ---------- */
-  #btnCouche {
-    position: fixed;
-    left: 16px;
-    bottom: 220px;
-    width: 64px; height: 64px;
-    border-radius: 16px;
-    border: 3px solid #fff;
-    box-shadow: 0 4px 16px rgba(27,36,48,.3);
-    cursor: pointer;
-    z-index: 10;
-    padding: 0;
-    overflow: hidden;
-    background-size: cover;
-    background-position: center;
-    transition: transform .1s;
-  }
-  #btnCouche:active { transform: scale(.94); }
-  #btnCouche span {
-    position: absolute;
-    left: 0; right: 0; bottom: 0;
-    background: rgba(27,36,48,.72);
-    color: #fff;
-    font-family: inherit;
-    font-size: 10px;
-    font-weight: 800;
-    padding: 3px 0;
-  }
-
-  /* ---------- ECRAN-BOUTON (toucher n'importe ou pour ouvrir) ---------- */
-  #toucheOuvrir {
-    position: fixed; inset: 0;
-    background: rgba(10, 18, 33, .82);
-    z-index: 30;
-    display: none;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    cursor: pointer;
-    color: #fff;
-  }
-  #toucheOuvrir.ouvert { display: flex; }
-  #toucheOuvrir .toEmoji { font-size: 74px; animation: pulseTouche 1.2s infinite; }
-  #toucheOuvrir .toTitre { font-size: 22px; font-weight: 800; margin-top: 14px; }
-  #toucheOuvrir .toSous { font-size: 14px; color: #B8C8E0; margin-top: 6px; }
-  @keyframes pulseTouche {
-    0%,100% { transform: scale(1); }
-    50%     { transform: scale(1.12); }
-  }
-
-  /* ---------- TOAST VERSET (haut droite, 8 secondes) ---------- */
-  #notifVerset {
-    position: fixed;
-    top: 110px; right: 12px;
-    width: min(300px, calc(100vw - 24px));
-    background: #FFFDF4;
-    border: 1px solid #E8D284;
-    border-left: 5px solid #C9A227;
-    border-radius: 14px;
-    box-shadow: 0 8px 26px rgba(27,36,48,.22);
-    padding: 12px 14px;
-    z-index: 13;
-    transform: translateX(115%);
-    opacity: 0;
-    transition: transform .45s cubic-bezier(.2,.8,.2,1), opacity .4s;
-    pointer-events: none;
-  }
-  #notifVerset.ouvert { transform: translateX(0); opacity: 1; }
-  #notifVerset .vTexte {
-    font-size: 12.5px; font-style: italic; color: #4A3F1E; line-height: 1.45;
-  }
-  #notifVerset .vRef {
-    font-size: 11.5px; font-weight: 800; color: #C9A227;
-    margin-top: 5px; text-align: right;
-  }
-
-  /* ---------- CARTE D'INFORMATION (resultats jolis) ---------- */
-  #infoCarte {
-    position: fixed;
-    background: #fff;
-    border-radius: 18px;
-    box-shadow: 0 10px 40px rgba(27,36,48,.3);
-    padding: 14px;
-    z-index: 12;
-    opacity: 0;
-    pointer-events: none;
-    transition: transform .5s cubic-bezier(.2,.8,.2,1), opacity .4s ease;
-  }
-  #infoCarte.ouvert { opacity: 1; pointer-events: auto; }
-
-  /* Descend du haut et s'arrete au milieu */
-  #infoCarte.style-haut, #infoCarte.style-bas, #infoCarte.style-centre {
-    top: 50%; left: 50%;
-    width: min(380px, calc(100vw - 24px));
-    max-height: 62vh; overflow-y: auto;
-  }
-  #infoCarte.style-haut { transform: translate(-50%, -95vh); }
-  #infoCarte.style-haut.ouvert { transform: translate(-50%, -50%); }
-
-  /* Monte du bas et s'arrete au milieu */
-  #infoCarte.style-bas { transform: translate(-50%, 60vh); }
-  #infoCarte.style-bas.ouvert { transform: translate(-50%, -50%); }
-
-  /* Au centre avec effet zoom (jeux, scores) */
-  #infoCarte.style-centre { transform: translate(-50%, -50%) scale(.6); }
-  #infoCarte.style-centre.ouvert { transform: translate(-50%, -50%) scale(1); }
-
-  /* Petit cadre discret, comme la video */
-  #infoCarte.style-pip {
-    left: 12px; bottom: 92px;
-    width: 235px; padding: 10px;
-    transform: translateY(26px);
-  }
-  #infoCarte.style-pip.ouvert { transform: translateY(0); }
-  #infoCarte.style-pip .infoTexte { font-size: 12px; }
-  #infoCarte.style-pip .infoGrand { font-size: 24px; }
-  #infoCarte.style-pip .infoEmoji { font-size: 26px; }
-  #infoCarte.style-pip .infoTitre { font-size: 14px; }
-  .infoLigneTitre { display: flex; gap: 10px; align-items: center; margin-bottom: 6px; padding-right: 30px; }
-  .infoEmoji { font-size: 34px; line-height: 1; }
-  .infoTitre { font-weight: 800; font-size: 16px; }
-  .infoTexte { font-size: 13.5px; color: #3A4657; line-height: 1.5; }
-  .infoImage { width: 100%; border-radius: 12px; margin-bottom: 8px; max-height: 170px; object-fit: cover; display: block; }
-  .infoGrand { font-size: 30px; font-weight: 800; }
-  .infoListe { margin: 0; padding-left: 18px; font-size: 13.5px; color: #3A4657; }
-  .infoListe li { margin: 6px 0; }
-
-  @media (prefers-reduced-motion: reduce) { .chipHaut .pt.on { animation: none; } }
 </style>
 </head>
 <body>
 
-<div id="map"></div>
-
-<div class="chipHaut"><span class="pt" id="ptEtat"></span> VISION <span id="micBadge" style="display:none">🎙️</span> <span id="vitesse"></span></div>
-<div id="chipTemps">— <small>en attente</small></div>
-
-<button id="btnCouche" title="Changer de vue"><span>Satellite</span></button>
-
-<button id="btnVideo" title="Vidéos"><svg viewBox="0 0 24 24" width="27" height="27" fill="none" stroke="#1B2430" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="3"/><polygon points="10 9 15 12 10 15" fill="#1B2430" stroke="none"/></svg></button>
-
-<div id="toucheOuvrir"></div>
-
-<div id="notifVerset"></div>
-
-<div id="infoCarte"></div>
-
-<div id="panneauVideo">
-  <button id="fermerVideo" class="fermerFlottant">✕</button>
-  <div class="cadreVideo"><iframe id="iframeVideo" src="" allow="autoplay; encrypted-media; fullscreen" allowfullscreen title="Video"></iframe></div>
-</div>
-
-<button id="btnMicIA" title="Parler à VISION"><svg viewBox="0 0 24 24" width="27" height="27" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></button>
-
-<button id="btnMenu" title="Menu"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg></button>
-
-<div class="panneau">
-  <div class="poignee"></div>
-  <div id="statut">Assistant de bord</div>
-  <div id="sousStatut">Appuie sur Démarrer VISION, puis Accueillir à chaque client.</div>
-  <div class="boutons">
-    <button id="btnAuto">▶️ Démarrer VISION</button>
-    <button id="btnBye">👋 Fin de course</button>
-    <button id="btnManuel">🙋 Accueillir le client</button>
+<!-- ================= ACCUEIL ================= -->
+<div class="ecran actif" id="accueil">
+  <div>
+    <div style="display:flex;justify-content:center;margin-bottom:22px">
+      <svg class="icone" viewBox="0 0 64 40" fill="none" aria-hidden="true">
+        <rect x="2.5" y="8.5" width="38" height="26" rx="5"
+              stroke="currentColor" stroke-width="3"/>
+        <path d="M45 16.5 L60.5 8.5 v23 L45 23.5 z"
+              stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
+        <circle class="temoin" cx="12" cy="15.5" r="2.8"/>
+      </svg>
+    </div>
+    <h1 class="marque" aria-label="VISION"><span>V</span><span>I</span><span>S</span><span>I</span><span>O</span><span>N</span></h1>
+    <div class="sous">Régie vidéo multi-caméras</div>
   </div>
-  <label style="display:block;font-size:12.5px;color:var(--gris);font-weight:700;margin:14px 2px 5px">
-    📱 WhatsApp du chauffeur (reste uniquement sur ce téléphone)
-  </label>
-  <input type="tel" id="numWhatsapp" placeholder="Ex : 22997000000"
-    style="width:100%;padding:13px;border-radius:12px;border:1.5px solid #DDE3EA;font-family:inherit;font-size:14.5px;font-weight:700">
+
+  <div class="roles">
+    <button class="role" id="btnRegie">
+      <span class="num">PGM</span>
+      <span><b>Créer la régie</b><small>Sur le PC — génère le code et le QR</small></span>
+    </button>
+    <button class="role" id="btnCam">
+      <span class="num">CAM</span>
+      <span><b>Rejoindre comme caméra</b><small>Si tu ne peux pas scanner le QR</small></span>
+    </button>
+  </div>
+
+  <div id="zoneCode">
+    <input class="champ" id="codeSalle" inputmode="numeric" maxlength="4" placeholder="0000" autocomplete="off">
+    <button class="bouton primaire" id="valider">Démarrer la caméra</button>
+  </div>
+
+  <div id="local">
+    <b>Fichier ouvert en local</b>
+    <p>Le QR pointerait vers un fichier de ce PC, que les téléphones ne peuvent pas atteindre — et la caméra ne s'ouvre qu'en HTTPS. Dépose le fichier sur EdgeOne, Vercel ou Cloudflare Pages, puis ouvre l'adresse obtenue.</p>
+  </div>
+
+  <p id="erreur"></p>
+  <p class="note">Aucune application à installer. Les téléphones scannent le QR avec leur appareil photo et deviennent caméra.</p>
 </div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- ================= INVITATION ================= -->
+<div class="ecran" id="invite">
+  <div>
+    <div class="sous" style="margin:0 0 10px">Salle</div>
+    <div class="codeGeant" id="inviteCode">----</div>
+  </div>
+  <button class="gros" id="inviteDemarrer">Démarrer la caméra</button>
+  <p class="note">Ce téléphone va filmer et envoyer l'image à la régie. Cale-le bien : un cadre stable vaut mieux qu'un beau mouvement.</p>
+</div>
+
+<!-- ================= CAMÉRA ================= -->
+<div class="ecran" id="cam">
+  <video id="camVideo" autoplay playsinline muted></video>
+  <div id="tally"></div>
+  <div id="onair">● À l'antenne</div>
+  <div id="camInfos">
+    <input id="camNom" maxlength="20" placeholder="Nom" autocomplete="off">
+    <button class="bouton" id="basculer">Pivoter</button>
+    <span id="camEtat">Connexion…</span>
+  </div>
+</div>
+
+<!-- ================= RÉGIE ================= -->
+<div class="ecran" id="regie">
+  <div id="bus">
+    <div id="busPgm">
+      <i id="busVoyant"></i>
+      <div>
+        <div id="busLabel">Programme</div>
+        <div id="busNom">Aucune source</div>
+      </div>
+    </div>
+    <div id="busActions">
+      <div id="busCode"><i>Salle</i><span id="regieCode">----</span></div>
+      <button class="bouton" id="btnQr">Masquer le QR</button>
+      <button class="bouton primaire pousse" id="ouvrirProjection">Ouvrir l'écran de projection</button>
+      <button class="bouton rouge" id="fondu">Fondu au noir</button>
+    </div>
+  </div>
+
+  <div id="grille">
+    <div id="panneauQr">
+      <div id="qr"></div>
+      <h2>Scanne pour ajouter une caméra</h2>
+      <p>Ouvre l'appareil photo du téléphone et vise le code. Le navigateur s'ouvre tout seul — rien à installer, rien à taper.</p>
+      <div id="qrCode">----</div>
+      <p style="font-size:12px">Ensuite : <kbd>1</kbd> à <kbd>9</kbd> pour basculer d'une caméra à l'autre, <kbd>N</kbd> pour le fondu au noir.</p>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://unpkg.com/qrcode@1.5.3/build/qrcode.min.js"></script>
 <script>
-// ============ LES 3 MESSAGES (modifie librement les textes) ============
+/* =========================================================================
+   Aucune configuration, aucun compte, aucune installation.
+   La régie génère son code, affiche un QR, les téléphones scannent.
+   ========================================================================= */
 
-const MSG_ACCUEIL =
-  "{salutation} ! Bienvenue à bord. Je suis VISION, votre assistant personnel pour ce trajet. " +
-  "Asseyez-vous confortablement, et n'oubliez pas d'attacher votre ceinture de sécurité. " +
-  "Que Dieu bénisse votre trajet !";
+const PREFIXE = "regievid-";
+const CONFIG_ICE = {
+  iceServers:[
+    { urls:"stun:stun.cloudflare.com:3478" },
+    { urls:"stun:stun.l.google.com:19302" }
+  ]
+};
 
-const MSG_MI_TRAJET =
-  "J'espère que votre trajet se passe bien. " +
-  "Petit rappel : veillez à ne pas oublier vos affaires en descendant. " +
-  "Je vous souhaite une excellente fin de trajet !";
+const $ = (s) => document.querySelector(s);
+let peer = null;
 
-const MSG_AUREVOIR =
-  "Nous voilà arrivés ! Vérifiez que vous n'oubliez rien : téléphone, sac, portefeuille. " +
-  "Merci d'avoir voyagé avec nous, et que Dieu vous garde !";
-
-// Réglages
-const DELAI_DEMARRAGE_SEC = 3;
-const DELAI_MI_TRAJET_MIN = 5;
-const PAUSE_ENTRE_CLIENTS_SEC = 90;
-const TON_VOIX = 0.55;
-const VITESSE_VOIX = 0.88;
-
-// ============ ÉLÉMENTS ============
-const $ = id => document.getElementById(id);
-const statut = $("statut"), sousStatut = $("sousStatut");
-const chipTemps = $("chipTemps"), ptEtat = $("ptEtat"), vitesseEl = $("vitesse");
-
-let timerMi = null, timerDemarrage = null;
-let voixChoisie = null;
-let auto = false, enCourse = false, miDit = false;
-let dernierAccueil = 0, finMiPrevue = 0;
-let wakeLock = null, watchGPS = null;
-let dernierePos = null;
-let derniereAlerteVitesse = 0;
-
-function afficher(principal, sous) {
-  statut.textContent = principal;
-  sousStatut.textContent = sous || "";
+function afficher(id){
+  document.querySelectorAll(".ecran").forEach(e => e.classList.remove("actif"));
+  $("#" + id).classList.add("actif");
 }
+function erreur(t){ $("#erreur").textContent = t || ""; }
+function codeAuHasard(){ return String(Math.floor(1000 + Math.random() * 9000)); }
 
-// ============ LA VRAIE CARTE (OpenStreetMap) ============
-const map = L.map("map", { zoomControl: false }).setView([6.3703, 2.3912], 14); // Cotonou
+const enLocal = location.protocol === "file:";
+if (enLocal) $("#local").classList.add("visible");
 
-// --- Les deux mondes : Plan epure + Satellite ---
-const fondPlan = L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
-  maxZoom: 19,
-  attribution: "© OpenStreetMap © CARTO"
-});
-const fondSatellite = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
-  maxZoom: 19,
-  attribution: "© Esri"
-});
-// Noms des rues par-dessus le satellite (sinon on est perdu)
-const etiquettes = L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png", {
-  maxZoom: 19, pane: "shadowPane"
-});
+/* =========================================================================
+   RÔLE CAMÉRA
+   ========================================================================= */
+const cam = {
+  flux:null, appel:null, frontale:false, code:null, relance:null,
 
-let vueSatellite = false;
-fondPlan.addTo(map);
+  async demarrer(code){
+    this.code = code;
+    $("#camNom").value = "Cam " + Math.floor(Math.random()*9 + 1);
+    await this.ouvrirCamera();
+    afficher("cam");
 
-const btnCouche = document.getElementById("btnCouche");
-// Apercu de l'AUTRE vue sur le bouton (comme Google Maps)
-const APERCU_SAT  = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/13/3948/4148";
-const APERCU_PLAN = "https://a.basemaps.cartocdn.com/rastertiles/voyager/13/4148/3948.png";
-btnCouche.style.backgroundImage = "url('" + APERCU_SAT + "')";
+    peer = new Peer({ config: CONFIG_ICE });
+    peer.on("open", () => this.appeler());
 
-btnCouche.onclick = () => {
-  vueSatellite = !vueSatellite;
-  if (vueSatellite) {
-    map.removeLayer(fondPlan);
-    fondSatellite.addTo(map);
-    etiquettes.addTo(map);
-    map.setZoom(17);
-    btnCouche.querySelector("span").textContent = "Plan";
-    btnCouche.style.backgroundImage = "url('" + APERCU_PLAN + "')";
-  } else {
-    map.removeLayer(fondSatellite);
-    map.removeLayer(etiquettes);
-    fondPlan.addTo(map);
-    map.setZoom(14);
-    btnCouche.querySelector("span").textContent = "Satellite";
-    btnCouche.style.backgroundImage = "url('" + APERCU_SAT + "')";
+    // La régie ouvre un canal direct vers nous pour piloter le tally
+    peer.on("connection", (canal) => {
+      canal.on("data", (d) => { if (d && d.type === "tally") this.tally(d.antenne); });
+      canal.on("close", () => this.tally(false));
+    });
+
+    peer.on("error", (e) => {
+      this.etat(e.type === "peer-unavailable"
+        ? "Régie introuvable — nouvel essai" : "Réseau — nouvel essai");
+      this.reprogrammer();
+    });
+    peer.on("disconnected", () => { try{ peer.reconnect(); }catch(_){} });
+
+    this.veille();
+  },
+
+  async ouvrirCamera(){
+    if (this.flux) this.flux.getTracks().forEach(t => t.stop());
+    this.flux = await navigator.mediaDevices.getUserMedia({
+      video:{ width:{ideal:1280}, height:{ideal:720}, frameRate:{ideal:30},
+              facingMode: this.frontale ? "user" : "environment" },
+      audio:false        // évite l'effet Larsen : plusieurs micros dans la même salle
+    });
+    $("#camVideo").srcObject = this.flux;
+  },
+
+  appeler(){
+    this.etat("Recherche de la régie…");
+    if (this.appel){ try{ this.appel.close(); }catch(_){} }
+
+    this.appel = peer.call(PREFIXE + this.code, this.flux,
+                           { metadata:{ nom: $("#camNom").value } });
+    if (!this.appel) return this.reprogrammer();
+
+    const pc = this.appel.peerConnection;
+    pc.onconnectionstatechange = () => {
+      if (pc.connectionState === "connected"){
+        clearTimeout(this.relance);
+        this.etat("Connecté", true);
+      }
+      if (["failed","disconnected","closed"].includes(pc.connectionState)){
+        this.tally(false);
+        this.etat("Connexion perdue — nouvel essai");
+        this.reprogrammer();
+      }
+    };
+    this.appel.on("close", () => { this.tally(false); this.reprogrammer(); });
+
+    clearTimeout(this.relance);
+    this.relance = setTimeout(() => this.appeler(), 6000);
+  },
+
+  reprogrammer(){
+    clearTimeout(this.relance);
+    this.relance = setTimeout(() => this.appeler(), 3000);
+  },
+
+  tally(antenne){
+    $("#tally").classList.toggle("antenne", antenne);
+    $("#onair").classList.toggle("antenne", antenne);
+  },
+
+  etat(t, ok){
+    const e = $("#camEtat");
+    e.textContent = t;
+    e.classList.toggle("ok", !!ok);
+  },
+
+  async veille(){
+    try{
+      let verrou = await navigator.wakeLock.request("screen");
+      addEventListener("visibilitychange", async () => {
+        if (document.visibilityState === "visible")
+          verrou = await navigator.wakeLock.request("screen");
+      });
+    }catch(_){}
   }
 };
 
-const iconeTaxi = L.divIcon({
-  className: "",
-  html: '<div class="marqueurTaxi"><svg width="44" height="44" viewBox="0 0 48 48"><g><rect x="15" y="5" width="18" height="38" rx="8.5" fill="#0F172A"/><rect x="16.6" y="6.6" width="14.8" height="34.8" rx="7" fill="#1E293B"/><path d="M18.5 13.5 Q24 10.5 29.5 13.5 L29 18 Q24 16 19 18 Z" fill="#7DB4F5"/><path d="M18.8 36 Q24 38.3 29.2 36 L29 32.4 Q24 34 19 32.4 Z" fill="#7DB4F5"/><rect x="19.5" y="20.5" width="9" height="9.5" rx="2" fill="#334155"/><rect x="12.6" y="12" width="3" height="7" rx="1.5" fill="#0F172A"/><rect x="32.4" y="12" width="3" height="7" rx="1.5" fill="#0F172A"/><rect x="12.6" y="30" width="3" height="7" rx="1.5" fill="#0F172A"/><rect x="32.4" y="30" width="3" height="7" rx="1.5" fill="#0F172A"/><rect x="17.5" y="5.5" width="2.6" height="2.6" rx="1.3" fill="#F8FAFC"/><rect x="27.9" y="5.5" width="2.6" height="2.6" rx="1.3" fill="#F8FAFC"/></g></svg></div>',
-  iconSize: [46, 46],
-  iconAnchor: [23, 23]
-});
-const taxi = L.marker([6.3703, 2.3912], { icon: iconeTaxi }).addTo(map);
-let traceCourse = null;
-let pointsCourse = [];
+/* =========================================================================
+   RÔLE RÉGIE
+   ========================================================================= */
+const regie = {
+  flux:{}, appels:{}, canaux:{}, noms:{}, ordre:[],
+  selection:null, fenetre:null, noir:false, code:null,
 
-// ============ LE VRAI GPS ============
-function demarrerGPS() {
-  if (!("geolocation" in navigator)) {
-    afficher("GPS indisponible", "Ce téléphone ne donne pas sa position au navigateur.");
-    return;
-  }
-  watchGPS = navigator.geolocation.watchPosition(pos => {
-    const lat = pos.coords.latitude, lng = pos.coords.longitude;
-    dernierePos = { lat: lat, lng: lng };
-    taxi.setLatLng([lat, lng]);
-    map.panTo([lat, lng], { animate: true });
+  demarrer(){
+    this.code = codeAuHasard();
+    this.brancher();
 
-    // Arrivee a destination (navigation en cours) ?
-    if (navActive && destinationNav) {
-      const d = distanceMetres(lat, lng, destinationNav.lat, destinationNav.lng);
-      if (d < 80) {
-        parler("Nous voila arrives a destination. " + destinationNav.nom + ".");
-        effacerNavigation();
+    $("#btnQr").onclick            = () => this.basculerQr();
+    $("#ouvrirProjection").onclick = () => this.ouvrirFenetre();
+    $("#fondu").onclick            = () => this.basculerNoir();
+
+    // Raccourcis clavier : la vraie façon de basculer vite en direct
+    addEventListener("keydown", (e) => {
+      if (e.target.tagName === "INPUT") return;
+      if (e.key >= "1" && e.key <= "9"){
+        const id = this.ordre[Number(e.key) - 1];
+        if (id) this.projeter(id);
+      } else if (e.key.toLowerCase() === "n"){
+        this.basculerNoir();
       }
+    });
+  },
+
+  brancher(){
+    peer = new Peer(PREFIXE + this.code, { config: CONFIG_ICE });
+
+    peer.on("open", () => {
+      $("#regieCode").textContent = this.code;
+      $("#qrCode").textContent    = this.code;
+      this.dessinerQr();
+    });
+
+    // Code déjà pris ailleurs : on en tire un autre sans rien demander
+    peer.on("error", (e) => {
+      if (e.type === "unavailable-id"){
+        this.code = codeAuHasard();
+        try{ peer.destroy(); }catch(_){}
+        this.brancher();
+      }
+    });
+
+    peer.on("disconnected", () => { try{ peer.reconnect(); }catch(_){} });
+
+    peer.on("call", (appel) => {
+      appel.answer();
+      const id = appel.peer;
+      this.appels[id] = appel;
+      this.noms[id] = (appel.metadata && appel.metadata.nom) || "Caméra";
+      if (!this.ordre.includes(id)) this.ordre.push(id);
+
+      appel.on("stream", (flux) => { this.flux[id] = flux; this.dessinerTuile(id); });
+      appel.on("close",  () => this.retirer(id));
+
+      const pc = appel.peerConnection;
+      pc.onconnectionstatechange = () => {
+        if (["failed","closed","disconnected"].includes(pc.connectionState)) this.retirer(id);
+      };
+
+      // Canal direct pour le tally : ne dépend plus d'aucun serveur
+      const canal = peer.connect(id);
+      canal.on("open", () => {
+        this.canaux[id] = canal;
+        canal.send({ type:"tally", antenne: this.selection === id });
+      });
+    });
+  },
+
+  dessinerQr(){
+    if (enLocal) return;
+    const lien = location.origin + location.pathname + "?salle=" + this.code;
+    QRCode.toCanvas(lien, { width:250, margin:1,
+      color:{ dark:"#050f26", light:"#ffffff" } }, (err, toile) => {
+      if (err) return;
+      const boite = $("#qr");
+      boite.innerHTML = "";
+      boite.appendChild(toile);
+    });
+  },
+
+  basculerQr(){
+    const p = $("#panneauQr");
+    const cache = p.style.display === "none";
+    p.style.display = cache ? "" : "none";
+    $("#btnQr").textContent = cache ? "Masquer le QR" : "Afficher le QR";
+  },
+
+  numeroDe(id){ return String(this.ordre.indexOf(id) + 1).padStart(2, "0"); },
+
+  dessinerTuile(id){
+    const p = $("#panneauQr");
+    if (p.style.display !== "none"){
+      p.style.display = "none";
+      $("#btnQr").textContent = "Afficher le QR";
     }
 
-    // Vitesse réelle en km/h
-    if (pos.coords.speed !== null && !isNaN(pos.coords.speed)) {
-      const kmh = Math.round(pos.coords.speed * 3.6);
-      vitesseEl.textContent = "· " + kmh + " km/h";
-
-      // Alerte prudence : au-dela de 90 km/h, un rappel calme (max une fois toutes les 5 min)
-      if (kmh > 90 && Date.now() - derniereAlerteVitesse > 300000 && !speechSynthesis.speaking) {
-        derniereAlerteVitesse = Date.now();
-        parler("Prudence, la vitesse est elevee. La route est longue, arrivons-y en paix.");
-      }
+    let tuile = document.getElementById("t_" + id);
+    if (!tuile){
+      tuile = document.createElement("div");
+      tuile.className = "tuile";
+      tuile.id = "t_" + id;
+      tuile.innerHTML =
+        '<video autoplay playsinline muted></video>' +
+        '<span class="num"></span>' +
+        '<span class="pgm">Programme</span>' +
+        '<div class="etiquette"></div>';
+      tuile.onclick = () => this.projeter(id);
+      $("#grille").appendChild(tuile);
     }
+    tuile.querySelector(".num").textContent       = this.numeroDe(id);
+    tuile.querySelector(".etiquette").textContent = this.noms[id];
+    tuile.querySelector("video").srcObject        = this.flux[id];
+  },
 
-    // Trace bleue du trajet en cours
-    if (enCourse) {
-      pointsCourse.push([lat, lng]);
-      if (!traceCourse) {
-        traceCourse = L.polyline(pointsCourse, { color: "#E8453C", weight: 6, opacity: .9 }).addTo(map);
-      } else {
-        traceCourse.setLatLngs(pointsCourse);
-      }
+  retirer(id){
+    if (this.appels[id]){ try{ this.appels[id].close(); }catch(_){} }
+    delete this.appels[id]; delete this.flux[id]; delete this.canaux[id];
+    this.ordre = this.ordre.filter(x => x !== id);
+    const t = document.getElementById("t_" + id);
+    if (t) t.remove();
+
+    // Les numéros se resserrent, comme sur un mélangeur qu'on repatche
+    this.ordre.forEach((autre) => {
+      const el = document.getElementById("t_" + autre);
+      if (el) el.querySelector(".num").textContent = this.numeroDe(autre);
+    });
+
+    if (this.selection === id){ this.selection = null; this.majBus(); this.appliquer(); }
+
+    if (!this.ordre.length){
+      $("#panneauQr").style.display = "";
+      $("#btnQr").textContent = "Masquer le QR";
     }
-  }, err => {
-    afficher("Position refusée", "Autorise la localisation dans Chrome (icône 🔒 près de l'adresse).");
-  }, { enableHighAccuracy: true, maximumAge: 2000, timeout: 15000 });
-}
+  },
 
-function arreterGPS() {
-  if (watchGPS !== null) { navigator.geolocation.clearWatch(watchGPS); watchGPS = null; }
-  vitesseEl.textContent = "";
-}
+  projeter(id){
+    const ancien = this.selection;
+    this.selection = id;
 
-// ============ VOIX ============
-function traiter(texte) {
-  const h = new Date().getHours();
-  const salutation = (h >= 5 && h < 18) ? "Bonjour" : "Bonsoir";
-  return texte.replaceAll("{salutation}", salutation);
-}
+    document.querySelectorAll(".tuile").forEach(t => t.classList.remove("antenne"));
+    const t = document.getElementById("t_" + id);
+    if (t) t.classList.add("antenne");
 
-let voixAnglaise = null;
-let langueVocale = "fr"; // "fr" ou "en"
+    if (ancien && ancien !== id && this.canaux[ancien])
+      this.canaux[ancien].send({ type:"tally", antenne:false });
+    if (this.canaux[id])
+      this.canaux[id].send({ type:"tally", antenne:true });
 
-function chargerVoix() {
-  const toutes = speechSynthesis.getVoices();
-  const fr = toutes.filter(v => v.lang.toLowerCase().startsWith("fr"));
-  if (fr.length) {
-    voixChoisie = fr.find(v =>
-      /male|homme|masculin|frb|frd|paul|nicolas|thomas|henri|claude|antoine/i.test(v.name)
-      && !/female|femme/i.test(v.name)
-    ) || fr[0];
-  }
-  const en = toutes.filter(v => v.lang.toLowerCase().startsWith("en"));
-  if (en.length) {
-    voixAnglaise = en.find(v => /male/i.test(v.name) && !/female/i.test(v.name)) || en[0];
-  }
-}
-speechSynthesis.onvoiceschanged = chargerVoix;
-chargerVoix();
+    this.majBus();
+    this.appliquer();
+  },
 
-function parler(texte) {
-  if (typeof pauserVideo === "function") pauserVideo();
-  const u = new SpeechSynthesisUtterance(traiter(texte));
-  u.lang = (langueVocale === "en") ? "en-US" : "fr-FR";
-  u.rate = VITESSE_VOIX;
-  u.pitch = TON_VOIX;
-  const voix = (langueVocale === "en") ? voixAnglaise : voixChoisie;
-  if (voix) u.voice = voix;
-  speechSynthesis.cancel();
-  speechSynthesis.speak(u);
-}
+  majBus(){
+    const actif = !!this.selection && !this.noir;
+    $("#busPgm").classList.toggle("actif", actif);
+    $("#busNom").textContent = this.noir ? "Fondu au noir"
+      : this.selection ? this.numeroDe(this.selection) + " · " + this.noms[this.selection]
+      : "Aucune source";
+  },
 
-// ============ LA BULLE DE TEMPS ============
-setInterval(() => {
-  if (navActive && infoNav) {
-    chipTemps.classList.remove("fin");
-    chipTemps.innerHTML = infoNav.km + " km · " + infoNav.min + " min<small>" + infoNav.nom + "</small>";
-  } else if (enCourse && !miDit && finMiPrevue > 0) {
-    const reste = Math.max(0, finMiPrevue - Date.now());
-    const min = Math.floor(reste / 60000);
-    const sec = Math.floor((reste % 60000) / 1000);
-    chipTemps.classList.remove("fin");
-    chipTemps.innerHTML = min + " min " + (sec < 10 ? "0" : "") + sec + "<small>prochain message</small>";
-  } else if (enCourse && miDit) {
-    chipTemps.classList.add("fin");
-    chipTemps.innerHTML = "Course en cours<small>appuie 👋 à destination</small>";
-  } else {
-    chipTemps.classList.remove("fin");
-    chipTemps.innerHTML = (auto ? "Prêt" : "—") + "<small>" + (auto ? "j'attends un client" : "en attente") + "</small>";
-  }
-}, 1000);
+  appliquer(){
+    if (!this.fenetre || this.fenetre.closed) return;
+    const v = this.fenetre.document.getElementById("sortie");
+    if (!v) return;
+    v.srcObject = this.selection ? this.flux[this.selection] : null;
+    v.style.opacity = (this.noir || !this.selection) ? "0" : "1";
+  },
 
-// ============ LA COURSE ============
-function demarrerCourse() {
-  if (enCourse) return;
-  enCourse = true;
-  ajouterCourse();
-  miDit = false;
-  finMiPrevue = 0;
-  dernierAccueil = Date.now();
-  clearTimeout(timerDemarrage);
-  clearTimeout(timerMi);
+  basculerNoir(){
+    this.noir = !this.noir;
+    $("#fondu").textContent = this.noir ? "Rétablir l'image" : "Fondu au noir";
+    $("#fondu").classList.toggle("on", this.noir);
+    this.majBus();
+    this.appliquer();
+  },
 
-  // Nouvelle trace pour cette course
-  pointsCourse = [];
-  if (traceCourse) { map.removeLayer(traceCourse); traceCourse = null; }
-
-  afficher("Client détecté", "Accueil dans " + DELAI_DEMARRAGE_SEC + " secondes...");
-
-  timerDemarrage = setTimeout(async () => {
-    finMiPrevue = Date.now() + DELAI_MI_TRAJET_MIN * 60000;
-    afficher("Trajet en cours", "Message de mi-trajet dans " + DELAI_MI_TRAJET_MIN + " minutes.");
-
-    timerMi = setTimeout(() => {
-      parler(MSG_MI_TRAJET);
-      miDit = true;
-      afficher("Trajet en cours", "Message de mi-trajet dit. Appuie sur 👋 à l'arrivée.");
-    }, DELAI_MI_TRAJET_MIN * 60000);
-
-    await parlerEtAttendre(MSG_ACCUEIL);
-
-    // --- VISION propose la video (question vocale oui/non) ---
-    if (window.SpeechRecognition || window.webkitSpeechRecognition) {
-      await new Promise(r => setTimeout(r, 3000));
-      await parlerEtAttendre("Souhaitez-vous regarder une video pendant le trajet ? Repondez par oui ou non.");
-      const rep = await ecouterUneFois();
-      if (rep && estOui(rep)) {
-        document.getElementById("panneauVideo").classList.add("ouvert");
-        chargerVideo(0);
-        await parlerEtAttendre("Voici pour vous, bon visionnage !");
-      } else if (rep && estNon(rep)) {
-        await parlerEtAttendre("Tres bien, bonne route !");
-      }
-      // Si rien compris : on n'insiste pas, les boutons restent la en secours.
-    }
-
-    programmerNotif(20000); // notification silencieuse apres l'accueil
-  }, DELAI_DEMARRAGE_SEC * 1000);
-}
-
-$("btnBye").onclick = () => {
-  clearTimeout(timerDemarrage);
-  clearTimeout(timerMi);
-  effacerNavigation();
-  parler(MSG_AUREVOIR);
-  enCourse = false;
-  miDit = false;
-  dernierAccueil = Date.now();
-  afficher("Course terminée", auto ? "Prêt pour le prochain client." : "Mode automatique arrêté.");
-  programmerNotif(12000); // notification silencieuse apres l'au revoir
-};
-
-$("btnManuel").onclick = async () => {
-  // L'accueil manuel ouvre AUSSI le micro : VISION ecoute son nom des maintenant
-  try {
-    const flux = await navigator.mediaDevices.getUserMedia({ audio: true });
-    flux.getTracks().forEach(t => t.stop());
-    demarrerEcouteNom();
-  } catch (e) {
-    afficher("Micro refuse", "Autorise le microphone (icone cadenas pres de l'adresse).");
-  }
-  enCourse = false;
-  demarrerCourse();
-};
-
-// ============ DÉTECTION AUTOMATIQUE ============
-// Capteur de mouvement retire : tout se fait aux boutons ou a la voix.
-
-async function garderEcran() {
-  try {
-    if ("wakeLock" in navigator) wakeLock = await navigator.wakeLock.request("screen");
-  } catch (e) {}
-}
-document.addEventListener("visibilitychange", () => {
-  if (auto && document.visibilityState === "visible") garderEcran();
-});
-
-$("btnAuto").onclick = async () => {
-  const btn = $("btnAuto");
-  if (!auto) {
-    // On ouvre le micro une bonne fois pour toutes (autorisation Chrome)
-    try {
-      const flux = await navigator.mediaDevices.getUserMedia({ audio: true });
-      flux.getTracks().forEach(t => t.stop());
-    } catch (e) {
-      afficher("Micro refuse", "Autorise le microphone (icone cadenas pres de l'adresse) puis reactive le mode automatique.");
+  ouvrirFenetre(){
+    this.fenetre = window.open("", "projection", "width=1280,height=720");
+    if (!this.fenetre){
+      alert("Le navigateur a bloqué la fenêtre. Autorise les pop-up pour ce site, puis réessaie.");
       return;
     }
-    await garderEcran();
-    demarrerGPS();
-    demarrerEcouteNom();
-    auto = true;
-    ptEtat.classList.add("on");
-    btn.textContent = "⏹️ Arrêter VISION";
-    btn.classList.add("stop");
-    afficher("VISION en marche", "Micro ouvert. Dis Vision pour me parler, et appuie sur Accueillir quand un client monte.");
-    parler("Système VISION activé. Dites, Vision, pour me parler a tout moment.");
-    programmerNotif(15000); // premiere notification silencieuse peu apres
-    demarrerVersets(); // un verset d'encouragement chaque minute
-  } else {
-    if (wakeLock) { wakeLock.release(); wakeLock = null; }
-    arreterGPS();
-    arreterEcouteNom();
-    clearTimeout(timerNotif);
-    arreterVersets();
-    speechSynthesis.cancel();
-    clearTimeout(timerDemarrage);
-    clearTimeout(timerMi);
-    auto = false; enCourse = false; miDit = false;
-    ptEtat.classList.remove("on");
-    btn.textContent = "▶️ Démarrer VISION";
-    btn.classList.remove("stop");
-    afficher("Système arrêté", "Active le mode automatique et pose le téléphone.");
+    this.fenetre.document.write(
+      '<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>Projection</title>' +
+      '<style>html,body{margin:0;height:100%;background:#000;overflow:hidden;cursor:none}' +
+      'video{width:100%;height:100%;object-fit:contain;background:#000;opacity:0;' +
+      'transition:opacity .5s ease}' +
+      '#aide{position:fixed;left:50%;bottom:38px;transform:translateX(-50%);color:#7b8ca0;' +
+      'font:600 12px/1 "Barlow Condensed",Arial Narrow,sans-serif;letter-spacing:.2em;' +
+      'text-transform:uppercase;animation:pf 5s forwards}' +
+      '@keyframes pf{0%,70%{opacity:1}100%{opacity:0}}</style></head>' +
+      '<body><video id="sortie" autoplay playsinline muted></video>' +
+      '<div id="aide">Glisse cette fenêtre sur le projecteur, puis F11</div></body></html>'
+    );
+    this.fenetre.document.close();
+    setTimeout(() => this.appliquer(), 300);
   }
 };
-// ============ CONVERSATION VOCALE (invisible, tout en voix) ============
-const Reco = window.SpeechRecognition || window.webkitSpeechRecognition;
-let enConversation = false;
-let enSequence = false; // (variable manquante : provoquait un plantage silencieux un peu partout)
 
-let hotwordPause = false;
+/* =========================================================================
+   DÉMARRAGE
+   ========================================================================= */
+$("#btnRegie").onclick = () => { afficher("regie"); regie.demarrer(); };
 
-function ecouterUneFois() {
-  return new Promise(resolve => {
-    if (!Reco) { resolve(null); return; }
-    // On met l'ecoute du nom en pause pour liberer le micro
-    hotwordPause = true;
-    try { if (ecouteNom) ecouteNom.stop(); } catch (e) {}
-
-    const fin = t => { hotwordPause = false; resolve(t); };
-    setTimeout(() => {
-      const rec = new Reco();
-      rec.lang = (langueVocale === "en") ? "en-US" : "fr-FR";
-      rec.interimResults = false;
-      rec.maxAlternatives = 1;
-      let fini = false;
-      rec.onresult = e => { fini = true; fin(e.results[0][0].transcript); };
-      rec.onerror = () => { fini = true; fin(null); };
-      rec.onend = () => { if (!fini) fin(null); };
-      try { rec.start(); } catch (e) { fin(null); }
-    }, 250);
-  });
-}
-
-// ============ DIRE "VISION" POUR L'APPELER ============
-let ecouteNom = null, ecouteNomActive = false, ecouteEnMarche = false;
-let gardienEcoute = null;
-
-function lancerEcouteNom() {
-  if (!ecouteNomActive || !Reco || ecouteEnMarche) return;
-  ecouteNom = new Reco();
-  ecouteNom.lang = "fr-FR";
-  ecouteNom.continuous = true;
-  ecouteNom.interimResults = true;
-
-  ecouteNom.onstart = () => {
-    ecouteEnMarche = true;
-    document.getElementById("micBadge").style.display = "inline";
-  };
-
-  ecouteNom.onresult = e => {
-    try {
-      if (enConversation || enSequence || hotwordPause || speechSynthesis.speaking) return;
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        const t = e.results[i][0].transcript.toLowerCase();
-        // "vision" mais aussi les mots proches que le micro croit entendre
-        if (/vision|visio|vizion|virgin/.test(t)) {
-          try { ecouteNom.stop(); } catch (err) {}
-          assistantVocal();
-          return;
-        }
-      }
-    } catch (err) {
-      console.error("Erreur ecoute du nom:", err);
-    }
-  };
-
-  ecouteNom.onerror = e => {
-    if (e.error === "not-allowed") {
-      afficher("Micro refuse", "Autorise le microphone (icone cadenas pres de l'adresse).");
-      arreterEcouteNom();
-    }
-  };
-
-  ecouteNom.onend = () => {
-    ecouteEnMarche = false;
-    document.getElementById("micBadge").style.display = "none";
-    if (ecouteNomActive && !hotwordPause && !enConversation) {
-      setTimeout(lancerEcouteNom, 300);
-    }
-  };
-
-  try { ecouteNom.start(); } catch (e) { ecouteEnMarche = false; }
-}
-
-function demarrerEcouteNom() {
-  if (ecouteNomActive) return;
-  ecouteNomActive = true;
-  lancerEcouteNom();
-
-  // Le gardien : toutes les 8 secondes, si l'ecoute s'est endormie, on la reveille
-  gardienEcoute = setInterval(() => {
-    if (ecouteNomActive && !ecouteEnMarche && !hotwordPause &&
-        !enConversation && !speechSynthesis.speaking) {
-      lancerEcouteNom();
-    }
-  }, 8000);
-}
-
-function arreterEcouteNom() {
-  ecouteNomActive = false;
-  if (gardienEcoute) { clearInterval(gardienEcoute); gardienEcoute = null; }
-  document.getElementById("micBadge").style.display = "none";
-  try { if (ecouteNom) ecouteNom.stop(); } catch (e) {}
-}
-
-function parlerEtAttendre(texte) {
-  if (typeof pauserVideo === "function") pauserVideo();
-  return new Promise(fin => {
-    const u = new SpeechSynthesisUtterance(traiter(texte));
-    u.lang = (langueVocale === "en") ? "en-US" : "fr-FR";
-    u.rate = VITESSE_VOIX;
-    u.pitch = TON_VOIX;
-    const voix = (langueVocale === "en") ? voixAnglaise : voixChoisie;
-    if (voix) u.voice = voix;
-    u.onend = fin;
-    u.onerror = fin;
-    speechSynthesis.cancel();
-    speechSynthesis.speak(u);
-  });
-}
-
-// (IA distante retiree : VISION repond avec son cerveau local embarque)
-
-const btnMicIA = document.getElementById("btnMicIA");
-
-// ============ LE CERVEAU LOCAL DE VISION (aucun serveur) ============
-function repondreLocal(phrase) {
-  const p = phrase.toLowerCase();
-
-  if (p.includes("heure") || p.includes("quel jour")) return "{heure}.";
-  if (p.includes("blague") || p.includes("rire") || p.includes("drole") || p.includes("dr\u00f4le")) {
-    return BLAGUES[Math.floor(Math.random() * BLAGUES.length)];
-  }
-  if (p.includes("verset") || p.includes("bible") || p.includes("parole")) {
-    const v = VERSETS_NOTIF[Math.floor(Math.random() * VERSETS_NOTIF.length)];
-    return v.t + " " + v.r + ".";
-  }
-  if (p.includes("sant\u00e9") || p.includes("sante") || p.includes("conseil") || p.includes("astuce")) {
-    return duJour(ASTUCES_SANTE);
-  }
-  if (p.includes("bonjour") || p.includes("salut") || p.includes("bonsoir")) {
-    return "{salutation} ! Ravi de vous accueillir a bord. Bonne route !";
-  }
-  if (p.includes("\u00e7a va") || p.includes("ca va") || p.includes("comment vas")) {
-    return "Je vais tres bien, moteur au top ! Et vous, pret pour la route ?";
-  }
-  if (p.includes("qui es") || p.includes("tu es qui") || p.includes("ton nom")) {
-    return "Je suis VISION, l'assistant de bord de ce vehicule. Je veille sur vos trajets !";
-  }
-  if (p.includes("merci")) return "Avec plaisir ! Bonne route et que Dieu vous garde.";
-  if (p.includes("au revoir") || p.includes("bye") || p.includes("bient\u00f4t") || p.includes("bientot")) {
-    return "Au revoir, a tres bientot ! Prudence sur la route.";
-  }
-  if (p.includes("ceinture")) return "La ceinture sauve des vies ! Attachez-la avant de demarrer.";
-
-  return "Je ne connais pas encore cette question. Essayez : quelle heure il est, un verset, une astuce sante, une blague, la meteo, le taux du dollar, ou dites : emmene-moi a, suivi d'un lieu.";
-}
-
-// Traite une question et repond.
-async function traiterQuestion(question) {
-  if (veutAnglais(question)) {
-    langueVocale = "en";
-    await parlerEtAttendre("Alright! I will speak English. I can tell the time, the weather, or guide you to a place.");
-    return;
-  } else if (veutFrancais(question)) {
-    langueVocale = "fr";
-    await parlerEtAttendre("Tres bien, je reparle francais ! Comment puis-je vous aider ?");
-    return;
-  } else if (estDemandeWhatsapp(question)) {
-    await ouvrirWhatsapp();
-    return;
-  } else if (chercherSitePip(question)) {
-    const site = chercherSitePip(question);
-    if (/ferme|arr(e|\u00ea)te|coupe|enl(e|\u00e8)ve|quitte/i.test(question)) {
-      panneauVideo.classList.remove("ouvert");
-      document.querySelector(".cadreVideo").classList.remove("pageWeb");
-      iframeVideo.src = "";
-      await parlerEtAttendre(site.nom + " est ferme.");
-    } else {
-      await ouvrirSitePip(site);
-    }
-    return;
-  } else if (estParleVideo(question)) {
-    await gererVideo(question);
-    return;
-  } else if (estDemandePriere(question)) {
-    await direPriere();
-    return;
-  } else if (estDemandeQuiz(question)) {
-    await lancerQuiz();
-    return;
-  } else if (estQuestionChange(question)) {
-    await direChange(question);
-    return;
-  } else if (estQuestionCourses(question)) {
-    await direCourses();
-    return;
-  } else if (estQuestionPosition(question)) {
-    await direPosition();
-    return;
-  } else if (estQuestionMeteo(question)) {
-    await direMeteo();
-    return;
-  } else if (estDemandeItineraire(question)) {
-    await naviguerVers(question);
-    return;
-  }
-
-  // Le cerveau local repond, et l'ecran affiche la reponse
-  const reponse = repondreLocal(question);
-  montrerInfo("bas",
-    '<div class="infoLigneTitre"><span class="infoEmoji">\uD83E\uDD16</span>' +
-    '<div class="infoTitre">VISION</div></div>' +
-    '<div class="infoTexte">' + texteSur(traiter(reponse)) + '</div>');
-  await parlerEtAttendre(reponse);
-}
-
-async function assistantVocal() {
-  if (enConversation) return;
-  if (!Reco) {
-    afficher("Micro indisponible", "Utilise Chrome sur Android pour parler a VISION.");
-    return;
-  }
-  enConversation = true;
-  btnMicIA.classList.add("ecoute");
-
-  try {
-    await parlerEtAttendre(langueVocale === "en" ? "I am listening!" : "Je vous ecoute !");
-    afficher("VISION vous ecoute", "\uD83D\uDC42 Parlez maintenant...");
-    const question = await ecouterUneFois();
-
-    if (!question) {
-      await parlerEtAttendre(langueVocale === "en" ? "Sorry, I did not hear you well." : "Pardon, je n'ai pas bien entendu.");
-    } else {
-      afficher("VISION a compris", "\u00AB " + question + " \u00BB");
-      await traiterQuestion(question);
-    }
-  } catch (e) {
-    console.error("Erreur assistantVocal:", e);
-  } finally {
-    // Ce bloc s'execute TOUJOURS, meme en cas d'erreur : le bouton ne reste
-    // plus jamais bloque en mode "ecoute" fantome.
-    btnMicIA.classList.remove("ecoute");
-    enConversation = false;
-    afficher(auto ? "VISION en marche" : "Assistant de bord",
-             auto ? "Micro ouvert. Dis Vision pour me parler." : "");
-    // L'ecoute du nom reprend toute seule
-    if (ecouteNomActive && !hotwordPause) setTimeout(lancerEcouteNom, 800);
-    // Quelques secondes apres, VISION affiche une notification silencieuse
-    programmerNotif(8000);
-  }
-}
-
-btnMicIA.onclick = assistantVocal;
-
-// ============ LES VIDEOS (modifie librement : titre + identifiant YouTube) ============
-// L'identifiant, c'est ce qui suit "watch?v=" dans le lien YouTube.
-const VIDEOS = [
-  { titre: "Dena Mwana - Je Benirai L'Eternel", id: "XR9vBZa9cjo" },
-  { titre: "KS Bloom - Pardonner", id: "JXJm9rT5yr0" },
-  { titre: "KS Bloom - C'est Dieu", id: "m0N965nXmXY" },
-  { titre: "Louange & adoration (mix)", id: "PxEBb6mCB_8" }
-];
-
-const panneauVideo = document.getElementById("panneauVideo");
-const iframeVideo = document.getElementById("iframeVideo");
-let videoActive = -1;
-
-function chargerVideo(i) {
-  document.querySelector(".cadreVideo").classList.remove("pageWeb");
-  videoActive = i;
-  // autoplay=1 : la video demarre toute seule, sans appuyer sur lecture
-  iframeVideo.src = "https://www.youtube-nocookie.com/embed/" + VIDEOS[i].id +
-    "?enablejsapi=1&rel=0&playsinline=1&autoplay=1";
-}
-
-function pauserVideo() {
-  if (iframeVideo.src) {
-    iframeVideo.contentWindow.postMessage(JSON.stringify({ event: "command", func: "pauseVideo", args: [] }), "*");
-  }
-}
-
-document.getElementById("fermerVideo").onclick = () => {
-  panneauVideo.classList.remove("ouvert");
-  document.querySelector(".cadreVideo").classList.remove("pageWeb");
-  iframeVideo.src = ""; // coupe le son en fermant
-  videoActive = -1;
+$("#btnCam").onclick = () => {
+  $("#zoneCode").classList.add("ouvert");
+  $("#codeSalle").focus();
 };
 
-// Bouton video manuel : ouvre et joue directement (change de clip a chaque appui)
-document.getElementById("btnVideo").onclick = () => {
-  panneauVideo.classList.add("ouvert");
-  chargerVideo(videoActive === -1 ? 0 : (videoActive + 1) % VIDEOS.length);
+$("#valider").onclick = async () => {
+  const code = $("#codeSalle").value.replace(/\D/g, "");
+  if (code.length !== 4){ erreur("Saisis le code à 4 chiffres affiché sur la régie."); return; }
+  erreur("");
+  try{ await cam.demarrer(code); }
+  catch(e){ afficher("accueil"); erreur("Caméra inaccessible : " + e.message); }
 };
 
-// ============ MENU : ouvrir / fermer le panneau du bas ============
-const panneauBas = document.querySelector(".panneau");
-document.getElementById("btnMenu").onclick = () => {
-  panneauBas.classList.toggle("ouvert");
-};
-// Apres un appui sur un bouton du panneau, il se referme tout seul
-["btnAuto", "btnBye", "btnManuel"].forEach(id => {
-  document.getElementById(id).addEventListener("click", () => {
-    setTimeout(() => panneauBas.classList.remove("ouvert"), 350);
-  });
-});
-
-// ============ COMPRENDRE OUI / NON ============
-function estOui(t) {
-  const p = (t || "").toLowerCase();
-  return /\b(oui|ouais|d'accord|daccord|ok|bien sur|bien s\u00fbr|vas-y|vas y|volontiers|avec plaisir|je veux|pourquoi pas|allez|mets|montre)\b/.test(p);
-}
-function estNon(t) {
-  const p = (t || "").toLowerCase();
-  return /\b(non|nan|pas besoin|ca va|\u00e7a va|merci non|non merci|plus tard|jamais|laisse)\b/.test(p);
-}
-
-// ============ NAVIGATION REELLE (adresses + itineraire trace) ============
-// Services libres : Nominatim (trouver l'adresse) + OSRM (calculer la route)
-let navActive = false, destinationNav = null, infoNav = null;
-let routeNav = null, marqueurDest = null;
-
-function distanceMetres(lat1, lng1, lat2, lng2) {
-  const R = 6371000, rad = Math.PI / 180;
-  const dLat = (lat2 - lat1) * rad, dLng = (lng2 - lng1) * rad;
-  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*rad) * Math.cos(lat2*rad) * Math.sin(dLng/2)**2;
-  return 2 * R * Math.asin(Math.sqrt(a));
-}
-
-function effacerNavigation() {
-  navActive = false; destinationNav = null; infoNav = null;
-  if (routeNav) { map.removeLayer(routeNav); routeNav = null; }
-  if (marqueurDest) { map.removeLayer(marqueurDest); marqueurDest = null; }
-}
-
-// ============ SOURCES REELLES ET GRATUITES (sans cle API) ============
-
-
-// --- METEO REELLE (Open-Meteo, libre et gratuit) ---
-function estQuestionMeteo(p) {
-  return /m(e|\u00e9)t(e|\u00e9)o|temps fait|temps qu'il fait|il pleut|va pleuvoir|pluie|temp(e|\u00e9)rature|chaleur|il fait chaud|il fait froid/i.test(p);
-}
-
-const TEMPS_METEO = {
-  0:"ciel degage",1:"plutot degage",2:"partiellement nuageux",3:"couvert",45:"brouillard",48:"brouillard givrant",
-  51:"bruine legere",53:"bruine",55:"bruine forte",61:"pluie legere",63:"pluie",65:"forte pluie",
-  80:"averses legeres",81:"averses",82:"fortes averses",95:"orage",96:"orage avec grele",99:"violent orage"
+$("#basculer").onclick = async () => {
+  cam.frontale = !cam.frontale;
+  await cam.ouvrirCamera();
+  const piste = cam.flux.getVideoTracks()[0];
+  const emetteur = cam.appel && cam.appel.peerConnection.getSenders()
+                    .find(s => s.track && s.track.kind === "video");
+  if (emetteur) await emetteur.replaceTrack(piste);
 };
 
-const EMOJI_METEO = { 0:"\u2600\uFE0F",1:"\uD83C\uDF24\uFE0F",2:"\u26C5",3:"\u2601\uFE0F",45:"\uD83C\uDF2B\uFE0F",48:"\uD83C\uDF2B\uFE0F",
-  51:"\uD83C\uDF26\uFE0F",53:"\uD83C\uDF27\uFE0F",55:"\uD83C\uDF27\uFE0F",61:"\uD83C\uDF26\uFE0F",63:"\uD83C\uDF27\uFE0F",65:"\uD83C\uDF27\uFE0F",
-  80:"\uD83C\uDF26\uFE0F",81:"\uD83C\uDF27\uFE0F",82:"\u26C8\uFE0F",95:"\u26C8\uFE0F",96:"\u26C8\uFE0F",99:"\u26C8\uFE0F" };
-
-async function obtenirMeteo() {
-  const pos = dernierePos || { lat: 6.3703, lng: 2.3912 }; // Cotonou par defaut
-  const rep = await fetch("https://api.open-meteo.com/v1/forecast?latitude=" + pos.lat +
-    "&longitude=" + pos.lng + "&current=temperature_2m,weather_code,wind_speed_10m&timezone=auto");
-  const data = await rep.json();
-  const c = data.current;
-  return {
-    temp: Math.round(c.temperature_2m),
-    vent: Math.round(c.wind_speed_10m),
-    desc: TEMPS_METEO[c.weather_code] || "temps variable",
-    emoji: EMOJI_METEO[c.weather_code] || "\uD83C\uDF24\uFE0F"
+/* --- Arrivée par QR : ?salle=7392 --- */
+const params = new URLSearchParams(location.search);
+const salleUrl = (params.get("salle") || "").replace(/\D/g, "");
+if (salleUrl.length === 4){
+  $("#inviteCode").textContent = salleUrl;
+  afficher("invite");
+  // Un seul appui : les navigateurs mobiles exigent un geste avant d'ouvrir la caméra
+  $("#inviteDemarrer").onclick = async () => {
+    try{ await cam.demarrer(salleUrl); }
+    catch(e){ afficher("accueil"); erreur("Caméra inaccessible : " + e.message); }
   };
-}
-
-function afficherCarteMeteo(mto) {
-  montrerInfo("pip",
-    '<div class="infoLigneTitre"><span class="infoEmoji">' + mto.emoji + '</span>' +
-    '<div><div class="infoGrand">' + mto.temp + '\u00B0C</div>' +
-    '<div class="infoTitre">' + mto.desc.charAt(0).toUpperCase() + mto.desc.slice(1) + '</div></div></div>' +
-    '<div class="infoTexte">\uD83D\uDCA8 Vent : ' + mto.vent + ' km/h \u00B7 \uD83D\uDCCD Position actuelle</div>');
-}
-
-// Quand ON LUI DEMANDE : elle montre ET elle parle
-async function direMeteo() {
-  try {
-    const mto = await obtenirMeteo();
-    afficherCarteMeteo(mto);
-    await parlerEtAttendre("En ce moment, il fait " + mto.temp +
-      " degres, avec un " + mto.desc + ", et un vent d'environ " + mto.vent +
-      " kilometres heure.");
-  } catch (e) {
-    await parlerEtAttendre("Je n'arrive pas a joindre le service meteo pour le moment.");
-  }
-}
-
-// ============ NOTIFICATIONS SILENCIEUSES ============
-// VISION affiche d'elle-meme des infos a l'ecran, SANS parler.
-let timerNotif = null;
-
-function programmerNotif(ms) {
-  clearTimeout(timerNotif);
-  timerNotif = setTimeout(notifSilencieuse, ms);
-}
-
-async function notifSilencieuse() {
-  if (!auto) return; // seulement quand VISION est en marche
-  // Jamais pendant qu'elle parle ou ecoute : on repousse
-  if (speechSynthesis.speaking || enConversation || enSequence ||
-      notifVerset.classList.contains("ouvert")) {
-    programmerNotif(30000);
-    return;
-  }
-  try {
-    const mto = await obtenirMeteo();
-    afficherCarteMeteo(mto); // affichage seulement, pas un mot
-  } catch (e) {}
-  programmerNotif(10 * 60000); // prochaine notification dans 10 minutes
-}
-
-// --- ACTUALITES DU BENIN (via ton mini-worker, flux gratuit) ---
-
-// (Module actualites retire avec le worker)
-
-// (Wikipedia retire : Google News est le moteur visuel unique)
-
-// ============ CARTE D'INFORMATION A L'ECRAN ============
-const infoCarte = document.getElementById("infoCarte");
-let timerInfo = null;
-
-function montrerInfo(style, contenu) {
-  if (typeof notifVerset !== "undefined" && notifVerset) notifVerset.classList.remove("ouvert");
-  infoCarte.classList.remove("ouvert");
-  infoCarte.className = "style-" + (style || "haut");
-  infoCarte.innerHTML = '<button class="fermerFlottant" onclick="cacherInfo()">\u2715</button>' + contenu;
-  // Petit temps pour que l'animation parte du bon cote
-  setTimeout(() => infoCarte.classList.add("ouvert"), 60);
-  clearTimeout(timerInfo);
-  timerInfo = setTimeout(cacherInfo, 45000); // se range toute seule apres 45 s
-}
-
-function cacherInfo() {
-  infoCarte.classList.remove("ouvert");
-}
-
-function texteSur(t) {
-  return String(t).replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
-
-// ============ VERSETS EN NOTIFICATION (haut droite, 8 s, 1/min) ============
-const VERSETS_NOTIF = [
-{t:"Fortifie-toi et prends courage. Ne t'effraie point, car l'Eternel ton Dieu est avec toi partout ou tu iras.",r:"Josue 1:9"},
-{t:"Ne crains rien, car je suis avec toi ; ne promene pas des regards inquiets, car je suis ton Dieu.",r:"Esaie 41:10"},
-{t:"Je puis tout par celui qui me fortifie.",r:"Philippiens 4:13"},
-{t:"L'Eternel est ma lumiere et mon salut : de qui aurais-je crainte ?",r:"Psaume 27:1"},
-{t:"Dieu est pour nous un refuge et un appui, un secours qui ne manque jamais dans la detresse.",r:"Psaume 46:2"},
-{t:"Fortifiez-vous et que votre coeur s'affermisse, vous tous qui esperez en l'Eternel !",r:"Psaume 31:25"},
-{t:"Ceux qui se confient en l'Eternel renouvellent leur force. Ils prennent le vol comme les aigles.",r:"Esaie 40:31"},
-{t:"Car ce n'est pas un esprit de timidite que Dieu nous a donne, mais un esprit de force, d'amour et de sagesse.",r:"2 Timothee 1:7"},
-{t:"L'Eternel est ma force et mon bouclier ; en lui mon coeur se confie, et je suis secouru.",r:"Psaume 28:7"},
-{t:"La joie de l'Eternel sera votre force.",r:"Nehemie 8:10"},
-{t:"Veillez, demeurez fermes dans la foi, soyez des hommes, fortifiez-vous.",r:"1 Corinthiens 16:13"},
-{t:"Fortifiez-vous dans le Seigneur, et par sa force toute-puissante.",r:"Ephesiens 6:10"},
-{t:"Ne vous laissez pas effrayer, et ne soyez pas dans l'epouvante ; car l'Eternel ton Dieu marche lui-meme avec toi.",r:"Deuteronome 31:6"},
-{t:"L'Eternel combattra pour vous ; et vous, gardez le silence.",r:"Exode 14:14"},
-{t:"Si Dieu est pour nous, qui sera contre nous ?",r:"Romains 8:31"},
-{t:"Je connais les projets que j'ai formes sur vous, projets de paix et non de malheur, afin de vous donner un avenir et de l'esperance.",r:"Jeremie 29:11"},
-{t:"Toutes choses concourent au bien de ceux qui aiment Dieu.",r:"Romains 8:28"},
-{t:"L'Eternel est mon berger : je ne manquerai de rien.",r:"Psaume 23:1"},
-{t:"Il me fait reposer dans de verts paturages, il me dirige pres des eaux paisibles.",r:"Psaume 23:2"},
-{t:"Quand je marche dans la vallee de l'ombre de la mort, je ne crains aucun mal, car tu es avec moi.",r:"Psaume 23:4"},
-{t:"Je leve mes yeux vers les montagnes : d'ou me viendra le secours ? Le secours me vient de l'Eternel.",r:"Psaume 121:1-2"},
-{t:"L'Eternel gardera ton depart et ton arrivee, des maintenant et a jamais.",r:"Psaume 121:8"},
-{t:"Venez a moi, vous tous qui etes fatigues et charges, et je vous donnerai du repos.",r:"Matthieu 11:28"},
-{t:"Je vous laisse la paix, je vous donne ma paix. Que votre coeur ne se trouble point.",r:"Jean 14:27"},
-{t:"Ne vous inquietez de rien ; mais en toute chose faites connaitre vos besoins a Dieu par des prieres.",r:"Philippiens 4:6"},
-{t:"Et la paix de Dieu, qui surpasse toute intelligence, gardera vos coeurs et vos pensees.",r:"Philippiens 4:7"},
-{t:"Dechargez-vous sur lui de tous vos soucis, car lui-meme prend soin de vous.",r:"1 Pierre 5:7"},
-{t:"Le malheur atteint souvent le juste, mais l'Eternel l'en delivre toujours.",r:"Psaume 34:20"},
-{t:"Les bontes de l'Eternel ne sont pas epuisees, ses compassions se renouvellent chaque matin.",r:"Lamentations 3:22-23"},
-{t:"Que le Dieu de l'esperance vous remplisse de toute joie et de toute paix dans la foi !",r:"Romains 15:13"},
-{t:"Fais de l'Eternel tes delices, et il te donnera ce que ton coeur desire.",r:"Psaume 37:4"},
-{t:"Recommande ton sort a l'Eternel, mets en lui ta confiance, et il agira.",r:"Psaume 37:5"},
-{t:"Confie-toi en l'Eternel de tout ton coeur, et ne t'appuie pas sur ta sagesse.",r:"Proverbes 3:5"},
-{t:"Reconnais-le dans toutes tes voies, et il aplanira tes sentiers.",r:"Proverbes 3:6"},
-{t:"Remets ton sort a l'Eternel, et il te soutiendra ; il ne laissera jamais chanceler le juste.",r:"Psaume 55:23"},
-{t:"A celui qui est ferme dans ses sentiments tu assures la paix, parce qu'il se confie en toi.",r:"Esaie 26:3"},
-{t:"Prenez courage, j'ai vaincu le monde.",r:"Jean 16:33"},
-{t:"Pourquoi t'abats-tu, mon ame ? Espere en Dieu, car je le louerai encore.",r:"Psaume 42:12"},
-{t:"Le Seigneur est mon aide, je ne craindrai rien.",r:"Hebreux 13:6"},
-{t:"Celui qui demeure sous l'abri du Tres-Haut repose a l'ombre du Tout-Puissant.",r:"Psaume 91:1"},
-{t:"Je dis a l'Eternel : Mon refuge et ma forteresse, mon Dieu en qui je me confie !",r:"Psaume 91:2"},
-{t:"Il ordonnera a ses anges de te garder dans toutes tes voies.",r:"Psaume 91:11"},
-{t:"Oui, c'est en Dieu que mon ame se confie ; de lui vient mon salut.",r:"Psaume 62:2"},
-{t:"L'Eternel te gardera de tout mal, il gardera ton ame.",r:"Psaume 121:7"},
-{t:"Ce livre de la loi ne s'eloignera point de ta bouche ; medite-le jour et nuit, car c'est alors que tu reussiras.",r:"Josue 1:8"},
-{t:"Si vous m'aimez, gardez mes commandements.",r:"Jean 14:15"},
-{t:"Mettez en pratique la parole, et ne vous bornez pas a l'ecouter.",r:"Jacques 1:22"},
-{t:"L'obeissance vaut mieux que les sacrifices.",r:"1 Samuel 15:22"},
-{t:"Ta parole est une lampe a mes pieds, et une lumiere sur mon sentier.",r:"Psaume 119:105"},
-{t:"Si vous gardez mes commandements, vous demeurerez dans mon amour.",r:"Jean 15:10"},
-{t:"Heureux ceux qui ecoutent la parole de Dieu, et qui la gardent !",r:"Luc 11:28"},
-{t:"Quiconque entend mes paroles et les met en pratique sera semblable a un homme prudent qui a bati sa maison sur le roc.",r:"Matthieu 7:24"},
-{t:"Tout ce que vous faites, faites-le de bon coeur, comme pour le Seigneur et non pour des hommes.",r:"Colossiens 3:23"},
-{t:"Crains Dieu et observe ses commandements. C'est la ce que doit faire tout homme.",r:"Ecclesiaste 12:13"},
-{t:"On t'a fait connaitre ce qui est bien : pratiquer la justice, aimer la misericorde, marcher humblement avec ton Dieu.",r:"Michee 6:8"},
-{t:"Ne vous conformez pas au siecle present, mais soyez transformes par le renouvellement de l'intelligence.",r:"Romains 12:2"},
-{t:"Si tu obeis a la voix de l'Eternel ton Dieu, toutes ces benedictions viendront sur toi.",r:"Deuteronome 28:2"},
-{t:"Mon fils, n'oublie pas mes enseignements, et que ton coeur garde mes preceptes ; car ils prolongeront tes jours.",r:"Proverbes 3:1-2"},
-{t:"Vous suivrez entierement la voie que l'Eternel vous a prescrite, afin que vous viviez et que vous soyez heureux.",r:"Deuteronome 5:33"},
-{t:"La foi est une ferme assurance des choses qu'on espere, une demonstration de celles qu'on ne voit point.",r:"Hebreux 11:1"},
-{t:"Tout est possible a celui qui croit.",r:"Marc 9:23"},
-{t:"Si vous aviez de la foi comme un grain de seneve, rien ne vous serait impossible.",r:"Matthieu 17:20"},
-{t:"Nous marchons par la foi et non par la vue.",r:"2 Corinthiens 5:7"},
-{t:"La foi vient de ce qu'on entend, et ce qu'on entend vient de la parole de Christ.",r:"Romains 10:17"},
-{t:"Qu'il demande avec foi, sans douter.",r:"Jacques 1:6"},
-{t:"Sans la foi, il est impossible de lui etre agreable.",r:"Hebreux 11:6"},
-{t:"Ne crains point, crois seulement.",r:"Marc 5:36"},
-{t:"Si quelqu'un manque de sagesse, qu'il la demande a Dieu, qui donne a tous simplement.",r:"Jacques 1:5"},
-{t:"La crainte de l'Eternel est le commencement de la sagesse.",r:"Proverbes 9:10"},
-{t:"Heureux l'homme qui a trouve la sagesse, et l'homme qui possede l'intelligence !",r:"Proverbes 3:13"},
-{t:"Ne nous lassons pas de faire le bien ; car nous moissonnerons au temps convenable, si nous ne nous relachons pas.",r:"Galates 6:9"},
-{t:"Heureux l'homme qui supporte patiemment l'epreuve ; car il recevra la couronne de vie.",r:"Jacques 1:12"},
-{t:"La tribulation produit la perseverance, la perseverance la victoire dans l'epreuve, et cette victoire l'esperance.",r:"Romains 5:3-4"},
-{t:"Courons avec perseverance dans la carriere qui nous est ouverte, les regards sur Jesus.",r:"Hebreux 12:1-2"},
-{t:"Celui qui perseverera jusqu'a la fin sera sauve.",r:"Matthieu 24:13"},
-{t:"Rendez graces en toutes choses, car c'est a votre egard la volonte de Dieu en Jesus-Christ.",r:"1 Thessaloniciens 5:18"},
-{t:"Entrez dans ses portes avec des louanges, dans ses parvis avec des cantiques !",r:"Psaume 100:4"},
-{t:"Je benirai l'Eternel en tout temps ; sa louange sera toujours dans ma bouche.",r:"Psaume 34:2"},
-{t:"Rendez graces a l'Eternel, car il est bon, car sa misericorde dure a toujours !",r:"Psaume 107:1"},
-{t:"Que tout ce qui respire loue l'Eternel !",r:"Psaume 150:6"},
-{t:"C'est ici la journee que l'Eternel a faite : qu'elle soit pour nous un sujet d'allegresse et de joie !",r:"Psaume 118:24"},
-{t:"L'amour est patient, il est plein de bonte ; l'amour n'est point envieux.",r:"1 Corinthiens 13:4"},
-{t:"Aimez-vous les uns les autres, comme je vous ai aimes.",r:"Jean 13:34"},
-{t:"L'amour parfait bannit la crainte.",r:"1 Jean 4:18"},
-{t:"Nous l'aimons, parce qu'il nous a aimes le premier.",r:"1 Jean 4:19"},
-{t:"Rien ne pourra nous separer de l'amour de Dieu manifeste en Jesus-Christ notre Seigneur.",r:"Romains 8:39"},
-{t:"Car Dieu a tant aime le monde qu'il a donne son Fils unique.",r:"Jean 3:16"},
-{t:"Que tout ce que vous faites se fasse avec amour.",r:"1 Corinthiens 16:14"},
-{t:"Cherchez premierement le royaume et la justice de Dieu, et toutes ces choses vous seront donnees par-dessus.",r:"Matthieu 6:33"},
-{t:"Ne vous inquietez donc pas du lendemain ; car le lendemain aura soin de lui-meme.",r:"Matthieu 6:34"},
-{t:"Mon Dieu pourvoira a tous vos besoins selon sa richesse, avec gloire, en Jesus-Christ.",r:"Philippiens 4:19"},
-{t:"Regardez les oiseaux du ciel : votre Pere celeste les nourrit. Ne valez-vous pas beaucoup plus qu'eux ?",r:"Matthieu 6:26"},
-{t:"J'ai ete jeune, j'ai vieilli ; et je n'ai point vu le juste abandonne.",r:"Psaume 37:25"},
-{t:"L'Eternel est bon, il est un refuge au jour de la detresse ; il connait ceux qui se confient en lui.",r:"Nahum 1:7"},
-{t:"Demandez, et l'on vous donnera ; cherchez, et vous trouverez ; frappez, et l'on vous ouvrira.",r:"Matthieu 7:7"},
-{t:"Invoque-moi, et je te repondrai ; je t'annoncerai de grandes choses, des choses cachees.",r:"Jeremie 33:3"},
-{t:"L'Eternel est pres de tous ceux qui l'invoquent, de tous ceux qui l'invoquent avec sincerite.",r:"Psaume 145:18"},
-{t:"Avant qu'ils m'invoquent, je repondrai ; avant qu'ils aient cesse de parler, j'exaucerai.",r:"Esaie 65:24"},
-{t:"Priez sans cesse.",r:"1 Thessaloniciens 5:17"},
-{t:"Confessez donc vos peches les uns aux autres, et priez les uns pour les autres. La priere du juste a une grande efficacite.",r:"Jacques 5:16"},
-{t:"Si mon peuple s'humilie, prie et cherche ma face, je pardonnerai son peche et je guerirai son pays.",r:"2 Chroniques 7:14"},
-{t:"Voici, je suis avec vous tous les jours, jusqu'a la fin du monde.",r:"Matthieu 28:20"},
-{t:"Je ne te delaisserai point, et je ne t'abandonnerai point.",r:"Hebreux 13:5"},
-{t:"Quand tu traverseras les eaux, je serai avec toi ; et les fleuves, ils ne te submergeront point.",r:"Esaie 43:2"},
-{t:"L'Eternel marchera lui-meme devant toi, il sera lui-meme avec toi.",r:"Deuteronome 31:8"},
-{t:"Meme les cheveux de votre tete sont tous comptes. Ne craignez donc point.",r:"Luc 12:7"},
-{t:"L'Eternel ton Dieu est au milieu de toi, comme un heros qui sauve.",r:"Sophonie 3:17"},
-{t:"Il donne de la force a celui qui est fatigue, et il augmente la vigueur de celui qui tombe en defaillance.",r:"Esaie 40:29"},
-{t:"C'est par la grace que vous etes sauves, par le moyen de la foi. Cela ne vient pas de vous, c'est le don de Dieu.",r:"Ephesiens 2:8"},
-{t:"Ma grace te suffit, car ma puissance s'accomplit dans la faiblesse.",r:"2 Corinthiens 12:9"},
-{t:"Si nous confessons nos peches, il est fidele et juste pour nous les pardonner.",r:"1 Jean 1:9"},
-{t:"Autant l'orient est eloigne de l'occident, autant il eloigne de nous nos transgressions.",r:"Psaume 103:12"},
-{t:"Si quelqu'un est en Christ, il est une nouvelle creature. Les choses anciennes sont passees ; toutes choses sont devenues nouvelles.",r:"2 Corinthiens 5:17"},
-{t:"Venez et plaidons ! Quand vos peches seraient comme le cramoisi, ils deviendront blancs comme la neige.",r:"Esaie 1:18"},
-{t:"Heureux ceux qui procurent la paix, car ils seront appeles fils de Dieu !",r:"Matthieu 5:9"},
-{t:"Recherchez la paix avec tous, et la sanctification.",r:"Hebreux 12:14"},
-{t:"S'il est possible, autant que cela depend de vous, soyez en paix avec tous les hommes.",r:"Romains 12:18"},
-{t:"Que la paix de Christ regne dans vos coeurs.",r:"Colossiens 3:15"},
-{t:"Il y a plus de bonheur a donner qu'a recevoir.",r:"Actes 20:35"},
-{t:"Celui qui a pitie du pauvre prete a l'Eternel, qui lui rendra selon son oeuvre.",r:"Proverbes 19:17"},
-{t:"Que chacun donne comme il l'a resolu en son coeur, sans tristesse ni contrainte ; car Dieu aime celui qui donne avec joie.",r:"2 Corinthiens 9:7"},
-{t:"Donnez, et il vous sera donne : une bonne mesure, serree, secouee et qui deborde.",r:"Luc 6:38"},
-{t:"L'homme regarde a ce qui frappe les yeux, mais l'Eternel regarde au coeur.",r:"1 Samuel 16:7"},
-{t:"Garde ton coeur plus que toute autre chose, car de lui viennent les sources de la vie.",r:"Proverbes 4:23"},
-{t:"Heureux ceux qui ont le coeur pur, car ils verront Dieu !",r:"Matthieu 5:8"},
-{t:"Cree en moi un coeur pur, o Dieu, renouvelle en moi un esprit bien dispose.",r:"Psaume 51:12"},
-{t:"Une reponse douce calme la fureur, mais une parole dure excite la colere.",r:"Proverbes 15:1"},
-{t:"Que tout homme soit prompt a ecouter, lent a parler, lent a se mettre en colere.",r:"Jacques 1:19"},
-{t:"La mort et la vie sont au pouvoir de la langue.",r:"Proverbes 18:21"},
-{t:"Qu'il ne sorte de votre bouche aucune parole mauvaise, mais s'il y a lieu, quelque bonne parole qui edifie.",r:"Ephesiens 4:29"},
-{t:"Humiliez-vous devant le Seigneur, et il vous elevera.",r:"Jacques 4:10"},
-{t:"Quiconque s'elevera sera abaisse, et quiconque s'abaissera sera eleve.",r:"Matthieu 23:12"},
-{t:"L'orgueil precede la chute, et l'esprit hautain precede la ruine.",r:"Proverbes 16:18"},
-{t:"Quand la fierte vient, vient aussi l'ignominie ; mais la sagesse est avec les humbles.",r:"Proverbes 11:2"},
-{t:"Tu es mon Dieu, je te louerai ; mon Dieu, je t'exalterai.",r:"Psaume 118:28"},
-{t:"L'Eternel regne, que la terre soit dans l'allegresse !",r:"Psaume 97:1"},
-{t:"Grand est l'Eternel et tres digne de louange, sa grandeur est insondable.",r:"Psaume 145:3"},
-{t:"Les cieux racontent la gloire de Dieu, et l'etendue manifeste l'oeuvre de ses mains.",r:"Psaume 19:2"},
-{t:"Je te loue de ce que je suis une creature si merveilleuse. Tes oeuvres sont admirables.",r:"Psaume 139:14"},
-{t:"Avant que je t'eusse forme dans le ventre de ta mere, je te connaissais.",r:"Jeremie 1:5"},
-{t:"Nous sommes son ouvrage, ayant ete crees en Jesus-Christ pour de bonnes oeuvres.",r:"Ephesiens 2:10"},
-{t:"Vous etes le sel de la terre. Vous etes la lumiere du monde.",r:"Matthieu 5:13-14"},
-{t:"Que votre lumiere luise ainsi devant les hommes, afin qu'ils voient vos bonnes oeuvres.",r:"Matthieu 5:16"},
-{t:"Celui qui a commence en vous cette bonne oeuvre la rendra parfaite pour le jour de Jesus-Christ.",r:"Philippiens 1:6"},
-{t:"Oubliant ce qui est en arriere, je cours vers le but pour remporter le prix de la vocation celeste.",r:"Philippiens 3:13-14"},
-{t:"Ne dites pas : les temps anciens etaient meilleurs. Voici, je fais une chose nouvelle : elle va germer.",r:"Esaie 43:19"},
-{t:"Il y a un temps pour tout, un temps pour toute chose sous les cieux.",r:"Ecclesiaste 3:1"},
-{t:"Il fait toute chose belle en son temps.",r:"Ecclesiaste 3:11"},
-{t:"Le coeur de l'homme medite sa voie, mais c'est l'Eternel qui dirige ses pas.",r:"Proverbes 16:9"},
-{t:"Recommande a l'Eternel tes oeuvres, et tes projets reussiront.",r:"Proverbes 16:3"},
-{t:"Si l'Eternel ne batit la maison, ceux qui la batissent travaillent en vain.",r:"Psaume 127:1"},
-{t:"Le nom de l'Eternel est une tour forte ; le juste s'y refugie, et se trouve en surete.",r:"Proverbes 18:10"}
-];
-
-let timerVerset = null, timerVersetCache = null, dernierVersetIdx = -1;
-const notifVerset = document.getElementById("notifVerset");
-
-function afficherVersetNotif() {
-  if (!auto) return;
-  // JAMAIS deux notifications en meme temps (la video ne compte pas)
-  if (speechSynthesis.speaking || enConversation || enSequence) return;
-  if (infoCarte.classList.contains("ouvert")) return;
-
-  let i;
-  do { i = Math.floor(Math.random() * VERSETS_NOTIF.length); }
-  while (i === dernierVersetIdx && VERSETS_NOTIF.length > 1);
-  dernierVersetIdx = i;
-
-  const v = VERSETS_NOTIF[i];
-  notifVerset.innerHTML =
-    '<div class="vTexte">\uD83D\uDCD6 \u00AB ' + v.t + ' \u00BB</div>' +
-    '<div class="vRef">' + v.r + '</div>';
-  notifVerset.classList.add("ouvert");
-
-  clearTimeout(timerVersetCache);
-  timerVersetCache = setTimeout(() => notifVerset.classList.remove("ouvert"), 8000);
-}
-
-function demarrerVersets() {
-  clearInterval(timerVerset);
-  timerVerset = setInterval(afficherVersetNotif, 60000); // un verset par minute
-  setTimeout(afficherVersetNotif, 25000); // le premier peu apres le demarrage
-}
-
-function arreterVersets() {
-  clearInterval(timerVerset);
-  clearTimeout(timerVersetCache);
-  notifVerset.classList.remove("ouvert");
-}
-
-// ============ PRIERES DE VOYAGE ============
-const PRIERES = [
-  "Seigneur, nous te confions ce trajet. Protege chaque passager de ce vehicule, guide les mains du conducteur, et conduis-nous a bon port. Que ta paix regne dans cette voiture. Au nom de Jesus, amen.",
-  "Pere celeste, merci pour cette journee. Couvre cette route de ta protection, eloigne de nous tout danger, et benis chaque personne a bord ainsi que sa famille. Amen.",
-  "Eternel, tu gardes notre depart et notre arrivee. Nous remettons ce voyage entre tes mains. Donne la vigilance au chauffeur et la serenite aux passagers. Amen."
-];
-
-function estDemandePriere(p) {
-  return /prie pour|une pri(e|\u00e8)re|b(e|\u00e9)nis (mon|notre|ce) (voyage|trajet)|priere de voyage/i.test(p);
-}
-
-async function direPriere() {
-  const priere = PRIERES[Math.floor(Math.random() * PRIERES.length)];
-  montrerInfo("haut",
-    '<div class="infoLigneTitre"><span class="infoEmoji">\uD83D\uDE4F</span>' +
-    '<div class="infoTitre">Priere de voyage</div></div>' +
-    '<div class="infoTexte" style="font-style:italic">' + priere + '</div>');
-  await parlerEtAttendre(priere);
-}
-
-// ============ TAUX DE CHANGE (gratuit, sans cle) ============
-function estQuestionChange(p) {
-  return /taux de change|combien vaut|le dollar|l euro|l'euro|le naira|le cedi|livre sterling|le yuan|cours du/i.test(p);
-}
-
-async function direChange(question) {
-  const q = question.toLowerCase();
-  let code = "USD", nom = "un dollar americain";
-  if (q.includes("euro")) { code = "EUR"; nom = "un euro"; }
-  else if (q.includes("naira")) { code = "NGN"; nom = "un naira nigerian"; }
-  else if (q.includes("cedi")) { code = "GHS"; nom = "un cedi ghaneen"; }
-  else if (q.includes("livre")) { code = "GBP"; nom = "une livre sterling"; }
-  else if (q.includes("yuan")) { code = "CNY"; nom = "un yuan chinois"; }
-  try {
-    const rep = await fetch("https://open.er-api.com/v6/latest/" + code);
-    const data = await rep.json();
-    if (data.rates && data.rates.XOF) {
-      const taux = Math.round(data.rates.XOF);
-      const DRAPEAUX = { USD:"\uD83C\uDDFA\uD83C\uDDF8", EUR:"\uD83C\uDDEA\uD83C\uDDFA", NGN:"\uD83C\uDDF3\uD83C\uDDEC", GHS:"\uD83C\uDDEC\uD83C\uDDED", GBP:"\uD83C\uDDEC\uD83C\uDDE7", CNY:"\uD83C\uDDE8\uD83C\uDDF3" };
-      montrerInfo("pip",
-        '<div class="infoLigneTitre"><span class="infoEmoji">' + (DRAPEAUX[code] || "\uD83D\uDCB1") + '</span>' +
-        '<div><div class="infoGrand">1 ' + code + ' = ' + taux.toLocaleString("fr-FR") + ' FCFA</div>' +
-        '<div class="infoTexte">Taux du jour \u00B7 mis a jour aujourd\u0027hui</div></div></div>');
-      await parlerEtAttendre("Aujourd'hui, " + nom + " vaut environ " +
-        Math.round(data.rates.XOF) + " francs CFA.");
-    } else {
-      await parlerEtAttendre("Je n'ai pas ce taux de change pour le moment.");
-    }
-  } catch (e) {
-    await parlerEtAttendre("Je n'arrive pas a joindre le service de change.");
-  }
-}
-
-// ============ QUIZ DU TRAJET ============
-const QUIZ = [
-  { q: "Quelle est la capitale officielle du Benin ?", mots: ["porto"], bonne: "Porto-Novo" },
-  { q: "Qui a vaincu Goliath dans la Bible ?", mots: ["david"], bonne: "David" },
-  { q: "Combien de couleurs a le drapeau du Benin ?", mots: ["trois", "3"], bonne: "trois : vert, jaune et rouge" },
-  { q: "Dans quelle ville se trouve la Porte du Non-Retour ?", mots: ["ouidah"], bonne: "Ouidah" },
-  { q: "Combien de jours Dieu a-t-il pris pour creer le monde, avant de se reposer ?", mots: ["six", "6"], bonne: "six jours" }
-];
-
-function estDemandeQuiz(p) {
-  return /quiz|un jeu|devinette|pose[- ]moi (une|des) question/i.test(p);
-}
-
-async function lancerQuiz() {
-  const questions = [...QUIZ].sort(() => Math.random() - 0.5).slice(0, 3);
-  let score = 0;
-  await parlerEtAttendre("Tres bien, petit quiz en trois questions ! C'est parti.");
-  for (let i = 0; i < questions.length; i++) {
-    const item = questions[i];
-    await parlerEtAttendre("Question " + (i + 1) + " : " + item.q);
-    const rep = await ecouterUneFois();
-    const bon = rep && item.mots.some(m => rep.toLowerCase().includes(m));
-    if (bon) {
-      score++;
-      await parlerEtAttendre("Bravo, bonne reponse !");
-    } else {
-      await parlerEtAttendre("Ce n'est pas ca. La bonne reponse etait : " + item.bonne + ".");
-    }
-  }
-  const fin = score === 3 ? "Felicitations, champion !" : (score >= 1 ? "Pas mal du tout !" : "On se rattrapera au prochain trajet !");
-  montrerInfo("centre",
-    '<div class="infoLigneTitre"><span class="infoEmoji">' + (score === 3 ? "\uD83C\uDFC6" : "\uD83C\uDFAF") + '</span>' +
-    '<div><div class="infoGrand">' + score + ' / 3</div>' +
-    '<div class="infoTitre">' + fin + '</div></div></div>');
-  await parlerEtAttendre("Score final : " + score + " sur 3. " + fin);
-}
-
-// ============ COMPTEUR DE COURSES ============
-function cleCoursesDuJour() {
-  return "vp_courses_" + new Date().toISOString().slice(0, 10);
-}
-
-function ajouterCourse() {
-  const cle = cleCoursesDuJour();
-  const n = parseInt(localStorage.getItem(cle) || "0") + 1;
-  localStorage.setItem(cle, String(n));
-}
-
-function estQuestionCourses(p) {
-  return /combien de courses|combien de clients|nombre de courses|clients aujourd/i.test(p);
-}
-
-async function direCourses() {
-  const n = parseInt(localStorage.getItem(cleCoursesDuJour()) || "0");
-  if (n === 0) await parlerEtAttendre("Aucune course enregistree aujourd'hui pour l'instant.");
-  else if (n === 1) await parlerEtAttendre("Une seule course aujourd'hui pour le moment.");
-  else await parlerEtAttendre(n + " courses accueillies aujourd'hui. Beau travail !");
-}
-
-// ============ FENETRES PIP : Facebook et tes propres sites ============
-// La page Facebook affichee (remplace par TA page publique quand tu veux) :
-const PAGE_FACEBOOK = "https://www.facebook.com/BBCnews";
-
-const SITES_PIP = [
-  { nom: "Facebook", mode: "pip",
-    mots: /facebook|face book/i,
-    url: "https://www.facebook.com/plugins/page.php?href=" + encodeURIComponent(PAGE_FACEBOOK) +
-         "&tabs=timeline&width=340&height=500&small_header=true" },
-  { nom: "Google", mode: "bouton",
-    mots: /google|internet|navigateur|chrome/i,
-    url: "https://www.google.com" }
-  // Ajoute ici TES sites (mode "pip" = petite fenetre, mode "bouton" = bouton a toucher).
-  // Exemple : { nom: "L'immobilier", mode: "pip", mots: /immobilier|maisons/i, url: "https://vhimmobilier.edgeone.dev" },
-];
-
-function chercherSitePip(p) {
-  return SITES_PIP.find(s => s.mots.test(p)) || null;
-}
-
-// ============ ECRAN-BOUTON : un toucher n'importe ou et ca s'ouvre ============
-const toucheOuvrir = document.getElementById("toucheOuvrir");
-let timerTouche = null;
-
-function proposerOuverture(emoji, nom, url) {
-  toucheOuvrir.innerHTML =
-    '<div class="toEmoji">' + emoji + '</div>' +
-    '<div class="toTitre">Touchez l\u2019\u00e9cran</div>' +
-    '<div class="toSous">pour ouvrir ' + nom + ' \u00B7 (se ferme tout seul dans 10 s)</div>';
-  toucheOuvrir.classList.add("ouvert");
-
-  toucheOuvrir.onclick = () => {
-    toucheOuvrir.classList.remove("ouvert");
-    clearTimeout(timerTouche);
-    window.open(url, "_blank"); // le toucher autorise l'ouverture
-  };
-
-  clearTimeout(timerTouche);
-  timerTouche = setTimeout(() => toucheOuvrir.classList.remove("ouvert"), 10000);
-}
-
-// ============ WHATSAPP PERSONNALISE (localStorage seulement, aucune collecte) ============
-const champWhatsapp = document.getElementById("numWhatsapp");
-champWhatsapp.value = localStorage.getItem("vp_whatsapp") || "";
-champWhatsapp.oninput = () => {
-  localStorage.setItem("vp_whatsapp", champWhatsapp.value);
-};
-
-function estDemandeWhatsapp(p) {
-  return /whatsapp|whats app|watsap|ouatsap/i.test(p);
-}
-
-async function ouvrirWhatsapp() {
-  const num = (localStorage.getItem("vp_whatsapp") || "").replace(/\D/g, "");
-  if (!num) {
-    await parlerEtAttendre("Aucun numero WhatsApp n'est enregistre. Le chauffeur peut l'ajouter dans le menu, en bas a gauche.");
-    return;
-  }
-  proposerOuverture("\uD83D\uDCAC", "le WhatsApp du chauffeur", "https://wa.me/" + num);
-  await parlerEtAttendre("Touchez l'ecran pour ouvrir WhatsApp.");
-}
-
-async function ouvrirSitePip(site) {
-  if (site.mode === "bouton") {
-    // Ce site refuse la petite fenetre : tout l'ecran devient le bouton
-    proposerOuverture("\uD83C\uDF10", site.nom, site.url);
-    await parlerEtAttendre("Touchez l'ecran pour ouvrir " + site.nom + ".");
-    return;
-  }
-  panneauVideo.classList.add("ouvert");
-  document.querySelector(".cadreVideo").classList.add("pageWeb");
-  videoActive = -1;
-  iframeVideo.src = site.url;
-  await parlerEtAttendre("Voici " + site.nom + " !");
-}
-
-// ============ COMMANDES VIDEO A LA VOIX ============
-// Filet large : DES QUE la phrase parle de video/clip/musique, c'est ce module qui gere (jamais l'IA)
-function estParleVideo(p) {
-  return /vid(e|\u00e9)o|youtube|clip|gospel|chanson|musique/i.test(p);
-}
-
-function jouerVideo() {
-  if (iframeVideo.src) {
-    iframeVideo.contentWindow.postMessage(JSON.stringify({ event: "command", func: "playVideo", args: [] }), "*");
-  }
-}
-
-async function gererVideo(q) {
-  const p = q.toLowerCase();
-  if (/arr(e|\u00ea)te|ferme|stoppe|coupe|enl(e|\u00e8)ve|(e|\u00e9)teins/.test(p)) {
-    panneauVideo.classList.remove("ouvert");
-    iframeVideo.src = "";
-    videoActive = -1;
-    await parlerEtAttendre("Video arretee.");
-  } else if (/pause|attends/.test(p)) {
-    pauserVideo();
-    await parlerEtAttendre("Video en pause. Dites, Vision, continue la video, pour reprendre.");
-  } else if (/continue|reprend|relance|remets|play/.test(p)) {
-    if (videoActive === -1) { panneauVideo.classList.add("ouvert"); chargerVideo(0); }
-    else { panneauVideo.classList.add("ouvert"); jouerVideo(); }
-    await parlerEtAttendre("C'est reparti !");
-  } else if (/change|suivant|autre/.test(p)) {
-    panneauVideo.classList.add("ouvert");
-    chargerVideo(videoActive === -1 ? 0 : (videoActive + 1) % VIDEOS.length);
-    await parlerEtAttendre("Voici une autre video !");
-  } else {
-    panneauVideo.classList.add("ouvert");
-    chargerVideo(videoActive === -1 ? 0 : videoActive);
-    await parlerEtAttendre("Voici la video, bon visionnage !");
-  }
-}
-
-// ============ CHANGEMENT DE LANGUE ============
-function veutAnglais(p) { return /speak english|in english|english please/i.test(p); }
-function veutFrancais(p) { return /parle fran(c|\u00e7)ais|en fran(c|\u00e7)ais|speak french/i.test(p); }
-
-// La phrase demande-t-elle notre position actuelle ?
-function estQuestionPosition(p) {
-  return /o(u|\u00f9) sommes[- ]nous|on est o(u|\u00f9)|nous sommes o(u|\u00f9)|notre position|ma position|o(u|\u00f9) est[- ]on|o(u|\u00f9) on est|dans quel quartier/i.test(p);
-}
-
-async function direPosition() {
-  if (!dernierePos) {
-    await parlerEtAttendre("Activez d'abord le mode automatique, pour que le GPS me donne notre position.");
-    return;
-  }
-  try {
-    const rep = await fetch("https://nominatim.openstreetmap.org/reverse?format=json&accept-language=fr&zoom=16&lat=" +
-      dernierePos.lat + "&lon=" + dernierePos.lng);
-    const data = await rep.json();
-    const a = data.address || {};
-    const rue = a.road || a.pedestrian || "";
-    const quartier = a.suburb || a.neighbourhood || a.quarter || a.city_district || "";
-    const ville = a.city || a.town || a.village || "";
-    let phrase = "Nous sommes actuellement ";
-    if (rue) phrase += "sur " + rue + ", ";
-    if (quartier) phrase += "dans le quartier " + quartier + ", ";
-    if (ville) phrase += "a " + ville + ".";
-    if (!rue && !quartier && !ville) phrase = "Je vois notre position sur la carte, mais je n'ai pas le nom exact de cette rue.";
-    else {
-      montrerInfo("pip",
-        '<div class="infoLigneTitre"><span class="infoEmoji">\uD83D\uDCCD</span>' +
-        '<div class="infoTitre">Notre position</div></div>' +
-        '<div class="infoTexte">' + (rue ? rue + "<br>" : "") + (quartier ? "Quartier " + quartier + "<br>" : "") + (ville || "") + '</div>');
-    }
-    await parlerEtAttendre(phrase);
-  } catch (e) {
-    await parlerEtAttendre("Je n'arrive pas a joindre le service de cartes pour nommer notre position.");
-  }
-}
-
-// La phrase demande-t-elle un itineraire ?
-function estDemandeItineraire(p) {
-  return /emm(e|è)ne|am(e|è)ne|conduis|direction|itin(e|é)raire|comment aller|je veux aller|va (a|à) |allons (a|à) |o(u|ù) se trouve|o(u|ù) est|adresse de/i.test(p);
-}
-
-// Nettoie la phrase pour garder le nom du lieu
-function extraireLieu(p) {
-  return p.replace(/emm(e|è)ne[- ]?(moi|nous)?|am(e|è)ne[- ]?(moi|nous)?|conduis[- ]?(moi|nous)?|je veux aller|comment aller|quelle est la direction de|itin(e|é)raire (vers|pour|de)?|direction|o(u|ù) se trouve|o(u|ù) est|adresse de|va (a|à)|allons (a|à)|vers|s'il (te|vous) pla(i|î)t|stp/gi, " ")
-          .replace(/\s+/g, " ").trim();
-}
-
-async function naviguerVers(phrase) {
-  if (!dernierePos) {
-    await parlerEtAttendre("Activez d'abord le mode automatique, pour que je connaisse notre position.");
-    return;
-  }
-  const lieu = extraireLieu(phrase) || phrase;
-  await parlerEtAttendre("Un instant, je cherche " + lieu + ".");
-
-  try {
-    // 1. Trouver le lieu (priorite au Benin)
-    const rep = await fetch("https://nominatim.openstreetmap.org/search?format=json&limit=1&accept-language=fr&countrycodes=bj&q=" + encodeURIComponent(lieu));
-    const resultats = await rep.json();
-    if (!resultats.length) {
-      await parlerEtAttendre("Desole, je ne trouve pas " + lieu + " sur la carte. Essayez avec le nom du quartier.");
-      return;
-    }
-    const dest = { lat: parseFloat(resultats[0].lat), lng: parseFloat(resultats[0].lon),
-                   nom: resultats[0].display_name.split(",")[0] };
-
-    // 2. Calculer la route
-    const repRoute = await fetch("https://router.project-osrm.org/route/v1/driving/" +
-      dernierePos.lng + "," + dernierePos.lat + ";" + dest.lng + "," + dest.lat +
-      "?overview=full&geometries=geojson");
-    const dataRoute = await repRoute.json();
-    if (!dataRoute.routes || !dataRoute.routes.length) {
-      await parlerEtAttendre("Je trouve " + dest.nom + ", mais je n'arrive pas a calculer la route.");
-      return;
-    }
-    const r = dataRoute.routes[0];
-    const points = r.geometry.coordinates.map(c => [c[1], c[0]]);
-
-    // 3. Tracer sur la carte
-    effacerNavigation();
-    routeNav = L.polyline(points, { color: "#2563EB", weight: 7, opacity: .9 }).addTo(map);
-    marqueurDest = L.marker([dest.lat, dest.lng], {
-      icon: L.divIcon({ className: "", html: '<div style="font-size:34px;line-height:34px;transform:translate(-4px,-26px)">📍</div>', iconSize: [34, 34] })
-    }).addTo(map);
-    map.fitBounds(routeNav.getBounds(), { padding: [60, 60] });
-
-    const km = (r.distance / 1000).toFixed(1);
-    const min = Math.round(r.duration / 60);
-    navActive = true;
-    destinationNav = dest;
-    infoNav = { km: km, min: min, nom: dest.nom };
-
-    await parlerEtAttendre("C'est parti pour " + dest.nom + ". " + km + " kilometres, environ " + min +
-      " minutes. Suivez la ligne bleue sur l'ecran. Je vous previendrai a l'arrivee.");
-  } catch (e) {
-    await parlerEtAttendre("Je n'arrive pas a joindre le service de cartes. Verifiez la connexion internet.");
-  }
 }
 </script>
 </body>
