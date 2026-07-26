@@ -822,6 +822,13 @@ function rendreSortie(boite, src, id, avecSon, fondSrc, fondId){
    On demande une réponse en JSON pour pouvoir remplir les deux champs
    séparément : le texte d'un côté, la référence de l'autre.
    ========================================================================= */
+function chaineDe(v){
+  if (typeof v === "string") return v.trim();
+  if (v && typeof v === "object")
+    return chaineDe(v.texte || v.text || v.content || v.value || "");
+  return "";
+}
+
 async function chercherIA(question){
   const consigne =
     "Tu assistes une régie vidéo francophone : culte, formation, conférence. " +
@@ -846,33 +853,38 @@ async function chercherIA(question){
   });
   if (!rep.ok) throw new Error("Le Worker a répondu " + rep.status);
 
-  // On accepte aussi bien du texte brut qu'un JSON, quel que soit le nom du champ
-  const brut = await rep.text();
-  let contenu = brut;
-  try{
-    const j = JSON.parse(brut);
-    contenu = j.response || j.reponse || j.result || j.texte ||
-              j.text || j.answer || j.output || brut;
-    if (typeof contenu === "object") contenu = JSON.stringify(contenu);
-  }catch(_){}
-
   // Filet de sécurité : si le modèle glisse malgré tout une politesse,
   // on coupe tout ce qui précède les deux-points d'introduction.
   function nettoyer(t){
-    let s = String(t).trim();
+    let s = chaineDe(t);
     s = s.replace(/^\s*(bien s[ûu]r|voici|bonjour|salut|d'accord|ok|okay|certainement|avec plaisir|pas de probl[èe]me)[^:\n]{0,60}[:\n]\s*/i, "");
     s = s.replace(/^\s*(cher\s+)?isaac[\s,!:-]*/i, "");
     return s.trim();
   }
 
-  // Puis on extrait l'objet attendu, même s'il est noyé dans une phrase
-  const bloc = String(contenu).replace(/```json|```/g, "").trim();
+  const brut = await rep.text();
+  let paquet = null;
+  try{ paquet = JSON.parse(brut); }catch(_){}
+
+  // Cas normal : le worker répond déjà dans le bon format
+  if (paquet && (paquet.texte !== undefined || paquet.reference !== undefined)){
+    const t = nettoyer(paquet.texte);
+    if (t) return { texte:t, reference: nettoyer(paquet.reference) };
+  }
+
+  // Sinon on va chercher l'objet JSON là où il se trouve
+  const source = paquet
+    ? (paquet.response || paquet.reponse || paquet.result ||
+       paquet.answer || paquet.output || brut)
+    : brut;
+
+  const bloc = chaineDe(source).replace(/```json|```/g, "").trim() || String(source);
   const m = bloc.match(/\{[\s\S]*\}/);
   if (m){
     try{
       const o = JSON.parse(m[0]);
-      return { texte: nettoyer(o.texte || o.text || ""),
-               reference:(o.reference || o.ref || "").trim() };
+      const t = nettoyer(o.texte || o.text);
+      if (t) return { texte:t, reference: nettoyer(o.reference || o.ref) };
     }catch(_){}
   }
   return { texte: nettoyer(bloc), reference: "" };
