@@ -28,6 +28,15 @@ function repondre(objet, statut) {
   });
 }
 
+// Le modèle imbrique parfois sa réponse : on descend jusqu'au texte réel
+// plutôt que de convertir un objet en "[object Object]".
+function chaineDe(v) {
+  if (typeof v === "string") return v.trim();
+  if (v && typeof v === "object")
+    return chaineDe(v.texte || v.text || v.content || v.value || "");
+  return "";
+}
+
 const CONSIGNE = `Tu assistes une régie vidéo francophone : culte, formation,
 conférence, séminaire. Le texte que tu produis sera projeté sur grand écran
 devant un public.
@@ -134,10 +143,13 @@ export default {
       if (trouve) {
         try {
           const o = JSON.parse(trouve[0]);
-          return repondre({
-            texte: (o.texte || o.text || "").toString().trim(),
-            reference: (o.reference || o.ref || "").toString().trim()
-          });
+          const texte = chaineDe(o.texte || o.text);
+          if (texte) {
+            return repondre({
+              texte,
+              reference: chaineDe(o.reference || o.ref)
+            });
+          }
         } catch (_) { /* on retombe sur le texte brut */ }
       }
 
