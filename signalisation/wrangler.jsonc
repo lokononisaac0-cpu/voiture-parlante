@@ -1,0 +1,17 @@
+{
+  "name": "vision-signal",
+  "main": "worker.js",
+  "compatibility_date": "2026-01-15",
+
+  "durable_objects": {
+    "bindings": [
+      { "name": "REGISTRE", "class_name": "Registre" }
+    ]
+  },
+
+  // new_sqlite_classes : indispensable pour utiliser les Durable Objects
+  // sur le plan gratuit de Cloudflare.
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["Registre"] }
+  ]
+}
