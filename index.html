@@ -232,6 +232,34 @@
   #panneauQr p{color:var(--sourdine);font-size:13px;line-height:1.75;max-width:400px}
   #qrCode{font-family:var(--chiffre);font-size:38px;letter-spacing:.26em;font-weight:600}
 
+  #repli{
+    display:flex;flex-direction:column;align-items:center;gap:9px;
+    border-top:1px solid var(--trait);padding-top:18px;width:min(430px,100%);
+  }
+  .replTitre{font-family:var(--etiq);font-size:10.5px;letter-spacing:.26em;
+             text-transform:uppercase;color:var(--sourdine)}
+  #lienTexte{
+    font-family:var(--chiffre);font-size:12.5px;color:var(--texte);
+    background:var(--panneau);border:1px solid var(--trait);border-radius:3px;
+    padding:9px 12px;word-break:break-all;max-width:100%;user-select:all;
+  }
+  #qrMsg{color:var(--pret);font-size:12px}
+
+  /* Une fois des caméras connectées, le QR devient une vignette
+     de la grille : toujours scannable par les cadreurs qui arrivent. */
+  #panneauQr.reduit{
+    grid-column:auto;order:99;aspect-ratio:16/9;padding:14px;gap:9px;
+    justify-content:center;background:var(--panneau);
+    border:1px dashed var(--trait);border-radius:3px;
+  }
+  #panneauQr.reduit #qr{padding:8px}
+  #panneauQr.reduit #qr canvas,
+  #panneauQr.reduit #qr img{width:104px;height:104px}
+  #panneauQr.reduit h2{font-size:10.5px;letter-spacing:.2em}
+  #panneauQr.reduit #qrCode{font-size:17px}
+  #panneauQr.reduit p,
+  #panneauQr.reduit #repli{display:none}
+
   kbd{
     font-family:var(--chiffre);font-size:11px;background:var(--relief);
     border:1px solid var(--trait);border-bottom-width:2px;border-radius:2px;padding:2px 6px;
@@ -334,13 +362,19 @@
       <h2>Scanne pour ajouter une caméra</h2>
       <p>Ouvre l'appareil photo du téléphone et vise le code. Le navigateur s'ouvre tout seul — rien à installer, rien à taper.</p>
       <div id="qrCode">----</div>
+      <div id="repli">
+        <div class="replTitre">Si le scan ne marche pas</div>
+        <div id="lienTexte">—</div>
+        <button class="bouton" id="copierLien">Copier le lien</button>
+        <p id="qrMsg"></p>
+      </div>
       <p style="font-size:12px">Ensuite : <kbd>1</kbd> à <kbd>9</kbd> pour basculer d'une caméra à l'autre, <kbd>N</kbd> pour le fondu au noir.</p>
     </div>
   </div>
 </div>
 
-<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-<script src="https://unpkg.com/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.5/peerjs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
 /* =========================================================================
    Aucune configuration, aucun compte, aucune installation.
@@ -375,6 +409,8 @@ const cam = {
   flux:null, appel:null, frontale:false, code:null, relance:null,
 
   async demarrer(code){
+    if (typeof Peer === "undefined")
+      throw new Error("PeerJS n'a pas pu être chargé — vérifie ta connexion internet.");
     this.code = code;
     $("#camNom").value = "Cam " + Math.floor(Math.random()*9 + 1);
     await this.ouvrirCamera();
@@ -470,12 +506,29 @@ const regie = {
   selection:null, fenetre:null, noir:false, code:null,
 
   demarrer(){
+    if (typeof Peer === "undefined"){
+      $("#busNom").textContent = "Bibliothèque absente";
+      $("#qrMsg").textContent =
+        "PeerJS n'a pas pu être chargé. Vérifie la connexion internet du PC, puis recharge la page.";
+      return;
+    }
     this.code = codeAuHasard();
     this.brancher();
 
     $("#btnQr").onclick            = () => this.basculerQr();
     $("#ouvrirProjection").onclick = () => this.ouvrirFenetre();
     $("#fondu").onclick            = () => this.basculerNoir();
+
+    $("#copierLien").onclick = async () => {
+      const lien = $("#lienTexte").textContent;
+      try{
+        await navigator.clipboard.writeText(lien);
+        $("#copierLien").textContent = "Lien copié";
+      }catch(_){
+        $("#copierLien").textContent = "Copie refusée — sélectionne le lien";
+      }
+      setTimeout(() => { $("#copierLien").textContent = "Copier le lien"; }, 2200);
+    };
 
     // Raccourcis clavier : la vraie façon de basculer vite en direct
     addEventListener("keydown", (e) => {
@@ -534,15 +587,31 @@ const regie = {
   },
 
   dessinerQr(){
-    if (enLocal) return;
-    const lien = location.origin + location.pathname + "?salle=" + this.code;
-    QRCode.toCanvas(lien, { width:250, margin:1,
-      color:{ dark:"#050f26", light:"#ffffff" } }, (err, toile) => {
-      if (err) return;
-      const boite = $("#qr");
+    const boite = $("#qr");
+    const lien  = location.origin + location.pathname + "?salle=" + this.code;
+    $("#lienTexte").textContent = lien;
+    boite.innerHTML = "";
+
+    if (enLocal){
+      $("#qrMsg").textContent = "QR indisponible : le fichier est ouvert en local.";
+      return;
+    }
+    if (typeof QRCode === "undefined"){
+      $("#qrMsg").textContent = "Bibliothèque QR non chargée — utilise le lien ci-dessous.";
+      return;
+    }
+
+    try{
+      new QRCode(boite, {
+        text: lien, width:250, height:250,
+        colorDark:"#050f26", colorLight:"#ffffff",
+        correctLevel: QRCode.CorrectLevel.M
+      });
+      $("#qrMsg").textContent = "";
+    }catch(e){
       boite.innerHTML = "";
-      boite.appendChild(toile);
-    });
+      $("#qrMsg").textContent = "QR impossible à générer — utilise le lien ci-dessous.";
+    }
   },
 
   basculerQr(){
@@ -555,11 +624,8 @@ const regie = {
   numeroDe(id){ return String(this.ordre.indexOf(id) + 1).padStart(2, "0"); },
 
   dessinerTuile(id){
-    const p = $("#panneauQr");
-    if (p.style.display !== "none"){
-      p.style.display = "none";
-      $("#btnQr").textContent = "Afficher le QR";
-    }
+    // Le QR se réduit en vignette, mais reste dans la grille
+    $("#panneauQr").classList.add("reduit");
 
     let tuile = document.getElementById("t_" + id);
     if (!tuile){
@@ -595,6 +661,7 @@ const regie = {
     if (this.selection === id){ this.selection = null; this.majBus(); this.appliquer(); }
 
     if (!this.ordre.length){
+      $("#panneauQr").classList.remove("reduit");
       $("#panneauQr").style.display = "";
       $("#btnQr").textContent = "Masquer le QR";
     }
@@ -627,10 +694,18 @@ const regie = {
 
   appliquer(){
     if (!this.fenetre || this.fenetre.closed) return;
-    const v = this.fenetre.document.getElementById("sortie");
+    const doc = this.fenetre.document;
+    const v = doc.getElementById("sortie");
     if (!v) return;
+
+    const enDirect = !!this.selection && !this.noir;
     v.srcObject = this.selection ? this.flux[this.selection] : null;
-    v.style.opacity = (this.noir || !this.selection) ? "0" : "1";
+    v.style.opacity = enDirect ? "1" : "0";
+
+    const attente = doc.getElementById("attente");
+    // Au fondu au noir on veut du vrai noir, pas le logo
+    if (attente) attente.style.display = this.selection ? "none" : "flex";
+    doc.body.style.background = (this.noir && this.selection) ? "#000" : "#050f26";
   },
 
   basculerNoir(){
@@ -648,15 +723,25 @@ const regie = {
       return;
     }
     this.fenetre.document.write(
-      '<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>Projection</title>' +
-      '<style>html,body{margin:0;height:100%;background:#000;overflow:hidden;cursor:none}' +
-      'video{width:100%;height:100%;object-fit:contain;background:#000;opacity:0;' +
-      'transition:opacity .5s ease}' +
-      '#aide{position:fixed;left:50%;bottom:38px;transform:translateX(-50%);color:#7b8ca0;' +
+      '<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>VISION — Projection</title>' +
+      '<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Barlow+Condensed:wght@600&display=swap" rel="stylesheet">' +
+      '<style>html,body{margin:0;height:100%;background:#050f26;overflow:hidden;cursor:none}' +
+      'video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000;' +
+      'opacity:0;transition:opacity .5s ease}' +
+      '#attente{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;' +
+      'justify-content:center;gap:15px;color:#e8eefb;' +
+      'background:radial-gradient(120% 80% at 50% 0%,#0a1c44 0%,#050f26 62%)}' +
+      '#attente.off{display:none}' +
+      '#logo{font:400 54px/1 "Archivo Black","Arial Black",sans-serif;letter-spacing:.1em}' +
+      '#txt{font:600 13px/1 "Barlow Condensed",Arial Narrow,sans-serif;letter-spacing:.3em;' +
+      'text-transform:uppercase;color:#8296bd}' +
+      '#aide{position:absolute;left:50%;bottom:34px;transform:translateX(-50%);color:#8296bd;' +
       'font:600 12px/1 "Barlow Condensed",Arial Narrow,sans-serif;letter-spacing:.2em;' +
-      'text-transform:uppercase;animation:pf 5s forwards}' +
+      'text-transform:uppercase;animation:pf 6s forwards}' +
       '@keyframes pf{0%,70%{opacity:1}100%{opacity:0}}</style></head>' +
       '<body><video id="sortie" autoplay playsinline muted></video>' +
+      '<div id="attente"><div id="logo">VISION</div>' +
+      '<div id="txt">En attente d\'une source</div></div>' +
       '<div id="aide">Glisse cette fenêtre sur le projecteur, puis F11</div></body></html>'
     );
     this.fenetre.document.close();
