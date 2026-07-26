@@ -822,10 +822,35 @@ function rendreSortie(boite, src, id, avecSon, fondSrc, fondId){
    On demande une réponse en JSON pour pouvoir remplir les deux champs
    séparément : le texte d'un côté, la référence de l'autre.
    ========================================================================= */
-function chaineDe(v){
+/* Le modèle imbrique parfois sa réponse de façon imprévisible.
+   On descend dans la structure jusqu'à trouver du texte réel, plutôt
+   que de la convertir en "[object Object]". */
+function chaineDe(v, profondeur){
+  profondeur = profondeur || 0;
   if (typeof v === "string") return v.trim();
-  if (v && typeof v === "object")
-    return chaineDe(v.texte || v.text || v.content || v.value || "");
+  if (typeof v === "number") return String(v);
+  if (profondeur > 6 || !v || typeof v !== "object") return "";
+
+  if (Array.isArray(v)){
+    for (const x of v){
+      const t = chaineDe(x, profondeur + 1);
+      if (t) return t;
+    }
+    return "";
+  }
+
+  // D'abord les noms de champ attendus, puis n'importe quel texte trouvé
+  for (const cle of ["texte","text","content","value","response","reponse",
+                     "result","answer","output","message"]){
+    if (v[cle] !== undefined){
+      const t = chaineDe(v[cle], profondeur + 1);
+      if (t) return t;
+    }
+  }
+  for (const cle of Object.keys(v)){
+    const t = chaineDe(v[cle], profondeur + 1);
+    if (t) return t;
+  }
   return "";
 }
 
@@ -1724,9 +1749,17 @@ async function lancerRecherche(){
 
   try{
     const r = await chercherIA(q);
-    if (r.texte) $("#txtTitre").value = r.texte;
-    if (r.reference) $("#txtSous").value = r.reference;
-    etat.textContent = "Relis avant d'envoyer à l'écran.";
+    // Garde-fou : jamais de "[object Object]" dans les champs
+    const texte = chaineDe(r.texte);
+    const ref   = chaineDe(r.reference);
+    if (!texte){
+      etat.classList.add("souci");
+      etat.textContent = "Réponse illisible. Reformule, ou tape le texte à la main.";
+    } else {
+      $("#txtTitre").value = texte;
+      if (ref) $("#txtSous").value = ref;
+      etat.textContent = "Relis avant d'envoyer à l'écran.";
+    }
   }catch(e){
     etat.classList.add("souci");
     etat.textContent = "Échec : " + e.message + ". Tape le texte à la main.";
