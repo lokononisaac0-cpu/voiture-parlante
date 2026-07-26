@@ -1,0 +1,14 @@
+{
+  "name": "vision-regie",
+  "main": "worker.js",
+  "compatibility_date": "2026-01-15",
+
+  // La liaison Workers AI est déclarée ici : rien à brancher à la main
+  // dans le tableau de bord.
+  "ai": {
+    "binding": "AI"
+  }
+
+  // TURN_KEY_ID et TURN_TOKEN ne se mettent PAS ici : ce sont des secrets.
+  // Ils s'ajoutent dans Settings > Variables and Secrets, en type Secret.
+}
