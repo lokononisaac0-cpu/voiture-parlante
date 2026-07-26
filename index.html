@@ -9,14 +9,14 @@
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
-    --fond:#050f26;         /* bleu nuit profond */
+    --fond:#050f26;
     --panneau:#0b1a3d;
     --relief:#12244d;
     --trait:#1e3565;
     --texte:#e8eefb;
     --sourdine:#8296bd;
-    --antenne:#ff2d38;      /* rouge tally — à l'antenne */
-    --pret:#f2a83c;         /* ambre — survol, prêt à envoyer */
+    --antenne:#ff2d38;
+    --pret:#f2a83c;
     --lueur:rgba(255,45,56,.24);
 
     --corps:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
@@ -34,7 +34,7 @@
     -webkit-font-smoothing:antialiased;overscroll-behavior:none;
   }
   button{font:inherit;color:inherit;cursor:pointer;border:none;background:none}
-  input{font:inherit}
+  input,textarea{font:inherit}
   ::selection{background:var(--antenne);color:#fff}
   :focus-visible{outline:2px solid var(--pret);outline-offset:2px}
 
@@ -42,21 +42,15 @@
   .ecran.actif{display:flex}
 
   /* ================= ACCUEIL ================= */
-  #accueil{align-items:center;justify-content:center;padding:28px;gap:32px;text-align:center}
-
-  /* L'icône caméra, avec son seul témoin d'enregistrement */
+  #accueil{align-items:center;justify-content:center;padding:28px;gap:30px;text-align:center}
   .icone{width:72px;height:auto;color:var(--texte)}
   .icone .temoin{fill:var(--antenne);animation:pulse 2.6s ease-in-out infinite}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
 
-  .marque{
-    font-family:var(--logo);font-weight:400;
-    font-size:clamp(42px,12vw,66px);letter-spacing:.1em;line-height:.95;
-  }
-  .marque span{
-    display:inline-block;opacity:0;transform:translateY(16px);
-    animation:lettre .55s cubic-bezier(.2,.75,.3,1) forwards;
-  }
+  .marque{font-family:var(--logo);font-weight:400;
+          font-size:clamp(42px,12vw,66px);letter-spacing:.1em;line-height:.95}
+  .marque span{display:inline-block;opacity:0;transform:translateY(16px);
+               animation:lettre .55s cubic-bezier(.2,.75,.3,1) forwards}
   .marque span:nth-child(1){animation-delay:.06s}
   .marque span:nth-child(2){animation-delay:.14s}
   .marque span:nth-child(3){animation-delay:.22s}
@@ -64,7 +58,6 @@
   .marque span:nth-child(5){animation-delay:.38s}
   .marque span:nth-child(6){animation-delay:.46s}
   @keyframes lettre{to{opacity:1;transform:none}}
-
   @media (prefers-reduced-motion:reduce){
     .icone .temoin{animation:none}
     .marque span{animation:none;opacity:1;transform:none}
@@ -73,11 +66,9 @@
         color:var(--sourdine);margin-top:12px;text-transform:uppercase}
 
   .roles{display:grid;gap:11px;width:min(360px,100%)}
-  .role{
-    display:flex;align-items:center;gap:14px;text-align:left;
-    background:var(--panneau);border:1px solid var(--trait);border-radius:3px;
-    padding:17px 18px;transition:border-color .16s,background .16s,transform .16s;
-  }
+  .role{display:flex;align-items:center;gap:14px;text-align:left;
+        background:var(--panneau);border:1px solid var(--trait);border-radius:3px;
+        padding:17px 18px;transition:border-color .16s,background .16s,transform .16s}
   .role:hover,.role:focus-visible{border-color:var(--pret);background:var(--relief);transform:translateY(-1px)}
   .role .num{font-family:var(--chiffre);font-size:12px;color:var(--sourdine);
              border:1px solid var(--trait);border-radius:2px;padding:5px 7px;flex:0 0 auto}
@@ -86,186 +77,204 @@
 
   #zoneCode{display:none;flex-direction:column;gap:10px;width:min(360px,100%)}
   #zoneCode.ouvert{display:flex}
-  .champ{
-    background:var(--panneau);border:1px solid var(--trait);border-radius:3px;
-    padding:15px;color:var(--texte);text-align:center;font-family:var(--chiffre);
-    font-size:30px;letter-spacing:.34em;
-  }
+  .champ{background:var(--panneau);border:1px solid var(--trait);border-radius:3px;
+         padding:15px;color:var(--texte);text-align:center;font-family:var(--chiffre);
+         font-size:30px;letter-spacing:.34em}
   .champ:focus{outline:none;border-color:var(--pret)}
 
   .note{color:var(--sourdine);font-size:12px;max-width:370px;line-height:1.75}
   #erreur{color:var(--antenne);font-size:13px;min-height:18px;max-width:370px;line-height:1.6}
-
-  #local{
-    display:none;width:min(430px,100%);text-align:left;
-    border-left:2px solid var(--pret);background:var(--panneau);
-    padding:15px 17px;border-radius:0 3px 3px 0;
-  }
+  #local{display:none;width:min(430px,100%);text-align:left;
+         border-left:2px solid var(--pret);background:var(--panneau);
+         padding:15px 17px;border-radius:0 3px 3px 0}
   #local.visible{display:block}
   #local b{display:block;font-family:var(--etiq);letter-spacing:.14em;text-transform:uppercase;
            font-size:12px;color:var(--pret);margin-bottom:7px}
   #local p{font-size:13px;color:var(--sourdine);line-height:1.65}
 
   /* ================= BOUTONS ================= */
-  .bouton{
-    background:var(--relief);border:1px solid var(--trait);border-radius:3px;
-    padding:9px 15px;font-size:13px;transition:border-color .16s,background .16s;
-    white-space:nowrap;
-  }
+  .bouton{background:var(--relief);border:1px solid var(--trait);border-radius:3px;
+          padding:9px 15px;font-size:13px;white-space:nowrap;
+          transition:border-color .16s,background .16s}
   .bouton:hover{border-color:var(--sourdine)}
   .bouton.primaire{background:var(--texte);border-color:var(--texte);color:#0a0f16;font-weight:600}
   .bouton.primaire:hover{background:#fff;border-color:#fff}
   .bouton.rouge{background:transparent;border-color:var(--antenne);color:var(--antenne);font-weight:600}
   .bouton.rouge:hover,.bouton.rouge.on{background:var(--antenne);color:#fff}
+  .bouton.mini{padding:7px 10px;font-size:12px}
 
   /* ================= INVITATION ================= */
   #invite{align-items:center;justify-content:center;padding:28px;gap:26px;text-align:center}
   .codeGeant{font-family:var(--chiffre);font-size:52px;letter-spacing:.26em;font-weight:600}
-  .gros{
-    background:var(--antenne);color:#fff;font-family:var(--etiq);font-weight:700;
-    font-size:17px;letter-spacing:.14em;text-transform:uppercase;
-    padding:21px 40px;border-radius:3px;box-shadow:0 0 30px var(--lueur);
-  }
+  .gros{background:var(--antenne);color:#fff;font-family:var(--etiq);font-weight:700;
+        font-size:17px;letter-spacing:.14em;text-transform:uppercase;
+        padding:21px 40px;border-radius:3px;box-shadow:0 0 30px var(--lueur)}
 
   /* ================= CAMÉRA ================= */
   #cam{background:#000;position:relative}
   #camVideo{width:100%;height:100%;object-fit:cover;background:#000}
-  #tally{
-    position:fixed;inset:0;pointer-events:none;
-    border:0 solid var(--antenne);transition:border-width .2s ease;
-  }
+  #tally{position:fixed;inset:0;pointer-events:none;
+         border:0 solid var(--antenne);transition:border-width .2s ease}
   #tally.antenne{border-width:14px}
-  #onair{
-    position:fixed;top:0;left:50%;transform:translate(-50%,-100%);
-    background:var(--antenne);color:#fff;font-family:var(--etiq);font-weight:700;
-    font-size:13px;letter-spacing:.2em;text-transform:uppercase;
-    padding:9px 22px;border-radius:0 0 3px 3px;transition:transform .22s ease;
-  }
+  #onair{position:fixed;top:0;left:50%;transform:translate(-50%,-100%);
+         background:var(--antenne);color:#fff;font-family:var(--etiq);font-weight:700;
+         font-size:13px;letter-spacing:.2em;text-transform:uppercase;
+         padding:9px 22px;border-radius:0 0 3px 3px;transition:transform .22s ease}
   #onair.antenne{transform:translate(-50%,0)}
-  #camInfos{
-    position:fixed;left:0;right:0;bottom:0;
-    padding:16px 16px calc(16px + env(safe-area-inset-bottom));
-    background:linear-gradient(transparent,rgba(0,0,0,.9));
-    display:flex;align-items:center;gap:10px;
-  }
-  #camNom{
-    background:rgba(0,0,0,.55);border:1px solid var(--trait);border-radius:3px;
-    padding:9px 11px;color:var(--texte);width:120px;font-size:14px;
-  }
-  #camEtat{
-    margin-left:auto;font-family:var(--etiq);font-size:11.5px;text-transform:uppercase;
-    letter-spacing:.14em;color:var(--sourdine);text-align:right;
-  }
+  #camInfos{position:fixed;left:0;right:0;bottom:0;
+            padding:16px 16px calc(16px + env(safe-area-inset-bottom));
+            background:linear-gradient(transparent,rgba(0,0,0,.9));
+            display:flex;align-items:center;gap:10px}
+  #camNom{background:rgba(0,0,0,.55);border:1px solid var(--trait);border-radius:3px;
+          padding:9px 11px;color:var(--texte);width:120px;font-size:14px}
+  #camEtat{margin-left:auto;font-family:var(--etiq);font-size:11.5px;text-transform:uppercase;
+           letter-spacing:.14em;color:var(--sourdine);text-align:right}
   #camEtat.ok{color:var(--pret)}
 
-  /* ================= RÉGIE ================= */
-  /* Le bus PGM : la barre qui annonce ce qui sort à l'écran */
-  #bus{
-    flex:0 0 auto;display:flex;align-items:stretch;
-    background:var(--panneau);border-bottom:1px solid var(--trait);
-  }
-  #busPgm{
-    display:flex;align-items:center;gap:13px;padding:13px 18px;
-    border-right:1px solid var(--trait);min-width:266px;
-    background:#071531;transition:background .25s;
-  }
+  /* ================= RÉGIE — BARRE ================= */
+  #bus{flex:0 0 auto;display:flex;align-items:stretch;
+       background:var(--panneau);border-bottom:1px solid var(--trait)}
+  #busPgm{display:flex;align-items:center;gap:13px;padding:13px 18px;
+          border-right:1px solid var(--trait);min-width:266px;
+          background:#071531;transition:background .25s}
   #busPgm.actif{background:linear-gradient(90deg,rgba(255,45,56,.16),transparent)}
-  #busVoyant{
-    width:11px;height:11px;border-radius:50%;background:var(--trait);flex:0 0 auto;
-    transition:background .2s,box-shadow .2s;
-  }
+  #busVoyant{width:11px;height:11px;border-radius:50%;background:var(--trait);flex:0 0 auto;
+             transition:background .2s,box-shadow .2s}
   #busPgm.actif #busVoyant{background:var(--antenne);box-shadow:0 0 0 4px var(--lueur)}
   #busLabel{font-family:var(--etiq);font-size:10.5px;letter-spacing:.28em;
             color:var(--sourdine);text-transform:uppercase}
   #busNom{font-family:var(--etiq);font-size:19px;letter-spacing:.09em;
           line-height:1.15;text-transform:uppercase}
   #busPgm.actif #busNom{color:var(--antenne)}
-
   #busActions{display:flex;align-items:center;gap:9px;padding:13px 16px;flex:1}
-  #busCode{
-    font-family:var(--chiffre);font-size:17px;letter-spacing:.22em;
-    padding-right:16px;border-right:1px solid var(--trait);margin-right:4px;
-  }
+  #busCode{font-family:var(--chiffre);font-size:17px;letter-spacing:.22em;
+           padding-right:16px;border-right:1px solid var(--trait);margin-right:4px}
   #busCode i{display:block;font-family:var(--etiq);font-style:normal;font-size:9.5px;
              letter-spacing:.26em;color:var(--sourdine);margin-bottom:1px;text-transform:uppercase}
   .pousse{margin-left:auto}
 
-  #grille{
-    flex:1;display:grid;gap:11px;padding:13px;overflow:auto;
-    grid-template-columns:repeat(auto-fill,minmax(280px,1fr));align-content:start;
+  /* ================= RÉGIE — PLATEAU 3 COLONNES ================= */
+  #plateau{
+    flex:1;display:grid;gap:1px;min-height:0;
+    grid-template-columns:290px 1fr 290px;
+    background:var(--trait);
   }
-  .tuile{
-    position:relative;background:#000;border:1px solid var(--trait);border-radius:3px;
-    overflow:hidden;aspect-ratio:16/9;
-    transition:border-color .16s,box-shadow .16s,transform .16s;
+  .colonne{background:var(--fond);display:flex;flex-direction:column;min-height:0}
+  .colTitre{
+    flex:0 0 auto;padding:11px 14px;font-family:var(--etiq);font-size:10.5px;
+    letter-spacing:.26em;text-transform:uppercase;color:var(--sourdine);
+    border-bottom:1px solid var(--trait);display:flex;align-items:center;gap:8px;
   }
+  .colTitre .compte{margin-left:auto;font-family:var(--chiffre);font-size:11px}
+  .pile{flex:1;overflow:auto;padding:11px;display:flex;flex-direction:column;gap:10px}
+  .ajouts{flex:0 0 auto;display:flex;gap:7px;padding:11px 11px 0}
+  .ajouts .bouton{flex:1;text-align:center;padding:9px 4px;font-size:12px}
+
+  /* ---- Centre : le programme ---- */
+  #centre{background:var(--fond);display:flex;flex-direction:column;min-height:0}
+  #centreTitre{
+    flex:0 0 auto;padding:11px 16px;border-bottom:1px solid var(--trait);
+    display:flex;align-items:center;gap:10px;
+  }
+  #centreTitre b{font-family:var(--etiq);font-size:11px;letter-spacing:.26em;
+                 text-transform:uppercase;font-weight:600}
+  #centreTitre small{font-family:var(--etiq);font-size:10.5px;letter-spacing:.2em;
+                     text-transform:uppercase;color:var(--sourdine)}
+  #centreCorps{flex:1;display:flex;align-items:center;justify-content:center;
+               padding:16px;min-height:0}
+  #apercu{
+    width:100%;max-height:100%;aspect-ratio:16/9;position:relative;overflow:hidden;
+    background:#000;border:1px solid var(--trait);border-radius:3px;
+  }
+  #apercu.direct{border-color:var(--antenne);box-shadow:0 0 0 1px var(--antenne),0 0 34px var(--lueur)}
+
+  /* Couches de sortie, communes à l'aperçu et au projecteur */
+  .cche{position:absolute;inset:0;width:100%;height:100%;display:none}
+  video.cche,img.cche{object-fit:contain;background:#000}
+  .cche.texte{
+    display:none;flex-direction:column;align-items:center;justify-content:center;
+    gap:14px;padding:6%;text-align:center;
+    background:radial-gradient(120% 80% at 50% 0%,#0a1c44 0%,#050f26 62%);
+  }
+  .cche.texte h3{font-family:var(--logo);font-weight:400;font-size:clamp(20px,4.4vw,58px);
+                 line-height:1.14;letter-spacing:.01em}
+  .cche.texte p{font-family:var(--etiq);font-size:clamp(11px,1.7vw,22px);letter-spacing:.24em;
+                text-transform:uppercase;color:var(--sourdine)}
+  .videSortie{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+              font-family:var(--etiq);font-size:12px;letter-spacing:.26em;
+              text-transform:uppercase;color:var(--sourdine)}
+
+  video[data-rot="90"] {transform:rotate(90deg)  scale(.5625)}
+  video[data-rot="180"]{transform:rotate(180deg)}
+  video[data-rot="270"]{transform:rotate(270deg) scale(.5625)}
+
+  /* ---- Vignettes ---- */
+  .tuile{position:relative;background:#000;border:1px solid var(--trait);border-radius:3px;
+         overflow:hidden;aspect-ratio:16/9;flex:0 0 auto;
+         transition:border-color .16s,box-shadow .16s,transform .16s}
   .tuile:hover{border-color:var(--pret);transform:translateY(-2px)}
-  .tuile video{width:100%;height:100%;object-fit:cover;display:block}
-  .tuile.antenne{border-color:var(--antenne);box-shadow:0 0 0 1px var(--antenne),0 0 26px var(--lueur)}
-  .tuile .num{
-    position:absolute;top:9px;left:9px;font-family:var(--chiffre);font-size:12px;
-    background:rgba(5,15,38,.85);border:1px solid var(--trait);
-    padding:3px 7px;border-radius:2px;
-  }
+  .tuile video,.tuile img{width:100%;height:100%;object-fit:cover;display:block}
+  .tuile.antenne{border-color:var(--antenne);box-shadow:0 0 0 1px var(--antenne),0 0 22px var(--lueur)}
+  .tuile .num{position:absolute;top:8px;left:8px;font-family:var(--chiffre);font-size:11px;
+              background:rgba(5,15,38,.85);border:1px solid var(--trait);
+              padding:3px 6px;border-radius:2px;z-index:2}
   .tuile.antenne .num{background:var(--antenne);border-color:var(--antenne);color:#fff}
-  .tuile .etiquette{
-    position:absolute;left:0;right:0;bottom:0;padding:9px 11px;
-    background:linear-gradient(transparent,rgba(0,0,0,.9));
-    font-family:var(--etiq);font-size:12.5px;letter-spacing:.1em;text-transform:uppercase;
-  }
-  .tuile .pgm{
-    position:absolute;top:9px;right:9px;background:var(--antenne);color:#fff;
-    font-family:var(--etiq);font-size:10px;letter-spacing:.16em;font-weight:700;
-    text-transform:uppercase;padding:4px 8px;border-radius:2px;
-    opacity:0;transition:opacity .16s;
-  }
-  .tuile.antenne .pgm{opacity:1}
+  .tuile .etiquette{position:absolute;left:0;right:0;bottom:0;padding:8px 10px;z-index:2;
+                    background:linear-gradient(transparent,rgba(0,0,0,.9));
+                    font-family:var(--etiq);font-size:12px;letter-spacing:.1em;
+                    text-transform:uppercase;white-space:nowrap;overflow:hidden;
+                    text-overflow:ellipsis}
+  .tuile .outils{position:absolute;right:8px;bottom:8px;z-index:3;display:flex;gap:5px;
+                 opacity:0;transition:opacity .16s}
+  .tuile:hover .outils{opacity:1}
+  .tuile .outils button{background:rgba(5,15,38,.88);border:1px solid var(--trait);
+                        border-radius:2px;padding:5px 8px;font-family:var(--chiffre);
+                        font-size:11px;line-height:1}
+  .tuile .outils button:hover{border-color:var(--pret)}
+  .tuile .apercuTexte{position:absolute;inset:0;display:flex;flex-direction:column;
+                      align-items:center;justify-content:center;gap:5px;padding:14px;
+                      text-align:center;background:linear-gradient(160deg,#0a1c44,#050f26)}
+  .tuile .apercuTexte b{font-family:var(--logo);font-weight:400;font-size:15px;line-height:1.2;
+                        display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+                        overflow:hidden}
+  .tuile .apercuTexte i{font-family:var(--etiq);font-style:normal;font-size:9.5px;
+                        letter-spacing:.2em;text-transform:uppercase;color:var(--sourdine)}
 
-  #panneauQr{
-    grid-column:1/-1;display:flex;flex-direction:column;align-items:center;
-    gap:18px;padding:50px 20px;text-align:center;
-  }
-  #qr{background:#fff;padding:15px;border-radius:3px;line-height:0;min-height:40px}
-  #qr canvas{display:block}
-  #panneauQr h2{font-family:var(--etiq);font-size:16px;letter-spacing:.16em;
+  /* ---- QR ---- */
+  #panneauQr{display:flex;flex-direction:column;align-items:center;gap:11px;
+             padding:14px;text-align:center;background:var(--panneau);
+             border:1px dashed var(--trait);border-radius:3px;flex:0 0 auto;order:99}
+  #qr{background:#fff;padding:9px;border-radius:3px;line-height:0;min-height:30px}
+  #qr canvas,#qr img{width:150px;height:150px;display:block}
+  #panneauQr h2{font-family:var(--etiq);font-size:10.5px;letter-spacing:.2em;
                 font-weight:600;text-transform:uppercase}
-  #panneauQr p{color:var(--sourdine);font-size:13px;line-height:1.75;max-width:400px}
-  #qrCode{font-family:var(--chiffre);font-size:38px;letter-spacing:.26em;font-weight:600}
+  #qrCode{font-family:var(--chiffre);font-size:21px;letter-spacing:.24em;font-weight:600}
+  #lienTexte{font-family:var(--chiffre);font-size:10.5px;color:var(--sourdine);
+             word-break:break-all;max-width:100%;user-select:all}
+  #qrMsg{color:var(--pret);font-size:11.5px;line-height:1.5}
 
-  #repli{
-    display:flex;flex-direction:column;align-items:center;gap:9px;
-    border-top:1px solid var(--trait);padding-top:18px;width:min(430px,100%);
-  }
-  .replTitre{font-family:var(--etiq);font-size:10.5px;letter-spacing:.26em;
-             text-transform:uppercase;color:var(--sourdine)}
-  #lienTexte{
-    font-family:var(--chiffre);font-size:12.5px;color:var(--texte);
-    background:var(--panneau);border:1px solid var(--trait);border-radius:3px;
-    padding:9px 12px;word-break:break-all;max-width:100%;user-select:all;
-  }
-  #qrMsg{color:var(--pret);font-size:12px}
+  /* ---- Éditeur de texte ---- */
+  #modale{position:fixed;inset:0;background:rgba(3,8,20,.82);z-index:50;
+          display:none;align-items:center;justify-content:center;padding:20px}
+  #modale.ouvert{display:flex}
+  .carte{background:var(--panneau);border:1px solid var(--trait);border-radius:4px;
+         padding:22px;width:min(430px,100%);display:flex;flex-direction:column;gap:13px}
+  .carte h3{font-family:var(--etiq);font-size:13px;letter-spacing:.22em;text-transform:uppercase}
+  .carte label{font-family:var(--etiq);font-size:10.5px;letter-spacing:.2em;
+               text-transform:uppercase;color:var(--sourdine);display:block;margin-bottom:5px}
+  .carte textarea,.carte input{width:100%;background:var(--fond);color:var(--texte);
+                               border:1px solid var(--trait);border-radius:3px;padding:11px;
+                               font-size:14px;resize:vertical}
+  .carte textarea:focus,.carte input:focus{outline:none;border-color:var(--pret)}
+  .carte .actions{display:flex;gap:9px;justify-content:flex-end;margin-top:4px}
 
-  /* Une fois des caméras connectées, le QR devient une vignette
-     de la grille : toujours scannable par les cadreurs qui arrivent. */
-  #panneauQr.reduit{
-    grid-column:auto;order:99;aspect-ratio:16/9;padding:14px;gap:9px;
-    justify-content:center;background:var(--panneau);
-    border:1px dashed var(--trait);border-radius:3px;
-  }
-  #panneauQr.reduit #qr{padding:8px}
-  #panneauQr.reduit #qr canvas,
-  #panneauQr.reduit #qr img{width:104px;height:104px}
-  #panneauQr.reduit h2{font-size:10.5px;letter-spacing:.2em}
-  #panneauQr.reduit #qrCode{font-size:17px}
-  #panneauQr.reduit p,
-  #panneauQr.reduit #repli{display:none}
+  kbd{font-family:var(--chiffre);font-size:11px;background:var(--relief);
+      border:1px solid var(--trait);border-bottom-width:2px;border-radius:2px;padding:2px 6px}
 
-  kbd{
-    font-family:var(--chiffre);font-size:11px;background:var(--relief);
-    border:1px solid var(--trait);border-bottom-width:2px;border-radius:2px;padding:2px 6px;
-  }
-
-  @media (max-width:640px){
+  @media (max-width:1000px){
+    #plateau{grid-template-columns:1fr;grid-auto-rows:auto}
+    .pile{flex-direction:row;flex-wrap:wrap;max-height:230px}
+    .pile > *{width:calc(50% - 5px)}
     #bus{flex-direction:column}
     #busPgm{border-right:none;border-bottom:1px solid var(--trait);min-width:0}
     #busActions{flex-wrap:wrap}
@@ -280,10 +289,8 @@
   <div>
     <div style="display:flex;justify-content:center;margin-bottom:22px">
       <svg class="icone" viewBox="0 0 64 40" fill="none" aria-hidden="true">
-        <rect x="2.5" y="8.5" width="38" height="26" rx="5"
-              stroke="currentColor" stroke-width="3"/>
-        <path d="M45 16.5 L60.5 8.5 v23 L45 23.5 z"
-              stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
+        <rect x="2.5" y="8.5" width="38" height="26" rx="5" stroke="currentColor" stroke-width="3"/>
+        <path d="M45 16.5 L60.5 8.5 v23 L45 23.5 z" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
         <circle class="temoin" cx="12" cy="15.5" r="2.8"/>
       </svg>
     </div>
@@ -309,7 +316,7 @@
 
   <div id="local">
     <b>Fichier ouvert en local</b>
-    <p>Le QR pointerait vers un fichier de ce PC, que les téléphones ne peuvent pas atteindre — et la caméra ne s'ouvre qu'en HTTPS. Dépose le fichier sur EdgeOne, Vercel ou Cloudflare Pages, puis ouvre l'adresse obtenue.</p>
+    <p>Le QR pointerait vers un fichier de ce PC, que les téléphones ne peuvent pas atteindre — et la caméra ne s'ouvre qu'en HTTPS. Dépose le fichier en ligne, puis ouvre l'adresse obtenue.</p>
   </div>
 
   <p id="erreur"></p>
@@ -323,7 +330,7 @@
     <div class="codeGeant" id="inviteCode">----</div>
   </div>
   <button class="gros" id="inviteDemarrer">Démarrer la caméra</button>
-  <p class="note">Ce téléphone va filmer et envoyer l'image à la régie. Cale-le bien : un cadre stable vaut mieux qu'un beau mouvement.</p>
+  <p class="note">Tiens le téléphone à l'horizontale et cale-le bien : un cadre stable vaut mieux qu'un beau mouvement.</p>
 </div>
 
 <!-- ================= CAMÉRA ================= -->
@@ -350,35 +357,86 @@
     </div>
     <div id="busActions">
       <div id="busCode"><i>Salle</i><span id="regieCode">----</span></div>
-      <button class="bouton" id="btnQr">Masquer le QR</button>
       <button class="bouton primaire pousse" id="ouvrirProjection">Ouvrir l'écran de projection</button>
       <button class="bouton rouge" id="fondu">Fondu au noir</button>
     </div>
   </div>
 
-  <div id="grille">
-    <div id="panneauQr">
-      <div id="qr"></div>
-      <h2>Scanne pour ajouter une caméra</h2>
-      <p>Ouvre l'appareil photo du téléphone et vise le code. Le navigateur s'ouvre tout seul — rien à installer, rien à taper.</p>
-      <div id="qrCode">----</div>
-      <div id="repli">
-        <div class="replTitre">Si le scan ne marche pas</div>
-        <div id="lienTexte">—</div>
-        <button class="bouton" id="copierLien">Copier le lien</button>
-        <p id="qrMsg"></p>
+  <div id="plateau">
+
+    <!-- ---- Gauche : caméras ---- -->
+    <aside class="colonne">
+      <div class="colTitre">Caméras <span class="compte" id="compteCam">0</span></div>
+      <div class="pile" id="pileCam">
+        <div id="panneauQr">
+          <div id="qr"></div>
+          <h2>Scanne pour ajouter une caméra</h2>
+          <div id="qrCode">----</div>
+          <div id="lienTexte">—</div>
+          <button class="bouton mini" id="copierLien">Copier le lien</button>
+          <p id="qrMsg"></p>
+        </div>
       </div>
-      <p style="font-size:12px">Ensuite : <kbd>1</kbd> à <kbd>9</kbd> pour basculer d'une caméra à l'autre, <kbd>N</kbd> pour le fondu au noir.</p>
+    </aside>
+
+    <!-- ---- Centre : le programme ---- -->
+    <main id="centre">
+      <div id="centreTitre">
+        <b>Programme</b>
+        <small>— ce que le public voit</small>
+      </div>
+      <div id="centreCorps">
+        <div id="apercu">
+          <video class="cche cam" autoplay playsinline muted></video>
+          <div class="cche texte"><h3></h3><p></p></div>
+          <div class="videSortie" id="videSortie">Aucune source</div>
+        </div>
+      </div>
+    </main>
+
+    <!-- ---- Droite : médias ---- -->
+    <aside class="colonne">
+      <div class="colTitre">Médias <span class="compte" id="compteMedia">0</span></div>
+      <div class="ajouts">
+        <button class="bouton" id="addImage">Image</button>
+        <button class="bouton" id="addVideo">Vidéo</button>
+        <button class="bouton" id="addTexte">Texte</button>
+      </div>
+      <div class="pile" id="pileMedia"></div>
+    </aside>
+
+  </div>
+</div>
+
+<!-- ================= ÉDITEUR DE TEXTE ================= -->
+<div id="modale">
+  <div class="carte">
+    <h3>Nouvelle diapositive</h3>
+    <div>
+      <label for="txtTitre">Texte principal</label>
+      <textarea id="txtTitre" rows="3" placeholder="Car Dieu a tant aimé le monde…"></textarea>
+    </div>
+    <div>
+      <label for="txtSous">Sous-titre</label>
+      <input id="txtSous" placeholder="Jean 3:16">
+    </div>
+    <div class="actions">
+      <button class="bouton" id="txtAnnuler">Annuler</button>
+      <button class="bouton primaire" id="txtValider">Ajouter</button>
     </div>
   </div>
 </div>
+
+<input type="file" id="fichierImage" accept="image/*" hidden>
+<input type="file" id="fichierVideo" accept="video/*" hidden>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.5/peerjs.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
 /* =========================================================================
-   Aucune configuration, aucun compte, aucune installation.
-   La régie génère son code, affiche un QR, les téléphones scannent.
+   VISION — régie vidéo. Aucun compte, aucune installation.
+   Trois zones : caméras à gauche, programme au centre, médias à droite.
+   Seul le centre part vers le projecteur.
    ========================================================================= */
 
 const PREFIXE = "regievid-";
@@ -403,6 +461,73 @@ const enLocal = location.protocol === "file:";
 if (enLocal) $("#local").classList.add("visible");
 
 /* =========================================================================
+   RENDU D'UNE SOURCE
+   Même fonction pour l'aperçu central et pour la fenêtre de projection :
+   ce que tu vois au milieu est exactement ce qui est projeté.
+
+   Chaque image et chaque vidéo reçoit son propre élément, créé et chargé
+   dès l'ajout. Au moment de la bascule il n'y a plus rien à charger :
+   on affiche, c'est tout.
+   ========================================================================= */
+function elementMedia(boite, src, id){
+  let el = boite.querySelector('[data-src="' + id + '"]');
+  if (el) return el;
+
+  const doc = boite.ownerDocument;
+  if (src.type === "image"){
+    el = doc.createElement("img");
+    el.src = src.url;
+  } else {
+    el = doc.createElement("video");
+    el.src = src.url;
+    el.preload = "auto";        // le clip est prêt bien avant qu'on en ait besoin
+    el.loop = true;
+    el.muted = true;
+    el.setAttribute("playsinline", "");
+  }
+  el.className = "cche";
+  el.dataset.src = id;
+  el.style.display = "none";
+  boite.appendChild(el);
+  return el;
+}
+
+function rendreSortie(boite, src, id, avecSon){
+  boite.querySelectorAll(".cche").forEach((e) => {
+    e.style.display = "none";
+    if (e.tagName === "VIDEO" && e.dataset.src && e.dataset.src !== id) e.pause();
+  });
+
+  const videL = boite.querySelector(".videSortie");
+  if (!src){
+    if (videL) videL.style.display = "flex";
+    return;
+  }
+  if (videL) videL.style.display = "none";
+
+  if (src.type === "cam"){
+    const c = boite.querySelector(".cche.cam");
+    c.style.display = "block";
+    if (c.srcObject !== src.flux) c.srcObject = src.flux;
+    c.dataset.rot = src.rot || 0;
+  }
+  else if (src.type === "texte"){
+    const t = boite.querySelector(".cche.texte");
+    t.style.display = "flex";
+    t.querySelector("h3").textContent = src.titre || "";
+    t.querySelector("p").textContent  = src.sous  || "";
+  }
+  else {
+    const el = elementMedia(boite, src, id);
+    el.style.display = "block";
+    if (el.tagName === "VIDEO"){
+      el.muted = !avecSon;
+      el.play().catch(() => {});
+    }
+  }
+}
+
+/* =========================================================================
    RÔLE CAMÉRA
    ========================================================================= */
 const cam = {
@@ -419,7 +544,6 @@ const cam = {
     peer = new Peer({ config: CONFIG_ICE });
     peer.on("open", () => this.appeler());
 
-    // La régie ouvre un canal direct vers nous pour piloter le tally
     peer.on("connection", (canal) => {
       canal.on("data", (d) => { if (d && d.type === "tally") this.tally(d.antenne); });
       canal.on("close", () => this.tally(false));
@@ -502,8 +626,15 @@ const cam = {
    RÔLE RÉGIE
    ========================================================================= */
 const regie = {
-  flux:{}, appels:{}, canaux:{}, noms:{}, ordre:[],
-  selection:null, fenetre:null, noir:false, code:null,
+  sources:{},      // id -> { type, nom, flux, url, titre, sous, rot }
+  canaux:{},       // idCam -> canal de données (tally)
+  appels:{},
+  ordre:[],        // ordre des numéros, toutes sources confondues
+  selection:null,
+  fenetre:null,
+  noir:false,
+  code:null,
+  compteurMedia:0,
 
   demarrer(){
     if (typeof Peer === "undefined"){
@@ -512,27 +643,36 @@ const regie = {
         "PeerJS n'a pas pu être chargé. Vérifie la connexion internet du PC, puis recharge la page.";
       return;
     }
-    this.code = codeAuHasard();
+    // Le code vit dans l'adresse : après un rechargement, la régie
+    // reprend le même, et les caméras se rebranchent d'elles-mêmes.
+    const repris = (new URLSearchParams(location.search).get("regie") || "").replace(/\D/g, "");
+    this.code = repris.length === 4 ? repris : codeAuHasard();
     this.brancher();
 
-    $("#btnQr").onclick            = () => this.basculerQr();
     $("#ouvrirProjection").onclick = () => this.ouvrirFenetre();
     $("#fondu").onclick            = () => this.basculerNoir();
 
     $("#copierLien").onclick = async () => {
-      const lien = $("#lienTexte").textContent;
       try{
-        await navigator.clipboard.writeText(lien);
+        await navigator.clipboard.writeText($("#lienTexte").textContent);
         $("#copierLien").textContent = "Lien copié";
       }catch(_){
-        $("#copierLien").textContent = "Copie refusée — sélectionne le lien";
+        $("#copierLien").textContent = "Sélectionne le lien";
       }
       setTimeout(() => { $("#copierLien").textContent = "Copier le lien"; }, 2200);
     };
 
+    $("#addImage").onclick = () => $("#fichierImage").click();
+    $("#addVideo").onclick = () => $("#fichierVideo").click();
+    $("#addTexte").onclick = () => this.ouvrirEditeur();
+
+    $("#fichierImage").onchange = (e) => this.ajouterFichier(e, "image");
+    $("#fichierVideo").onchange = (e) => this.ajouterFichier(e, "video");
+
     // Raccourcis clavier : la vraie façon de basculer vite en direct
     addEventListener("keydown", (e) => {
-      if (e.target.tagName === "INPUT") return;
+      if (["INPUT","TEXTAREA"].includes(e.target.tagName)) return;
+      if ($("#modale").classList.contains("ouvert")) return;
       if (e.key >= "1" && e.key <= "9"){
         const id = this.ordre[Number(e.key) - 1];
         if (id) this.projeter(id);
@@ -542,18 +682,19 @@ const regie = {
     });
   },
 
+  /* ---------- Connexion ---------- */
   brancher(){
     peer = new Peer(PREFIXE + this.code, { config: CONFIG_ICE });
 
     peer.on("open", () => {
       $("#regieCode").textContent = this.code;
       $("#qrCode").textContent    = this.code;
+      try{ history.replaceState(null, "", location.pathname + "?regie=" + this.code); }catch(_){}
       this.dessinerQr();
     });
 
-    // Code déjà pris ailleurs : on en tire un autre sans rien demander
     peer.on("error", (e) => {
-      if (e.type === "unavailable-id"){
+      if (e.type === "unavailable-id"){       // code déjà pris ailleurs
         this.code = codeAuHasard();
         try{ peer.destroy(); }catch(_){}
         this.brancher();
@@ -566,18 +707,25 @@ const regie = {
       appel.answer();
       const id = appel.peer;
       this.appels[id] = appel;
-      this.noms[id] = (appel.metadata && appel.metadata.nom) || "Caméra";
-      if (!this.ordre.includes(id)) this.ordre.push(id);
 
-      appel.on("stream", (flux) => { this.flux[id] = flux; this.dessinerTuile(id); });
-      appel.on("close",  () => this.retirer(id));
+      appel.on("stream", (flux) => {
+        this.sources[id] = {
+          type:"cam", flux, rot:0,
+          nom:(appel.metadata && appel.metadata.nom) || "Caméra"
+        };
+        if (!this.ordre.includes(id)) this.ordre.push(id);
+        this.dessinerTuile(id, "#pileCam");
+        this.majComptes();
+        if (!this.selection) this.projeter(id);   // la 1re caméra part seule à l'écran
+      });
 
+      appel.on("close", () => this.retirer(id));
       const pc = appel.peerConnection;
       pc.onconnectionstatechange = () => {
         if (["failed","closed","disconnected"].includes(pc.connectionState)) this.retirer(id);
       };
 
-      // Canal direct pour le tally : ne dépend plus d'aucun serveur
+      // Canal direct pour le tally — ne dépend d'aucun serveur
       const canal = peer.connect(id);
       canal.on("open", () => {
         this.canaux[id] = canal;
@@ -593,61 +741,138 @@ const regie = {
     boite.innerHTML = "";
 
     if (enLocal){
-      $("#qrMsg").textContent = "QR indisponible : le fichier est ouvert en local.";
+      $("#qrMsg").textContent = "QR indisponible : fichier ouvert en local.";
       return;
     }
     if (typeof QRCode === "undefined"){
-      $("#qrMsg").textContent = "Bibliothèque QR non chargée — utilise le lien ci-dessous.";
+      $("#qrMsg").textContent = "Bibliothèque QR non chargée — utilise le lien.";
       return;
     }
-
     try{
       new QRCode(boite, {
-        text: lien, width:250, height:250,
+        text: lien, width:150, height:150,
         colorDark:"#050f26", colorLight:"#ffffff",
         correctLevel: QRCode.CorrectLevel.M
       });
       $("#qrMsg").textContent = "";
-    }catch(e){
+    }catch(_){
       boite.innerHTML = "";
-      $("#qrMsg").textContent = "QR impossible à générer — utilise le lien ci-dessous.";
+      $("#qrMsg").textContent = "QR impossible à générer — utilise le lien.";
     }
   },
 
-  basculerQr(){
-    const p = $("#panneauQr");
-    const cache = p.style.display === "none";
-    p.style.display = cache ? "" : "none";
-    $("#btnQr").textContent = cache ? "Masquer le QR" : "Afficher le QR";
+  /* ---------- Médias ---------- */
+  ajouterFichier(evt, type){
+    const f = evt.target.files && evt.target.files[0];
+    evt.target.value = "";              // permet de rechoisir le même fichier
+    if (!f) return;
+
+    const id = "m" + (++this.compteurMedia);
+    this.sources[id] = {
+      type, url: URL.createObjectURL(f),
+      nom: f.name.replace(/\.[^.]+$/, "").slice(0, 22)
+    };
+    this.ordre.push(id);
+    this.dessinerTuile(id, "#pileMedia");
+    this.precharger(id);          // prêt à partir instantanément
+    this.majComptes();
   },
 
+  ouvrirEditeur(){
+    $("#txtTitre").value = "";
+    $("#txtSous").value  = "";
+    $("#modale").classList.add("ouvert");
+    setTimeout(() => $("#txtTitre").focus(), 50);
+  },
+
+  ajouterTexte(titre, sous){
+    if (!titre.trim()) return;
+    const id = "m" + (++this.compteurMedia);
+    this.sources[id] = {
+      type:"texte", titre:titre.trim(), sous:sous.trim(),
+      nom: titre.trim().slice(0, 22)
+    };
+    this.ordre.push(id);
+    this.dessinerTuile(id, "#pileMedia");
+    this.majComptes();
+  },
+
+  /* ---------- Vignettes ---------- */
   numeroDe(id){ return String(this.ordre.indexOf(id) + 1).padStart(2, "0"); },
 
-  dessinerTuile(id){
-    // Le QR se réduit en vignette, mais reste dans la grille
-    $("#panneauQr").classList.add("reduit");
-
+  dessinerTuile(id, pile){
+    const src = this.sources[id];
     let tuile = document.getElementById("t_" + id);
+
     if (!tuile){
       tuile = document.createElement("div");
       tuile.className = "tuile";
       tuile.id = "t_" + id;
-      tuile.innerHTML =
-        '<video autoplay playsinline muted></video>' +
+
+      let coeur = "";
+      if (src.type === "cam")        coeur = '<video autoplay playsinline muted></video>';
+      else if (src.type === "image") coeur = '<img alt="">';
+      else if (src.type === "video") coeur = '<video muted></video>';
+      else                           coeur = '<div class="apercuTexte"><b></b><i></i></div>';
+
+      const outils = src.type === "cam"
+        ? '<button class="pivoter" title="Pivoter">⟳</button>'
+        : '<button class="retirer" title="Retirer">✕</button>';
+
+      tuile.innerHTML = coeur +
         '<span class="num"></span>' +
-        '<span class="pgm">Programme</span>' +
+        '<div class="outils">' + outils + '</div>' +
         '<div class="etiquette"></div>';
+
       tuile.onclick = () => this.projeter(id);
-      $("#grille").appendChild(tuile);
+
+      const bPiv = tuile.querySelector(".pivoter");
+      if (bPiv) bPiv.onclick = (e) => { e.stopPropagation(); this.pivoter(id); };
+      const bDel = tuile.querySelector(".retirer");
+      if (bDel) bDel.onclick = (e) => { e.stopPropagation(); this.retirer(id); };
+
+      $(pile).appendChild(tuile);
     }
+
     tuile.querySelector(".num").textContent       = this.numeroDe(id);
-    tuile.querySelector(".etiquette").textContent = this.noms[id];
-    tuile.querySelector("video").srcObject        = this.flux[id];
+    tuile.querySelector(".etiquette").textContent = src.nom;
+
+    if (src.type === "cam"){
+      const v = tuile.querySelector("video");
+      v.srcObject = src.flux;
+      v.dataset.rot = src.rot || 0;
+    } else if (src.type === "image"){
+      tuile.querySelector("img").src = src.url;
+    } else if (src.type === "video"){
+      const v = tuile.querySelector("video");
+      v.src = src.url;
+      v.currentTime = 0.1;         // une image fixe suffit pour reconnaître le clip
+    } else {
+      tuile.querySelector(".apercuTexte b").textContent = src.titre;
+      tuile.querySelector(".apercuTexte i").textContent = src.sous;
+    }
+  },
+
+  pivoter(id){
+    const src = this.sources[id];
+    src.rot = ((src.rot || 0) + 90) % 360;
+    const v = document.querySelector("#t_" + id + " video");
+    if (v) v.dataset.rot = src.rot;
+    if (this.selection === id) this.appliquer();
   },
 
   retirer(id){
-    if (this.appels[id]){ try{ this.appels[id].close(); }catch(_){} }
-    delete this.appels[id]; delete this.flux[id]; delete this.canaux[id];
+    const src = this.sources[id];
+    if (!src) return;
+
+    if (src.type === "cam"){
+      if (this.appels[id]){ try{ this.appels[id].close(); }catch(_){} }
+      delete this.appels[id]; delete this.canaux[id];
+    } else if (src.url){
+      URL.revokeObjectURL(src.url);
+    }
+
+    delete this.sources[id];
     this.ordre = this.ordre.filter(x => x !== id);
     const t = document.getElementById("t_" + id);
     if (t) t.remove();
@@ -658,16 +883,23 @@ const regie = {
       if (el) el.querySelector(".num").textContent = this.numeroDe(autre);
     });
 
-    if (this.selection === id){ this.selection = null; this.majBus(); this.appliquer(); }
-
-    if (!this.ordre.length){
-      $("#panneauQr").classList.remove("reduit");
-      $("#panneauQr").style.display = "";
-      $("#btnQr").textContent = "Masquer le QR";
+    if (this.selection === id){
+      this.selection = null;
+      this.majBus(); this.appliquer();
     }
+    this.majComptes();
   },
 
+  majComptes(){
+    let cams = 0, medias = 0;
+    Object.values(this.sources).forEach(s => s.type === "cam" ? cams++ : medias++);
+    $("#compteCam").textContent   = cams;
+    $("#compteMedia").textContent = medias;
+  },
+
+  /* ---------- Envoi à l'écran ---------- */
   projeter(id){
+    if (!this.sources[id]) return;
     const ancien = this.selection;
     this.selection = id;
 
@@ -675,6 +907,7 @@ const regie = {
     const t = document.getElementById("t_" + id);
     if (t) t.classList.add("antenne");
 
+    // Tally : seuls les téléphones-caméras en reçoivent
     if (ancien && ancien !== id && this.canaux[ancien])
       this.canaux[ancien].send({ type:"tally", antenne:false });
     if (this.canaux[id])
@@ -685,27 +918,43 @@ const regie = {
   },
 
   majBus(){
-    const actif = !!this.selection && !this.noir;
+    const src   = this.selection ? this.sources[this.selection] : null;
+    const actif = !!src && !this.noir;
     $("#busPgm").classList.toggle("actif", actif);
+    $("#apercu").classList.toggle("direct", actif);
     $("#busNom").textContent = this.noir ? "Fondu au noir"
-      : this.selection ? this.numeroDe(this.selection) + " · " + this.noms[this.selection]
+      : src ? this.numeroDe(this.selection) + " · " + src.nom
       : "Aucune source";
   },
 
   appliquer(){
+    const id  = (this.selection && !this.noir) ? this.selection : null;
+    const src = id ? this.sources[id] : null;
+
+    // 1. L'aperçu central, sans le son pour ne pas doubler l'audio de la salle
+    rendreSortie($("#apercu"), src, id, false);
+    $("#videSortie").textContent = this.noir ? "Fondu au noir" : "Aucune source";
+
+    // 2. Le projecteur, avec le son des vidéos
     if (!this.fenetre || this.fenetre.closed) return;
-    const doc = this.fenetre.document;
-    const v = doc.getElementById("sortie");
-    if (!v) return;
+    const scene = this.fenetre.document.getElementById("scene");
+    if (!scene) return;
+    rendreSortie(scene, src, id, true);
+    const att = this.fenetre.document.getElementById("attente");
+    if (att) att.style.display = src ? "none" : "flex";
+    this.fenetre.document.body.style.background = (this.noir && this.selection) ? "#000" : "#050f26";
+  },
 
-    const enDirect = !!this.selection && !this.noir;
-    v.srcObject = this.selection ? this.flux[this.selection] : null;
-    v.style.opacity = enDirect ? "1" : "0";
-
-    const attente = doc.getElementById("attente");
-    // Au fondu au noir on veut du vrai noir, pas le logo
-    if (attente) attente.style.display = this.selection ? "none" : "flex";
-    doc.body.style.background = (this.noir && this.selection) ? "#000" : "#050f26";
+  // Charge un média dans les deux sorties sans rien afficher :
+  // au moment de la bascule, il ne reste plus qu'à le montrer.
+  precharger(id){
+    const src = this.sources[id];
+    if (!src || src.type === "cam" || src.type === "texte") return;
+    elementMedia($("#apercu"), src, id);
+    if (this.fenetre && !this.fenetre.closed){
+      const scene = this.fenetre.document.getElementById("scene");
+      if (scene) elementMedia(scene, src, id);
+    }
   },
 
   basculerNoir(){
@@ -725,27 +974,51 @@ const regie = {
     this.fenetre.document.write(
       '<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>VISION — Projection</title>' +
       '<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Barlow+Condensed:wght@600&display=swap" rel="stylesheet">' +
-      '<style>html,body{margin:0;height:100%;background:#050f26;overflow:hidden;cursor:none}' +
-      'video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000;' +
-      'opacity:0;transition:opacity .5s ease}' +
+      '<style>' +
+      'html,body{margin:0;height:100%;background:#050f26;overflow:hidden;cursor:none}' +
+      '#scene{position:absolute;inset:0}' +
+      '.cche{position:absolute;inset:0;width:100%;height:100%;display:none}' +
+      'video.cche,img.cche{object-fit:contain;background:#000}' +
+      'video[data-rot="90"]{transform:rotate(90deg) scale(.5625)}' +
+      'video[data-rot="180"]{transform:rotate(180deg)}' +
+      'video[data-rot="270"]{transform:rotate(270deg) scale(.5625)}' +
+      '.cche.texte{flex-direction:column;align-items:center;justify-content:center;gap:26px;' +
+      'padding:7%;text-align:center;color:#e8eefb;' +
+      'background:radial-gradient(120% 80% at 50% 0%,#0a1c44 0%,#050f26 62%)}' +
+      '.cche.texte h3{margin:0;font:400 clamp(28px,5.4vw,74px)/1.16 "Archivo Black","Arial Black",sans-serif}' +
+      '.cche.texte p{margin:0;font:600 clamp(13px,1.7vw,24px)/1 "Barlow Condensed",Arial Narrow,sans-serif;' +
+      'letter-spacing:.26em;text-transform:uppercase;color:#8296bd}' +
       '#attente{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;' +
       'justify-content:center;gap:15px;color:#e8eefb;' +
       'background:radial-gradient(120% 80% at 50% 0%,#0a1c44 0%,#050f26 62%)}' +
-      '#attente.off{display:none}' +
       '#logo{font:400 54px/1 "Archivo Black","Arial Black",sans-serif;letter-spacing:.1em}' +
       '#txt{font:600 13px/1 "Barlow Condensed",Arial Narrow,sans-serif;letter-spacing:.3em;' +
       'text-transform:uppercase;color:#8296bd}' +
       '#aide{position:absolute;left:50%;bottom:34px;transform:translateX(-50%);color:#8296bd;' +
       'font:600 12px/1 "Barlow Condensed",Arial Narrow,sans-serif;letter-spacing:.2em;' +
-      'text-transform:uppercase;animation:pf 6s forwards}' +
-      '@keyframes pf{0%,70%{opacity:1}100%{opacity:0}}</style></head>' +
-      '<body><video id="sortie" autoplay playsinline muted></video>' +
+      'text-transform:uppercase;animation:pf 6s forwards;z-index:5}' +
+      '@keyframes pf{0%,70%{opacity:1}100%{opacity:0}}' +
+      '</style></head><body>' +
+      '<div id="scene">' +
+      '<video class="cche cam" autoplay playsinline muted></video>' +
+      '<div class="cche texte"><h3></h3><p></p></div>' +
+      '<div class="videSortie" style="display:none"></div>' +
+      '</div>' +
       '<div id="attente"><div id="logo">VISION</div>' +
       '<div id="txt">En attente d\'une source</div></div>' +
-      '<div id="aide">Glisse cette fenêtre sur le projecteur, puis F11</div></body></html>'
+      '<div id="aide">Clique pour le plein écran</div>' +
+      '<scr' + 'ipt>document.body.onclick=function(){' +
+      'if(document.fullscreenElement){document.exitFullscreen();}' +
+      'else{document.documentElement.requestFullscreen();}};</scr' + 'ipt>' +
+      '</body></html>'
     );
     this.fenetre.document.close();
-    setTimeout(() => this.appliquer(), 300);
+
+    // On recharge tous les médias déjà présents dans la nouvelle fenêtre
+    setTimeout(() => {
+      this.ordre.forEach((id) => this.precharger(id));
+      this.appliquer();
+    }, 350);
   }
 };
 
@@ -776,9 +1049,18 @@ $("#basculer").onclick = async () => {
   if (emetteur) await emetteur.replaceTrack(piste);
 };
 
+$("#txtAnnuler").onclick = () => $("#modale").classList.remove("ouvert");
+$("#txtValider").onclick = () => {
+  regie.ajouterTexte($("#txtTitre").value, $("#txtSous").value);
+  $("#modale").classList.remove("ouvert");
+};
+$("#modale").onclick = (e) => { if (e.target.id === "modale") $("#modale").classList.remove("ouvert"); };
+
 /* --- Arrivée par QR : ?salle=7392 --- */
 const params = new URLSearchParams(location.search);
 const salleUrl = (params.get("salle") || "").replace(/\D/g, "");
+const regieUrl = (params.get("regie") || "").replace(/\D/g, "");
+
 if (salleUrl.length === 4){
   $("#inviteCode").textContent = salleUrl;
   afficher("invite");
@@ -787,6 +1069,11 @@ if (salleUrl.length === 4){
     try{ await cam.demarrer(salleUrl); }
     catch(e){ afficher("accueil"); erreur("Caméra inaccessible : " + e.message); }
   };
+}
+else if (regieUrl.length === 4){
+  // Rechargement de la régie : on repart sur le même code, sans rien demander
+  afficher("regie");
+  regie.demarrer();
 }
 </script>
 </body>
