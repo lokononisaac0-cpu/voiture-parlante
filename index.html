@@ -153,6 +153,11 @@
              letter-spacing:.26em;color:var(--sourdine);margin-bottom:1px;text-transform:uppercase}
   .pousse{margin-left:auto}
 
+  #zoneSon{display:flex;align-items:center;gap:8px}
+  #btnSon{font-size:14px;line-height:1;padding:7px 11px}
+  #btnSon.coupe{border-color:var(--antenne);color:var(--antenne)}
+  #volume{width:88px;accent-color:var(--pret);cursor:pointer}
+
   /* ================= RÉGIE — PLATEAU 3 COLONNES ================= */
   #plateau{
     flex:1;display:grid;gap:1px;min-height:0;
@@ -167,6 +172,7 @@
   }
   .colTitre .compte{margin-left:auto;font-family:var(--chiffre);font-size:11px}
   .pile{flex:1;overflow:auto;padding:11px;display:flex;flex-direction:column;gap:10px}
+  .pile > .tuile{width:100%;height:auto}
   .ajouts{flex:0 0 auto;display:flex;gap:7px;padding:11px 11px 0}
   .ajouts .bouton{flex:1;text-align:center;padding:9px 4px;font-size:12px}
 
@@ -190,16 +196,39 @@
 
   /* Couches de sortie, communes à l'aperçu et au projecteur */
   .cche{position:absolute;inset:0;width:100%;height:100%;display:none}
-  video.cche,img.cche{object-fit:contain;background:#000}
+  video.cche,img.cche{object-fit:cover;background:#000}
+  /* Une image pivotée ne peut pas remplir : on la met en entier */
+  video[data-rot="90"],video[data-rot="270"]{object-fit:contain}
+  .cche.entier{object-fit:contain !important}
   .cche.texte{
     display:none;flex-direction:column;align-items:center;justify-content:center;
-    gap:14px;padding:6%;text-align:center;
+    gap:3%;padding:5%;text-align:center;overflow:hidden;
     background:radial-gradient(120% 80% at 50% 0%,#0a1c44 0%,#050f26 62%);
   }
-  .cche.texte h3{font-family:var(--logo);font-weight:400;font-size:clamp(20px,4.4vw,58px);
-                 line-height:1.14;letter-spacing:.01em}
-  .cche.texte p{font-family:var(--etiq);font-size:clamp(11px,1.7vw,22px);letter-spacing:.24em;
+  .cche.texte h3{font-family:var(--logo);font-weight:400;line-height:1.18;
+                 letter-spacing:.01em;word-break:break-word;max-width:100%}
+  .cche.texte p{font-family:var(--etiq);letter-spacing:.24em;
                 text-transform:uppercase;color:var(--sourdine)}
+  /* La couche de diffusion : une copie floutée du direct, posée en écran
+     par-dessus l'originale. C'est le vieux truc des plateaux télé pour
+     adoucir les peaux sans perdre le piqué de l'image. */
+  .cche.doux{mix-blend-mode:screen;pointer-events:none}
+
+  #barreFiltres{
+    flex:0 0 auto;display:flex;align-items:center;gap:12px;
+    padding:11px 16px;border-top:1px solid var(--trait);
+  }
+  .filtreLabel{font-family:var(--etiq);font-size:10.5px;letter-spacing:.26em;
+               text-transform:uppercase;color:var(--sourdine);flex:0 0 auto}
+  #listeFiltres{display:flex;flex-wrap:wrap;gap:7px}
+  .puceFiltre{
+    border:1px solid var(--trait);border-radius:3px;padding:7px 13px;font-size:12.5px;
+    background:var(--panneau);transition:border-color .15s,color .15s;
+  }
+  .puceFiltre:hover{border-color:var(--sourdine)}
+  .puceFiltre.choisi{border-color:var(--pret);color:var(--pret)}
+  #barreFiltres.inactif{opacity:.4;pointer-events:none}
+
   .videSortie{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
               font-family:var(--etiq);font-size:12px;letter-spacing:.26em;
               text-transform:uppercase;color:var(--sourdine)}
@@ -268,6 +297,32 @@
   .carte textarea:focus,.carte input:focus{outline:none;border-color:var(--pret)}
   .carte .actions{display:flex;gap:9px;justify-content:flex-end;margin-top:4px}
 
+  #choixFond{display:flex;flex-wrap:wrap;gap:7px}
+
+  #blocIA{border-bottom:1px solid var(--trait);padding-bottom:13px}
+  #blocIA.absent{display:none}
+  .ligneIA{display:flex;gap:7px}
+  .ligneIA input{flex:1}
+  #iaEtat{font-size:12px;color:var(--sourdine);margin-top:7px;line-height:1.5;min-height:0}
+  #iaEtat.souci{color:var(--pret)}
+  .pastilleFond{
+    border:1px solid var(--trait);border-radius:3px;padding:7px 11px;font-size:12px;
+    background:var(--fond);max-width:135px;overflow:hidden;text-overflow:ellipsis;
+    white-space:nowrap;transition:border-color .15s;
+  }
+  .pastilleFond:hover{border-color:var(--sourdine)}
+  .pastilleFond.choisi{border-color:var(--pret);color:var(--pret)}
+
+  /* Variantes de fond pour les diapositives de texte */
+  .cche.texte.noir{background:#000}
+  .cche.texte.blanc{background:#f4f7fc;color:#0a1730}
+  .cche.texte.blanc p{color:#54648c}
+  .cche.texte{z-index:2}
+  .cche.texte.surMedia{
+    background:linear-gradient(rgba(3,8,20,.5),rgba(3,8,20,.72));
+    text-shadow:0 2px 18px rgba(0,0,0,.7);
+  }
+
   kbd{font-family:var(--chiffre);font-size:11px;background:var(--relief);
       border:1px solid var(--trait);border-bottom-width:2px;border-radius:2px;padding:2px 6px}
 
@@ -330,7 +385,7 @@
     <div class="codeGeant" id="inviteCode">----</div>
   </div>
   <button class="gros" id="inviteDemarrer">Démarrer la caméra</button>
-  <p class="note">Tiens le téléphone à l'horizontale et cale-le bien : un cadre stable vaut mieux qu'un beau mouvement.</p>
+  <p class="note"><b style="color:var(--pret)">Tiens le téléphone à l'horizontale avant d'appuyer.</b><br>L'orientation de l'image se fige au démarrage. Si tu tournes le téléphone après, appuie sur « Recadrer ».</p>
 </div>
 
 <!-- ================= CAMÉRA ================= -->
@@ -340,7 +395,8 @@
   <div id="onair">● À l'antenne</div>
   <div id="camInfos">
     <input id="camNom" maxlength="20" placeholder="Nom" autocomplete="off">
-    <button class="bouton" id="basculer">Pivoter</button>
+    <button class="bouton" id="basculer">Objectif</button>
+    <button class="bouton" id="recadrer">Recadrer</button>
     <span id="camEtat">Connexion…</span>
   </div>
 </div>
@@ -357,6 +413,10 @@
     </div>
     <div id="busActions">
       <div id="busCode"><i>Salle</i><span id="regieCode">----</span></div>
+      <div id="zoneSon">
+        <button class="bouton mini" id="btnSon" title="Couper le son">♪</button>
+        <input type="range" id="volume" min="0" max="100" value="90" title="Volume">
+      </div>
       <button class="bouton primaire pousse" id="ouvrirProjection">Ouvrir l'écran de projection</button>
       <button class="bouton rouge" id="fondu">Fondu au noir</button>
     </div>
@@ -388,9 +448,14 @@
       <div id="centreCorps">
         <div id="apercu">
           <video class="cche cam" autoplay playsinline muted></video>
+          <video class="cche doux" autoplay playsinline muted></video>
           <div class="cche texte"><h3></h3><p></p></div>
           <div class="videSortie" id="videSortie">Aucune source</div>
         </div>
+      </div>
+      <div id="barreFiltres">
+        <span class="filtreLabel">Rendu</span>
+        <div id="listeFiltres"></div>
       </div>
     </main>
 
@@ -412,6 +477,14 @@
 <div id="modale">
   <div class="carte">
     <h3>Nouvelle diapositive</h3>
+    <div id="blocIA">
+      <label for="iaQuestion">Recherche rapide</label>
+      <div class="ligneIA">
+        <input id="iaQuestion" placeholder="Jean 3:16, une définition, une idée à rédiger…">
+        <button class="bouton" id="iaChercher">Chercher</button>
+      </div>
+      <p id="iaEtat"></p>
+    </div>
     <div>
       <label for="txtTitre">Texte principal</label>
       <textarea id="txtTitre" rows="3" placeholder="Car Dieu a tant aimé le monde…"></textarea>
@@ -419,6 +492,10 @@
     <div>
       <label for="txtSous">Sous-titre</label>
       <input id="txtSous" placeholder="Jean 3:16">
+    </div>
+    <div>
+      <label>Fond</label>
+      <div id="choixFond"></div>
     </div>
     <div class="actions">
       <button class="bouton" id="txtAnnuler">Annuler</button>
@@ -440,6 +517,14 @@
    ========================================================================= */
 
 const PREFIXE = "regievid-";
+
+/* -------------------------------------------------------------------------
+   TON WORKER CLOUDFLARE (Llama)
+   Worker dédié à la régie : il répond en JSON strict, sans bavardage.
+   À ne pas confondre avec vision-ia, qui reste le cerveau de l'app VISION.
+   Vide = recherche rapide masquée.
+   ------------------------------------------------------------------------- */
+const IA_URL = "https://vision-regie.lokononisaac0.workers.dev";
 const CONFIG_ICE = {
   iceServers:[
     { urls:"stun:stun.cloudflare.com:3478" },
@@ -459,6 +544,20 @@ function codeAuHasard(){ return String(Math.floor(1000 + Math.random() * 9000));
 
 const enLocal = location.protocol === "file:";
 if (enLocal) $("#local").classList.add("visible");
+
+/* =========================================================================
+   RENDUS D'IMAGE
+   "css"  : correction de couleur, gratuite pour le processeur.
+   "doux" : opacité de la copie floutée posée par-dessus. C'est elle qui
+            lisse le teint sans transformer l'image en bouillie.
+   ========================================================================= */
+const FILTRES = {
+  aucun:  { nom:"Aucun",        css:"",                                                 doux:0    },
+  clarte: { nom:"Clarté",       css:"contrast(1.14) saturate(1.12) brightness(1.03)",   doux:0    },
+  teint:  { nom:"Teint",        css:"contrast(1.05) saturate(1.18) brightness(1.06)",   doux:0.26 },
+  lisse:  { nom:"Lisse",        css:"contrast(1.02) saturate(1.12) brightness(1.08)",   doux:0.44 },
+  sombre: { nom:"Salle sombre", css:"brightness(1.32) contrast(1.2) saturate(1.08)",    doux:0.12 }
+};
 
 /* =========================================================================
    RENDU D'UNE SOURCE
@@ -492,10 +591,26 @@ function elementMedia(boite, src, id){
   return el;
 }
 
-function rendreSortie(boite, src, id, avecSon){
+function ajusterTexte(boite, src){
+  const t = boite.querySelector(".cche.texte");
+  const h = t.querySelector("h3");
+  const p = t.querySelector("p");
+  const L = boite.clientWidth || 1280;
+  const n = (src.titre || "").length;
+
+  // Plus le verset est long, plus la police se réduit : tout doit tenir
+  const f = n < 30 ? 0.090 : n < 60 ? 0.066 : n < 110 ? 0.048 :
+            n < 200 ? 0.035 : n < 320 ? 0.027 : 0.021;
+
+  h.style.fontSize = Math.max(13, Math.round(L * f)) + "px";
+  p.style.fontSize = Math.max(9,  Math.round(L * 0.016)) + "px";
+}
+
+function rendreSortie(boite, src, id, avecSon, fondSrc, fondId){
   boite.querySelectorAll(".cche").forEach((e) => {
     e.style.display = "none";
-    if (e.tagName === "VIDEO" && e.dataset.src && e.dataset.src !== id) e.pause();
+    if (e.tagName === "VIDEO" && e.dataset.src &&
+        e.dataset.src !== id && e.dataset.src !== fondId) e.pause();
   });
 
   const videL = boite.querySelector(".videSortie");
@@ -507,19 +622,54 @@ function rendreSortie(boite, src, id, avecSon){
 
   if (src.type === "cam"){
     const c = boite.querySelector(".cche.cam");
+    const d = boite.querySelector(".cche.doux");
+    const f = FILTRES[src.filtre] || FILTRES.aucun;
+
     c.style.display = "block";
     if (c.srcObject !== src.flux) c.srcObject = src.flux;
     c.dataset.rot = src.rot || 0;
+    c.classList.toggle("entier", src.plein === false);
+    c.style.filter = f.css;
+
+    if (d){
+      if (f.doux > 0){
+        // Le flou doit grandir avec l'écran, sinon il disparaît au projecteur
+        const rayon = Math.max(3, Math.round((boite.clientHeight || 400) * 0.014));
+        d.style.display = "block";
+        if (d.srcObject !== src.flux) d.srcObject = src.flux;
+        d.dataset.rot = src.rot || 0;
+        d.classList.toggle("entier", src.plein === false);
+        d.style.opacity = f.doux;
+        d.style.filter  = "blur(" + rayon + "px) " + f.css;
+        d.play().catch(() => {});
+      } else {
+        d.style.display = "none";
+      }
+    }
   }
   else if (src.type === "texte"){
     const t = boite.querySelector(".cche.texte");
     t.style.display = "flex";
     t.querySelector("h3").textContent = src.titre || "";
     t.querySelector("p").textContent  = src.sous  || "";
+
+    // Le fond : dégradé VISION, aplat, ou une image / vidéo importée
+    t.classList.remove("noir", "blanc", "surMedia");
+    if (fondSrc){
+      const f = elementMedia(boite, fondSrc, fondId);
+      f.style.display = "block";
+      f.classList.remove("entier");
+      if (f.tagName === "VIDEO"){ f.muted = true; f.play().catch(() => {}); }
+      t.classList.add("surMedia");
+    } else if (src.fond === "noir" || src.fond === "blanc"){
+      t.classList.add(src.fond);
+    }
+    ajusterTexte(boite, src);
   }
   else {
     const el = elementMedia(boite, src, id);
     el.style.display = "block";
+    el.classList.toggle("entier", src.plein === false);
     if (el.tagName === "VIDEO"){
       el.muted = !avecSon;
       el.play().catch(() => {});
@@ -527,6 +677,66 @@ function rendreSortie(boite, src, id, avecSon){
   }
 }
 
+/* =========================================================================
+   RECHERCHE RAPIDE VIA TON WORKER CLOUDFLARE
+   On demande une réponse en JSON pour pouvoir remplir les deux champs
+   séparément : le texte d'un côté, la référence de l'autre.
+   ========================================================================= */
+async function chercherIA(question){
+  const consigne =
+    "Tu assistes une régie vidéo francophone : culte, formation, conférence. " +
+    "Réponds UNIQUEMENT par un objet JSON, sans texte autour, sans salutation, " +
+    'sans balises de code, au format {"texte":"...","reference":"..."} . ' +
+    "Référence biblique : le verset complet dans texte, la référence dans reference. " +
+    "Question de connaissance : la réponse la plus courte possible dans texte, " +
+    "la source ou l'année dans reference ; si tu n'es pas sûr, dis-le plutôt " +
+    "que d'inventer. Idée à rédiger : une phrase courte et frappante. " +
+    "Maximum 300 caractères. Demande : " + question;
+
+  const rep = await fetch(IA_URL, {
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify({
+      // Plusieurs noms de champ : le worker prend celui qu'il connaît
+      prompt: consigne,
+      message: consigne,
+      question: consigne,
+      messages: [{ role:"user", content: consigne }]
+    })
+  });
+  if (!rep.ok) throw new Error("Le Worker a répondu " + rep.status);
+
+  // On accepte aussi bien du texte brut qu'un JSON, quel que soit le nom du champ
+  const brut = await rep.text();
+  let contenu = brut;
+  try{
+    const j = JSON.parse(brut);
+    contenu = j.response || j.reponse || j.result || j.texte ||
+              j.text || j.answer || j.output || brut;
+    if (typeof contenu === "object") contenu = JSON.stringify(contenu);
+  }catch(_){}
+
+  // Filet de sécurité : si le modèle glisse malgré tout une politesse,
+  // on coupe tout ce qui précède les deux-points d'introduction.
+  function nettoyer(t){
+    let s = String(t).trim();
+    s = s.replace(/^\s*(bien s[ûu]r|voici|bonjour|salut|d'accord|ok|okay|certainement|avec plaisir|pas de probl[èe]me)[^:\n]{0,60}[:\n]\s*/i, "");
+    s = s.replace(/^\s*(cher\s+)?isaac[\s,!:-]*/i, "");
+    return s.trim();
+  }
+
+  // Puis on extrait l'objet attendu, même s'il est noyé dans une phrase
+  const bloc = String(contenu).replace(/```json|```/g, "").trim();
+  const m = bloc.match(/\{[\s\S]*\}/);
+  if (m){
+    try{
+      const o = JSON.parse(m[0]);
+      return { texte: nettoyer(o.texte || o.text || ""),
+               reference:(o.reference || o.ref || "").trim() };
+    }catch(_){}
+  }
+  return { texte: nettoyer(bloc), reference: "" };
+}
 /* =========================================================================
    RÔLE CAMÉRA
    ========================================================================= */
@@ -567,6 +777,14 @@ const cam = {
       audio:false        // évite l'effet Larsen : plusieurs micros dans la même salle
     });
     $("#camVideo").srcObject = this.flux;
+  },
+
+  async remplacerPiste(){
+    await this.ouvrirCamera();
+    const piste = this.flux.getVideoTracks()[0];
+    const emetteur = this.appel && this.appel.peerConnection.getSenders()
+                      .find(s => s.track && s.track.kind === "video");
+    if (emetteur) await emetteur.replaceTrack(piste);
   },
 
   appeler(){
@@ -635,6 +853,10 @@ const regie = {
   noir:false,
   code:null,
   compteurMedia:0,
+  volume:0.9,
+  muet:true,
+  fondChoisi:"degrade",
+  editionEnCours:null,
 
   demarrer(){
     if (typeof Peer === "undefined"){
@@ -665,6 +887,20 @@ const regie = {
     $("#addImage").onclick = () => $("#fichierImage").click();
     $("#addVideo").onclick = () => $("#fichierVideo").click();
     $("#addTexte").onclick = () => this.ouvrirEditeur();
+
+    $("#volume").oninput = (e) => {
+      this.volume = Number(e.target.value) / 100;
+      if (this.volume > 0) this.muet = false;
+      this.majBoutonSon();
+      this.majSon();
+    };
+    $("#btnSon").onclick = () => {
+      this.muet = !this.muet;
+      this.majBoutonSon();
+      this.majSon();
+    };
+    this.majBoutonSon();
+    this.construireFiltres();
 
     $("#fichierImage").onchange = (e) => this.ajouterFichier(e, "image");
     $("#fichierVideo").onchange = (e) => this.ajouterFichier(e, "video");
@@ -710,7 +946,7 @@ const regie = {
 
       appel.on("stream", (flux) => {
         this.sources[id] = {
-          type:"cam", flux, rot:0,
+          type:"cam", flux, rot:0, filtre:"clarte",
           nom:(appel.metadata && appel.metadata.nom) || "Caméra"
         };
         if (!this.ordre.includes(id)) this.ordre.push(id);
@@ -778,19 +1014,64 @@ const regie = {
     this.majComptes();
   },
 
-  ouvrirEditeur(){
-    $("#txtTitre").value = "";
-    $("#txtSous").value  = "";
+  ouvrirEditeur(idExistant){
+    const src = idExistant ? this.sources[idExistant] : null;
+    this.editionEnCours = idExistant || null;
+    this.fondChoisi     = src ? (src.fond || "degrade") : "degrade";
+
+    $("#txtTitre").value = src ? src.titre : "";
+    $("#txtSous").value  = src ? src.sous  : "";
+    $("#txtValider").textContent = src ? "Enregistrer" : "Ajouter";
+
+    // Fonds proposés : les trois de base, puis tous les médias importés
+    const choix = [
+      { cle:"degrade", nom:"Dégradé VISION" },
+      { cle:"noir",    nom:"Noir" },
+      { cle:"blanc",   nom:"Blanc" }
+    ];
+    this.ordre.forEach((mid) => {
+      const m = this.sources[mid];
+      if (m && (m.type === "image" || m.type === "video"))
+        choix.push({ cle:mid, nom:(m.type === "video" ? "▸ " : "") + m.nom });
+    });
+
+    const boite = $("#choixFond");
+    boite.innerHTML = "";
+    choix.forEach((c) => {
+      const b = document.createElement("button");
+      b.className = "pastilleFond" + (c.cle === this.fondChoisi ? " choisi" : "");
+      b.textContent = c.nom;
+      b.onclick = () => {
+        this.fondChoisi = c.cle;
+        boite.querySelectorAll(".pastilleFond").forEach(x => x.classList.remove("choisi"));
+        b.classList.add("choisi");
+      };
+      boite.appendChild(b);
+    });
+
     $("#modale").classList.add("ouvert");
     setTimeout(() => $("#txtTitre").focus(), 50);
   },
 
-  ajouterTexte(titre, sous){
+  validerTexte(titre, sous){
     if (!titre.trim()) return;
+
+    if (this.editionEnCours && this.sources[this.editionEnCours]){
+      const s = this.sources[this.editionEnCours];
+      s.titre = titre.trim();
+      s.sous  = sous.trim();
+      s.fond  = this.fondChoisi;
+      s.nom   = s.titre.slice(0, 22);
+      this.dessinerTuile(this.editionEnCours, "#pileMedia");
+      if (this.selection === this.editionEnCours) this.appliquer();
+      this.editionEnCours = null;
+      return;
+    }
+
     const id = "m" + (++this.compteurMedia);
     this.sources[id] = {
       type:"texte", titre:titre.trim(), sous:sous.trim(),
-      nom: titre.trim().slice(0, 22)
+      fond:this.fondChoisi, nom:titre.trim().slice(0, 22)
     };
     this.ordre.push(id);
     this.dessinerTuile(id, "#pileMedia");
@@ -815,9 +1096,12 @@ const regie = {
       else if (src.type === "video") coeur = '<video muted></video>';
       else                           coeur = '<div class="apercuTexte"><b></b><i></i></div>';
 
-      const outils = src.type === "cam"
+      const outils = (src.type === "cam"
         ? '<button class="pivoter" title="Pivoter">⟳</button>'
-        : '<button class="retirer" title="Retirer">✕</button>';
+        : '<button class="retirer" title="Retirer">✕</button>')
+        + (src.type === "texte"
+        ? '<button class="modifier" title="Modifier le texte et le fond">✎</button>'
+        : '<button class="cadrer" title="Plein cadre ou image entière">⛶</button>');
 
       tuile.innerHTML = coeur +
         '<span class="num"></span>' +
@@ -830,6 +1114,10 @@ const regie = {
       if (bPiv) bPiv.onclick = (e) => { e.stopPropagation(); this.pivoter(id); };
       const bDel = tuile.querySelector(".retirer");
       if (bDel) bDel.onclick = (e) => { e.stopPropagation(); this.retirer(id); };
+      const bCad = tuile.querySelector(".cadrer");
+      if (bCad) bCad.onclick = (e) => { e.stopPropagation(); this.cadrer(id); };
+      const bMod = tuile.querySelector(".modifier");
+      if (bMod) bMod.onclick = (e) => { e.stopPropagation(); this.ouvrirEditeur(id); };
 
       $(pile).appendChild(tuile);
     }
@@ -848,9 +1136,59 @@ const regie = {
       v.src = src.url;
       v.currentTime = 0.1;         // une image fixe suffit pour reconnaître le clip
     } else {
-      tuile.querySelector(".apercuTexte b").textContent = src.titre;
-      tuile.querySelector(".apercuTexte i").textContent = src.sous;
+      const ap = tuile.querySelector(".apercuTexte");
+      ap.querySelector("b").textContent = src.titre;
+      ap.querySelector("i").textContent = src.sous;
+
+      // La vignette montre le fond réel, pour reconnaître la diapo d'un coup d'œil
+      const f = src.fond;
+      const media = f && this.sources[f];
+      ap.style.color      = f === "blanc" ? "#0a1730" : "";
+      ap.style.background =
+        media ? (media.type === "image" ? "#000 center/cover url(" + media.url + ")" : "#000")
+        : f === "noir"  ? "#000"
+        : f === "blanc" ? "#f4f7fc"
+        : "linear-gradient(160deg,#0a1c44,#050f26)";
+      ap.style.textShadow = media ? "0 2px 12px rgba(0,0,0,.85)" : "";
     }
+  },
+
+  construireFiltres(){
+    const boite = $("#listeFiltres");
+    boite.innerHTML = "";
+    Object.keys(FILTRES).forEach((cle) => {
+      const b = document.createElement("button");
+      b.className = "puceFiltre";
+      b.dataset.filtre = cle;
+      b.textContent = FILTRES[cle].nom;
+      b.onclick = () => this.appliquerFiltre(cle);
+      boite.appendChild(b);
+    });
+    this.majFiltres();
+  },
+
+  appliquerFiltre(cle){
+    const src = this.selection ? this.sources[this.selection] : null;
+    if (!src || src.type !== "cam") return;
+    src.filtre = cle;
+    this.majFiltres();
+    this.appliquer();
+  },
+
+  majFiltres(){
+    const src = this.selection ? this.sources[this.selection] : null;
+    const cam = src && src.type === "cam";
+    $("#barreFiltres").classList.toggle("inactif", !cam);
+    const actuel = cam ? (src.filtre || "aucun") : null;
+    document.querySelectorAll(".puceFiltre").forEach((b) => {
+      b.classList.toggle("choisi", b.dataset.filtre === actuel);
+    });
+  },
+
+  cadrer(id){
+    const src = this.sources[id];
+    src.plein = src.plein === false;      // par défaut on remplit tout le cadre
+    if (this.selection === id) this.appliquer();
   },
 
   pivoter(id){
@@ -914,6 +1252,7 @@ const regie = {
       this.canaux[id].send({ type:"tally", antenne:true });
 
     this.majBus();
+    this.majFiltres();
     this.appliquer();
   },
 
@@ -931,18 +1270,41 @@ const regie = {
     const id  = (this.selection && !this.noir) ? this.selection : null;
     const src = id ? this.sources[id] : null;
 
-    // 1. L'aperçu central, sans le son pour ne pas doubler l'audio de la salle
-    rendreSortie($("#apercu"), src, id, false);
-    $("#videSortie").textContent = this.noir ? "Fondu au noir" : "Aucune source";
+    // Le fond d'une diapositive de texte peut être un média importé
+    let fondId = null, fondSrc = null;
+    if (src && src.type === "texte" && src.fond && this.sources[src.fond]){
+      fondId  = src.fond;
+      fondSrc = this.sources[fondId];
+    }
 
-    // 2. Le projecteur, avec le son des vidéos
+    // 1. L'aperçu central porte le son : c'est la fenêtre où tu cliques,
+    //    donc la seule où le navigateur autorise l'audio à démarrer.
+    rendreSortie($("#apercu"), src, id, true, fondSrc, fondId);
+    $("#videSortie").textContent = this.noir ? "Fondu au noir" : "Aucune source";
+    this.majSon();
+
+    // 2. Le projecteur reçoit l'image, muet, pour ne pas doubler l'audio
     if (!this.fenetre || this.fenetre.closed) return;
     const scene = this.fenetre.document.getElementById("scene");
     if (!scene) return;
-    rendreSortie(scene, src, id, true);
+    rendreSortie(scene, src, id, false, fondSrc, fondId);
     const att = this.fenetre.document.getElementById("attente");
     if (att) att.style.display = src ? "none" : "flex";
     this.fenetre.document.body.style.background = (this.noir && this.selection) ? "#000" : "#050f26";
+  },
+
+  majBoutonSon(){
+    const coupe = this.muet || this.volume === 0;
+    $("#btnSon").classList.toggle("coupe", coupe);
+    $("#btnSon").textContent = coupe ? "✕" : "♪";
+    $("#btnSon").title = coupe ? "Rétablir le son" : "Couper le son";
+  },
+
+  majSon(){
+    $("#apercu").querySelectorAll("video[data-src]").forEach((el) => {
+      el.volume = this.volume;
+      el.muted  = this.muet;
+    });
   },
 
   // Charge un média dans les deux sorties sans rien afficher :
@@ -978,15 +1340,19 @@ const regie = {
       'html,body{margin:0;height:100%;background:#050f26;overflow:hidden;cursor:none}' +
       '#scene{position:absolute;inset:0}' +
       '.cche{position:absolute;inset:0;width:100%;height:100%;display:none}' +
-      'video.cche,img.cche{object-fit:contain;background:#000}' +
+      'video.cche,img.cche{object-fit:cover;background:#000}' +
+      'video[data-rot="90"],video[data-rot="270"]{object-fit:contain}' +
+      '.cche.entier{object-fit:contain !important}' +
+      '.cche.doux{mix-blend-mode:screen;pointer-events:none}' +
       'video[data-rot="90"]{transform:rotate(90deg) scale(.5625)}' +
       'video[data-rot="180"]{transform:rotate(180deg)}' +
       'video[data-rot="270"]{transform:rotate(270deg) scale(.5625)}' +
-      '.cche.texte{flex-direction:column;align-items:center;justify-content:center;gap:26px;' +
-      'padding:7%;text-align:center;color:#e8eefb;' +
+      '.cche.texte{flex-direction:column;align-items:center;justify-content:center;gap:3%;' +
+      'padding:5%;text-align:center;overflow:hidden;color:#e8eefb;' +
       'background:radial-gradient(120% 80% at 50% 0%,#0a1c44 0%,#050f26 62%)}' +
-      '.cche.texte h3{margin:0;font:400 clamp(28px,5.4vw,74px)/1.16 "Archivo Black","Arial Black",sans-serif}' +
-      '.cche.texte p{margin:0;font:600 clamp(13px,1.7vw,24px)/1 "Barlow Condensed",Arial Narrow,sans-serif;' +
+      '.cche.texte h3{margin:0;font:400 1em/1.18 "Archivo Black","Arial Black",sans-serif;' +
+      'word-break:break-word;max-width:100%}' +
+      '.cche.texte p{margin:0;font:600 1em/1 "Barlow Condensed",Arial Narrow,sans-serif;' +
       'letter-spacing:.26em;text-transform:uppercase;color:#8296bd}' +
       '#attente{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;' +
       'justify-content:center;gap:15px;color:#e8eefb;' +
@@ -994,25 +1360,34 @@ const regie = {
       '#logo{font:400 54px/1 "Archivo Black","Arial Black",sans-serif;letter-spacing:.1em}' +
       '#txt{font:600 13px/1 "Barlow Condensed",Arial Narrow,sans-serif;letter-spacing:.3em;' +
       'text-transform:uppercase;color:#8296bd}' +
-      '#aide{position:absolute;left:50%;bottom:34px;transform:translateX(-50%);color:#8296bd;' +
-      'font:600 12px/1 "Barlow Condensed",Arial Narrow,sans-serif;letter-spacing:.2em;' +
-      'text-transform:uppercase;animation:pf 6s forwards;z-index:5}' +
-      '@keyframes pf{0%,70%{opacity:1}100%{opacity:0}}' +
+      '#aide{position:absolute;left:50%;bottom:34px;transform:translateX(-50%);' +
+      'color:#050f26;background:#f2a83c;padding:11px 22px;border-radius:3px;' +
+      'font:600 13px/1 "Barlow Condensed",Arial Narrow,sans-serif;letter-spacing:.2em;' +
+      'text-transform:uppercase;z-index:5}' +
       '</style></head><body>' +
       '<div id="scene">' +
       '<video class="cche cam" autoplay playsinline muted></video>' +
+      '<video class="cche doux" autoplay playsinline muted></video>' +
       '<div class="cche texte"><h3></h3><p></p></div>' +
       '<div class="videSortie" style="display:none"></div>' +
       '</div>' +
       '<div id="attente"><div id="logo">VISION</div>' +
       '<div id="txt">En attente d\'une source</div></div>' +
-      '<div id="aide">Clique pour le plein écran</div>' +
-      '<scr' + 'ipt>document.body.onclick=function(){' +
+      '<div id="aide">Clique ici pour le plein écran</div>' +
+      '<scr' + 'ipt>' +
+      'document.body.onclick=function(){' +
       'if(document.fullscreenElement){document.exitFullscreen();}' +
-      'else{document.documentElement.requestFullscreen();}};</scr' + 'ipt>' +
+      'else{document.documentElement.requestFullscreen();}};' +
+      'document.addEventListener("fullscreenchange",function(){' +
+      'document.getElementById("aide").style.display=' +
+      'document.fullscreenElement?"none":"block";});' +
+      '</scr' + 'ipt>' +
       '</body></html>'
     );
     this.fenetre.document.close();
+
+    // Le passage en plein écran change la largeur : le texte doit suivre
+    this.fenetre.onresize = () => this.appliquer();
 
     // On recharge tous les médias déjà présents dans la nouvelle fenêtre
     setTimeout(() => {
@@ -1042,19 +1417,62 @@ $("#valider").onclick = async () => {
 
 $("#basculer").onclick = async () => {
   cam.frontale = !cam.frontale;
-  await cam.ouvrirCamera();
-  const piste = cam.flux.getVideoTracks()[0];
-  const emetteur = cam.appel && cam.appel.peerConnection.getSenders()
-                    .find(s => s.track && s.track.kind === "video");
-  if (emetteur) await emetteur.replaceTrack(piste);
+  await cam.remplacerPiste();
 };
 
-$("#txtAnnuler").onclick = () => $("#modale").classList.remove("ouvert");
-$("#txtValider").onclick = () => {
-  regie.ajouterTexte($("#txtTitre").value, $("#txtSous").value);
+// L'orientation de l'image est figée à l'ouverture de la caméra.
+// Si le cadreur tourne son téléphone, ce bouton la refixe à l'endroit.
+$("#recadrer").onclick = async () => {
+  $("#recadrer").textContent = "…";
+  await cam.remplacerPiste();
+  $("#recadrer").textContent = "Recadrer";
+};
+
+$("#txtAnnuler").onclick = () => {
+  regie.editionEnCours = null;
+  $("#modale").classList.remove("ouvert");
+};$("#txtValider").onclick = () => {
+  regie.validerTexte($("#txtTitre").value, $("#txtSous").value);
   $("#modale").classList.remove("ouvert");
 };
-$("#modale").onclick = (e) => { if (e.target.id === "modale") $("#modale").classList.remove("ouvert"); };
+$("#modale").onclick = (e) => {
+  if (e.target.id === "modale"){
+    regie.editionEnCours = null;
+    $("#modale").classList.remove("ouvert");
+  }
+};
+
+/* --- Recherche rapide via le Worker --- */
+if (!IA_URL) $("#blocIA").classList.add("absent");
+
+async function lancerRecherche(){
+  const q = $("#iaQuestion").value.trim();
+  if (!q) return;
+
+  const bouton = $("#iaChercher");
+  const etat   = $("#iaEtat");
+  bouton.disabled = true;
+  bouton.textContent = "…";
+  etat.classList.remove("souci");
+  etat.textContent = "Recherche en cours…";
+
+  try{
+    const r = await chercherIA(q);
+    if (r.texte) $("#txtTitre").value = r.texte;
+    if (r.reference) $("#txtSous").value = r.reference;
+    etat.textContent = "Relis avant d'envoyer à l'écran.";
+  }catch(e){
+    etat.classList.add("souci");
+    etat.textContent = "Échec : " + e.message + ". Tape le texte à la main.";
+  }
+  bouton.disabled = false;
+  bouton.textContent = "Chercher";
+}
+
+$("#iaChercher").onclick = lancerRecherche;
+$("#iaQuestion").addEventListener("keydown", (e) => {
+  if (e.key === "Enter"){ e.preventDefault(); lancerRecherche(); }
+});
 
 /* --- Arrivée par QR : ?salle=7392 --- */
 const params = new URLSearchParams(location.search);
