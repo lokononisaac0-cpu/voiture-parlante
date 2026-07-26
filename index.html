@@ -154,6 +154,12 @@
   .pousse{margin-left:auto}
 
   #zoneSon{display:flex;align-items:center;gap:8px}
+
+  #etatRelais{
+    font-family:var(--etiq);font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+    color:var(--sourdine);border:1px solid var(--trait);border-radius:3px;padding:5px 9px;
+  }
+  #etatRelais.on{color:var(--pret);border-color:var(--pret)}
   #btnSon{font-size:14px;line-height:1;padding:7px 11px}
   #btnSon.coupe{border-color:var(--antenne);color:var(--antenne)}
   #volume{width:88px;accent-color:var(--pret);cursor:pointer}
@@ -175,6 +181,27 @@
   .pile > .tuile{width:100%;height:auto}
   .ajouts{flex:0 0 auto;display:flex;gap:7px;padding:11px 11px 0}
   .ajouts .bouton{flex:1;text-align:center;padding:9px 4px;font-size:12px}
+
+  .onglets{flex:0 0 auto;display:flex;align-items:center;gap:6px;padding:11px 11px 0}
+  .onglet{
+    flex:1;text-align:center;padding:9px 4px;font-family:var(--etiq);font-size:12px;
+    letter-spacing:.14em;text-transform:uppercase;border-bottom:2px solid transparent;
+    color:var(--sourdine);transition:color .15s,border-color .15s;
+  }
+  .onglet:hover{color:var(--texte)}
+  .onglet.actif{color:var(--texte);border-bottom-color:var(--antenne)}
+  #ajouter{
+    flex:0 0 auto;width:32px;height:32px;border-radius:3px;
+    background:var(--antenne);color:#fff;font-size:19px;line-height:1;font-weight:700;
+    box-shadow:0 0 16px var(--lueur);transition:transform .15s;
+  }
+  #ajouter:hover{transform:scale(1.08)}
+  #pileVide{
+    padding:26px 16px;text-align:center;color:var(--sourdine);
+    font-size:12.5px;line-height:1.8;display:none;
+  }
+  #pileVide.visible{display:block}
+  #pileVide b{color:var(--antenne)}
 
   /* ---- Centre : le programme ---- */
   #centre{background:var(--fond);display:flex;flex-direction:column;min-height:0}
@@ -365,7 +392,7 @@
   </div>
 
   <div id="zoneCode">
-    <input class="champ" id="codeSalle" inputmode="numeric" maxlength="4" placeholder="0000" autocomplete="off">
+    <input class="champ" id="codeSalle" maxlength="6" placeholder="ABC123" autocomplete="off" autocapitalize="characters" spellcheck="false">
     <button class="bouton primaire" id="valider">Démarrer la caméra</button>
   </div>
 
@@ -397,6 +424,7 @@
     <input id="camNom" maxlength="20" placeholder="Nom" autocomplete="off">
     <button class="bouton" id="basculer">Objectif</button>
     <button class="bouton" id="recadrer">Recadrer</button>
+    <button class="bouton" id="qualite">720p</button>
     <span id="camEtat">Connexion…</span>
   </div>
 </div>
@@ -413,6 +441,7 @@
     </div>
     <div id="busActions">
       <div id="busCode"><i>Salle</i><span id="regieCode">----</span></div>
+      <span id="etatRelais">…</span>
       <div id="zoneSon">
         <button class="bouton mini" id="btnSon" title="Couper le son">♪</button>
         <input type="range" id="volume" min="0" max="100" value="90" title="Volume">
@@ -462,12 +491,14 @@
     <!-- ---- Droite : médias ---- -->
     <aside class="colonne">
       <div class="colTitre">Médias <span class="compte" id="compteMedia">0</span></div>
-      <div class="ajouts">
-        <button class="bouton" id="addImage">Image</button>
-        <button class="bouton" id="addVideo">Vidéo</button>
-        <button class="bouton" id="addTexte">Texte</button>
+      <div class="onglets">
+        <button class="onglet actif" data-onglet="video">Vidéo</button>
+        <button class="onglet" data-onglet="texte">Texte</button>
+        <button class="onglet" data-onglet="image">Image</button>
+        <button id="ajouter" title="Ajouter">+</button>
       </div>
       <div class="pile" id="pileMedia"></div>
+      <div id="pileVide">Rien ici pour l'instant.<br>Appuie sur <b>+</b> pour ajouter.</div>
     </aside>
 
   </div>
@@ -525,12 +556,48 @@ const PREFIXE = "regievid-";
    Vide = recherche rapide masquée.
    ------------------------------------------------------------------------- */
 const IA_URL = "https://vision-regie.lokononisaac0.workers.dev";
-const CONFIG_ICE = {
+
+/* -------------------------------------------------------------------------
+   SERVEUR DE SIGNALISATION
+   Ta propre mise en relation, hébergée sur ton compte Cloudflare.
+   Mets null pour repasser instantanément sur le serveur public PeerJS.
+   ------------------------------------------------------------------------- */
+const SIGNALISATION = {
+  host: "vision-signal.lokononisaac0.workers.dev",
+  secure: true,
+  port: 443,
+  path: "/"
+};
+
+function optionsPeer(){
+  const o = { config: CONFIG_ICE };
+  if (SIGNALISATION) Object.assign(o, SIGNALISATION);
+  return o;
+}
+let CONFIG_ICE = {
   iceServers:[
     { urls:"stun:stun.cloudflare.com:3478" },
     { urls:"stun:stun.l.google.com:19302" }
   ]
 };
+
+/* Le relais TURN sert uniquement quand la connexion directe échoue —
+   typiquement une caméra en 4G, loin de la salle. Sur un même WiFi,
+   il n'est jamais sollicité : rien ne quitte les lieux. */
+let relaisActif = false;
+
+async function chargerRelais(){
+  if (!IA_URL) return;
+  try{
+    const r = await fetch(IA_URL.replace(/\/+$/, "") + "/turn");
+    if (!r.ok) return;
+    const j = await r.json();
+    if (j && Array.isArray(j.iceServers) && j.iceServers.length){
+      CONFIG_ICE = { iceServers: CONFIG_ICE.iceServers.concat(j.iceServers) };
+      relaisActif = true;
+    }
+  }catch(_){ /* on continue en direct seul */ }
+}
 
 const $ = (s) => document.querySelector(s);
 let peer = null;
@@ -540,10 +607,83 @@ function afficher(id){
   $("#" + id).classList.add("actif");
 }
 function erreur(t){ $("#erreur").textContent = t || ""; }
-function codeAuHasard(){ return String(Math.floor(1000 + Math.random() * 9000)); }
+/* Alphabet sans caractères ambigus : ni O/0, ni I/1, ni S/5, ni B/8.
+   Six caractères = plus de 300 millions de combinaisons. Impossible
+   à deviner, et de toute façon on scanne le QR au lieu de le taper. */
+const ALPHABET = "ACDEFGHJKLMNPQRTUVWXY34679";
+
+function codeAuHasard(){
+  let c = "";
+  const alea = new Uint32Array(6);
+  (crypto.getRandomValues ? crypto : { getRandomValues:(t)=>{
+    for (let i=0;i<t.length;i++) t[i] = Math.floor(Math.random()*4294967296);
+  }}).getRandomValues(alea);
+  for (let i = 0; i < 6; i++) c += ALPHABET[alea[i] % ALPHABET.length];
+  return c;
+}
+
+function nettoyerCode(v){
+  return String(v || "").toUpperCase().split("")
+    .filter(ch => ALPHABET.indexOf(ch) >= 0).join("").slice(0, 6);
+}
 
 const enLocal = location.protocol === "file:";
 if (enLocal) $("#local").classList.add("visible");
+
+/* =========================================================================
+   STOCKAGE LOCAL
+   Tout reste sur cet appareil, dans le navigateur. Rien n'est envoyé
+   nulle part, rien n'est partagé. IndexedDB plutôt que localStorage :
+   le second plafonne à 5 Mo et ne sait pas garder de fichiers vidéo.
+   ========================================================================= */
+const BDD = {
+  db:null,
+  dispo:false,
+
+  async ouvrir(){
+    if (!("indexedDB" in window)) return false;
+    try{
+      this.db = await new Promise((res, rej) => {
+        const r = indexedDB.open("vision-regie", 1);
+        r.onupgradeneeded = () => {
+          if (!r.result.objectStoreNames.contains("medias"))
+            r.result.createObjectStore("medias", { keyPath:"id" });
+        };
+        r.onsuccess = () => res(r.result);
+        r.onerror   = () => rej(r.error);
+      });
+      this.dispo = true;
+      return true;
+    }catch(_){ return false; }
+  },
+
+  magasin(mode){
+    return this.db.transaction("medias", mode).objectStore("medias");
+  },
+
+  promesse(requete){
+    return new Promise((res, rej) => {
+      requete.onsuccess = () => res(requete.result);
+      requete.onerror   = () => rej(requete.error);
+    });
+  },
+
+  async tout(){
+    if (!this.dispo) return [];
+    try{ return await this.promesse(this.magasin("readonly").getAll()) || []; }
+    catch(_){ return []; }
+  },
+
+  async mettre(obj){
+    if (!this.dispo) return;
+    try{ await this.promesse(this.magasin("readwrite").put(obj)); }catch(_){}
+  },
+
+  async retirer(id){
+    if (!this.dispo) return;
+    try{ await this.promesse(this.magasin("readwrite").delete(id)); }catch(_){}
+  }
+};
 
 /* =========================================================================
    RENDUS D'IMAGE
@@ -741,7 +881,7 @@ async function chercherIA(question){
    RÔLE CAMÉRA
    ========================================================================= */
 const cam = {
-  flux:null, appel:null, frontale:false, code:null, relance:null,
+  flux:null, appel:null, frontale:false, code:null, relance:null, qualite:720,
 
   async demarrer(code){
     if (typeof Peer === "undefined")
@@ -751,7 +891,8 @@ const cam = {
     await this.ouvrirCamera();
     afficher("cam");
 
-    peer = new Peer({ config: CONFIG_ICE });
+    await chargerRelais();
+    peer = new Peer(optionsPeer());
     peer.on("open", () => this.appeler());
 
     peer.on("connection", (canal) => {
@@ -771,8 +912,9 @@ const cam = {
 
   async ouvrirCamera(){
     if (this.flux) this.flux.getTracks().forEach(t => t.stop());
+    const h = this.qualite;
     this.flux = await navigator.mediaDevices.getUserMedia({
-      video:{ width:{ideal:1280}, height:{ideal:720}, frameRate:{ideal:30},
+      video:{ width:{ideal:Math.round(h * 16 / 9)}, height:{ideal:h}, frameRate:{ideal:30},
               facingMode: this.frontale ? "user" : "environment" },
       audio:false        // évite l'effet Larsen : plusieurs micros dans la même salle
     });
@@ -857,8 +999,10 @@ const regie = {
   muet:true,
   fondChoisi:"degrade",
   editionEnCours:null,
+  onglet:"video",
+  bannis:{},
 
-  demarrer(){
+  async demarrer(){
     if (typeof Peer === "undefined"){
       $("#busNom").textContent = "Bibliothèque absente";
       $("#qrMsg").textContent =
@@ -867,8 +1011,13 @@ const regie = {
     }
     // Le code vit dans l'adresse : après un rechargement, la régie
     // reprend le même, et les caméras se rebranchent d'elles-mêmes.
-    const repris = (new URLSearchParams(location.search).get("regie") || "").replace(/\D/g, "");
-    this.code = repris.length === 4 ? repris : codeAuHasard();
+    const repris = nettoyerCode(new URLSearchParams(location.search).get("regie"));
+    this.code = repris.length === 6 ? repris : codeAuHasard();
+
+    await chargerRelais();
+    $("#etatRelais").textContent = relaisActif ? "Relais actif" : "Local seul";
+    $("#etatRelais").classList.toggle("on", relaisActif);
+
     this.brancher();
 
     $("#ouvrirProjection").onclick = () => this.ouvrirFenetre();
@@ -884,9 +1033,15 @@ const regie = {
       setTimeout(() => { $("#copierLien").textContent = "Copier le lien"; }, 2200);
     };
 
-    $("#addImage").onclick = () => $("#fichierImage").click();
-    $("#addVideo").onclick = () => $("#fichierVideo").click();
-    $("#addTexte").onclick = () => this.ouvrirEditeur();
+    $("#ajouter").onclick = () => {
+      if (this.onglet === "video")      $("#fichierVideo").click();
+      else if (this.onglet === "image") $("#fichierImage").click();
+      else                              this.ouvrirEditeur();
+    };
+
+    document.querySelectorAll(".onglet").forEach((o) => {
+      o.onclick = () => this.changerOnglet(o.dataset.onglet);
+    });
 
     $("#volume").oninput = (e) => {
       this.volume = Number(e.target.value) / 100;
@@ -901,6 +1056,7 @@ const regie = {
     };
     this.majBoutonSon();
     this.construireFiltres();
+    this.charger();          // remonte les médias enregistrés sur cet appareil
 
     $("#fichierImage").onchange = (e) => this.ajouterFichier(e, "image");
     $("#fichierVideo").onchange = (e) => this.ajouterFichier(e, "video");
@@ -920,7 +1076,7 @@ const regie = {
 
   /* ---------- Connexion ---------- */
   brancher(){
-    peer = new Peer(PREFIXE + this.code, { config: CONFIG_ICE });
+    peer = new Peer(PREFIXE + this.code, optionsPeer());
 
     peer.on("open", () => {
       $("#regieCode").textContent = this.code;
@@ -940,6 +1096,7 @@ const regie = {
     peer.on("disconnected", () => { try{ peer.reconnect(); }catch(_){} });
 
     peer.on("call", (appel) => {
+      if (this.bannis[appel.peer]){ try{ appel.close(); }catch(_){} return; }
       appel.answer();
       const id = appel.peer;
       this.appels[id] = appel;
@@ -1005,13 +1162,15 @@ const regie = {
 
     const id = "m" + (++this.compteurMedia);
     this.sources[id] = {
-      type, url: URL.createObjectURL(f),
+      type, fichier: f, url: URL.createObjectURL(f),
       nom: f.name.replace(/\.[^.]+$/, "").slice(0, 22)
     };
     this.ordre.push(id);
     this.dessinerTuile(id, "#pileMedia");
     this.precharger(id);          // prêt à partir instantanément
     this.majComptes();
+    this.changerOnglet(type);
+    this.sauver(id);
   },
 
   ouvrirEditeur(idExistant){
@@ -1064,6 +1223,7 @@ const regie = {
       s.nom   = s.titre.slice(0, 22);
       this.dessinerTuile(this.editionEnCours, "#pileMedia");
       if (this.selection === this.editionEnCours) this.appliquer();
+      this.sauver(this.editionEnCours);
       this.editionEnCours = null;
       return;
     }
@@ -1076,6 +1236,8 @@ const regie = {
     this.ordre.push(id);
     this.dessinerTuile(id, "#pileMedia");
     this.majComptes();
+    this.changerOnglet("texte");
+    this.sauver(id);
   },
 
   /* ---------- Vignettes ---------- */
@@ -1089,6 +1251,7 @@ const regie = {
       tuile = document.createElement("div");
       tuile.className = "tuile";
       tuile.id = "t_" + id;
+      tuile.dataset.type = src.type;
 
       let coeur = "";
       if (src.type === "cam")        coeur = '<video autoplay playsinline muted></video>';
@@ -1097,7 +1260,8 @@ const regie = {
       else                           coeur = '<div class="apercuTexte"><b></b><i></i></div>';
 
       const outils = (src.type === "cam"
-        ? '<button class="pivoter" title="Pivoter">⟳</button>'
+        ? '<button class="pivoter" title="Pivoter">⟳</button>' +
+          '<button class="exclure" title="Exclure cette caméra">✕</button>'
         : '<button class="retirer" title="Retirer">✕</button>')
         + (src.type === "texte"
         ? '<button class="modifier" title="Modifier le texte et le fond">✎</button>'
@@ -1118,6 +1282,8 @@ const regie = {
       if (bCad) bCad.onclick = (e) => { e.stopPropagation(); this.cadrer(id); };
       const bMod = tuile.querySelector(".modifier");
       if (bMod) bMod.onclick = (e) => { e.stopPropagation(); this.ouvrirEditeur(id); };
+      const bExc = tuile.querySelector(".exclure");
+      if (bExc) bExc.onclick = (e) => { e.stopPropagation(); this.exclure(id); };
 
       $(pile).appendChild(tuile);
     }
@@ -1153,6 +1319,71 @@ const regie = {
     }
   },
 
+  changerOnglet(nom){
+    this.onglet = nom;
+    document.querySelectorAll(".onglet").forEach((o) => {
+      o.classList.toggle("actif", o.dataset.onglet === nom);
+    });
+    this.filtrerPile();
+  },
+
+  filtrerPile(){
+    let visibles = 0;
+    document.querySelectorAll("#pileMedia .tuile").forEach((t) => {
+      const ok = t.dataset.type === this.onglet;
+      t.style.display = ok ? "" : "none";
+      if (ok) visibles++;
+    });
+    $("#pileVide").classList.toggle("visible", visibles === 0);
+  },
+
+  /* ---------- Stockage local ---------- */
+  async sauver(id){
+    const s = this.sources[id];
+    if (!s || s.type === "cam") return;
+    await BDD.mettre({
+      id,
+      type:  s.type,
+      nom:   s.nom,
+      plein: s.plein !== false,
+      titre: s.titre || "",
+      sous:  s.sous  || "",
+      fond:  s.fond  || "degrade",
+      rang:  this.ordre.indexOf(id),
+      fichier: s.fichier || null
+    });
+  },
+
+  async charger(){
+    if (!(await BDD.ouvrir())) return;
+
+    const liste = await BDD.tout();
+    liste.sort((a, b) => (a.rang ?? 0) - (b.rang ?? 0));
+
+    let maxNum = 0;
+    liste.forEach((r) => {
+      const num = parseInt(String(r.id).replace(/\D/g, ""), 10);
+      if (num > maxNum) maxNum = num;
+
+      const src = {
+        type:r.type, nom:r.nom, plein:r.plein !== false,
+        titre:r.titre, sous:r.sous, fond:r.fond
+      };
+      if (r.fichier){
+        src.fichier = r.fichier;
+        src.url = URL.createObjectURL(r.fichier);
+      }
+      this.sources[r.id] = src;
+      this.ordre.push(r.id);
+      this.dessinerTuile(r.id, "#pileMedia");
+      this.precharger(r.id);
+    });
+
+    this.compteurMedia = maxNum;
+    this.majComptes();
+    this.filtrerPile();
+  },
+
   construireFiltres(){
     const boite = $("#listeFiltres");
     boite.innerHTML = "";
@@ -1185,10 +1416,19 @@ const regie = {
     });
   },
 
+  // Exclure une caméra indésirable : on la coupe et on l'empêche
+  // de revenir, sinon sa reconnexion automatique la ferait réapparaître.
+  exclure(id){
+    if (!confirm("Exclure cette caméra ? Elle ne pourra plus rejoindre cette salle.")) return;
+    this.bannis[id] = true;
+    this.retirer(id);
+  },
+
   cadrer(id){
     const src = this.sources[id];
     src.plein = src.plein === false;      // par défaut on remplit tout le cadre
     if (this.selection === id) this.appliquer();
+    if (src.type !== "cam") this.sauver(id);
   },
 
   pivoter(id){
@@ -1212,6 +1452,7 @@ const regie = {
 
     delete this.sources[id];
     this.ordre = this.ordre.filter(x => x !== id);
+    if (src.type !== "cam") BDD.retirer(id);
     const t = document.getElementById("t_" + id);
     if (t) t.remove();
 
@@ -1226,6 +1467,7 @@ const regie = {
       this.majBus(); this.appliquer();
     }
     this.majComptes();
+    this.filtrerPile();
   },
 
   majComptes(){
@@ -1407,9 +1649,13 @@ $("#btnCam").onclick = () => {
   $("#codeSalle").focus();
 };
 
+$("#codeSalle").addEventListener("input", (e) => {
+  e.target.value = nettoyerCode(e.target.value);
+});
+
 $("#valider").onclick = async () => {
-  const code = $("#codeSalle").value.replace(/\D/g, "");
-  if (code.length !== 4){ erreur("Saisis le code à 4 chiffres affiché sur la régie."); return; }
+  const code = nettoyerCode($("#codeSalle").value);
+  if (code.length !== 6){ erreur("Saisis les 6 caractères affichés sur la régie."); return; }
   erreur("");
   try{ await cam.demarrer(code); }
   catch(e){ afficher("accueil"); erreur("Caméra inaccessible : " + e.message); }
@@ -1440,6 +1686,14 @@ $("#modale").onclick = (e) => {
     regie.editionEnCours = null;
     $("#modale").classList.remove("ouvert");
   }
+};
+
+// En 4G, l'envoi est le goulot : baisser la définition stabilise l'image
+$("#qualite").onclick = async () => {
+  const paliers = [720, 480, 360];
+  cam.qualite = paliers[(paliers.indexOf(cam.qualite) + 1) % paliers.length];
+  $("#qualite").textContent = cam.qualite + "p";
+  await cam.remplacerPiste();
 };
 
 /* --- Recherche rapide via le Worker --- */
@@ -1474,12 +1728,12 @@ $("#iaQuestion").addEventListener("keydown", (e) => {
   if (e.key === "Enter"){ e.preventDefault(); lancerRecherche(); }
 });
 
-/* --- Arrivée par QR : ?salle=7392 --- */
+/* --- Arrivée par QR : ?salle=ABC123 --- */
 const params = new URLSearchParams(location.search);
-const salleUrl = (params.get("salle") || "").replace(/\D/g, "");
-const regieUrl = (params.get("regie") || "").replace(/\D/g, "");
+const salleUrl = nettoyerCode(params.get("salle"));
+const regieUrl = nettoyerCode(params.get("regie"));
 
-if (salleUrl.length === 4){
+if (salleUrl.length === 6){
   $("#inviteCode").textContent = salleUrl;
   afficher("invite");
   // Un seul appui : les navigateurs mobiles exigent un geste avant d'ouvrir la caméra
@@ -1488,7 +1742,7 @@ if (salleUrl.length === 4){
     catch(e){ afficher("accueil"); erreur("Caméra inaccessible : " + e.message); }
   };
 }
-else if (regieUrl.length === 4){
+else if (regieUrl.length === 6){
   // Rechargement de la régie : on repart sur le même code, sans rien demander
   afficher("regie");
   regie.demarrer();
