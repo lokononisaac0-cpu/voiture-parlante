@@ -130,6 +130,12 @@
   #camEtat{margin-left:auto;font-family:var(--etiq);font-size:11.5px;text-transform:uppercase;
            letter-spacing:.14em;color:var(--sourdine);text-align:right}
   #camEtat.ok{color:var(--pret)}
+  #defReelle{display:block;font-style:normal;color:var(--texte);
+             font-family:var(--chiffre);font-size:11px;letter-spacing:.06em}
+  #sourceCam{
+    background:rgba(0,0,0,.55);border:1px solid var(--trait);border-radius:3px;
+    padding:9px 8px;color:var(--texte);font-size:13px;max-width:130px;
+  }
 
   /* ================= RÉGIE — BARRE ================= */
   #bus{flex:0 0 auto;display:flex;align-items:stretch;
@@ -160,6 +166,61 @@
     color:var(--sourdine);border:1px solid var(--trait);border-radius:3px;padding:5px 9px;
   }
   #etatRelais.on{color:var(--pret);border-color:var(--pret)}
+
+  #zoneSequence{display:flex;align-items:center;gap:7px}
+  #btnSequence.on{background:var(--pret);border-color:var(--pret);color:#0a0f16;font-weight:600}
+  /* Une vignette en attente dans la séquence en cours */
+  .tuile.enSeq{border-color:var(--pret)}
+
+  #modaleSeq{position:fixed;inset:0;background:rgba(3,8,20,.82);z-index:55;
+             display:none;align-items:center;justify-content:center;padding:20px}
+  #modaleSeq.ouvert{display:flex}
+  .carte.large{width:min(760px,100%)}
+  .seqGrille{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+  .seqCol{display:flex;flex-direction:column;min-height:0}
+  .seqTitre{font-family:var(--etiq);font-size:10.5px;letter-spacing:.24em;
+            text-transform:uppercase;color:var(--sourdine);margin-bottom:7px}
+  #seqTotal{color:var(--pret)}
+  .seqListe{
+    background:var(--fond);border:1px solid var(--trait);border-radius:3px;
+    padding:7px;display:flex;flex-direction:column;gap:5px;
+    height:290px;overflow:auto;
+  }
+  .seqItem{
+    display:flex;align-items:center;gap:7px;background:var(--panneau);
+    border:1px solid var(--trait);border-radius:3px;padding:7px 9px;font-size:12.5px;
+  }
+  .seqItem .genre{
+    font-family:var(--chiffre);font-size:10px;color:var(--sourdine);
+    border:1px solid var(--trait);border-radius:2px;padding:2px 5px;flex:0 0 auto;
+  }
+  .seqItem .nom{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .seqItem button{
+    background:var(--relief);border:1px solid var(--trait);border-radius:2px;
+    padding:4px 7px;font-size:11px;line-height:1;flex:0 0 auto;
+  }
+  .seqItem button:hover{border-color:var(--pret)}
+  .seqItem input[type=number]{
+    width:48px;background:var(--relief);border:1px solid var(--trait);border-radius:2px;
+    padding:4px;color:var(--texte);font-family:var(--chiffre);font-size:11.5px;
+    text-align:center;flex:0 0 auto;
+  }
+  .seqItem select{
+    background:var(--relief);border:1px solid var(--trait);border-radius:2px;
+    padding:4px;color:var(--texte);font-size:11px;flex:0 0 auto;
+  }
+  .seqItem.fixe input,.seqItem.fixe select{opacity:.35;pointer-events:none}
+  .seqVideNote{color:var(--sourdine);font-size:12px;text-align:center;padding:22px 8px;
+               line-height:1.7}
+  .seqPied{display:flex;align-items:center;gap:9px;margin-top:4px}
+  #boucleSeq{display:flex;align-items:center;gap:6px;font-family:var(--etiq);font-size:10.5px;
+             letter-spacing:.16em;text-transform:uppercase;color:var(--sourdine);cursor:pointer}
+  #boucleSeq input{accent-color:var(--pret);cursor:pointer}
+
+  @media (max-width:700px){
+    .seqGrille{grid-template-columns:1fr}
+    .seqListe{height:180px}
+  }
   #btnSon{font-size:14px;line-height:1;padding:7px 11px}
   #btnSon.coupe{border-color:var(--antenne);color:var(--antenne)}
   #volume{width:88px;accent-color:var(--pret);cursor:pointer}
@@ -224,6 +285,14 @@
   /* Couches de sortie, communes à l'aperçu et au projecteur */
   .cche{position:absolute;inset:0;width:100%;height:100%;display:none}
   video.cche,img.cche{object-fit:cover;background:#000}
+  /* Remplissage : une copie floutée de l'image comble les côtés,
+     pendant que l'originale reste entière au centre. Ni bande noire,
+     ni rognage — c'est la méthode des chaînes de télévision. */
+  .cche.flou{
+    object-fit:cover !important;
+    filter:blur(26px) brightness(.5) saturate(1.2);
+    transform:scale(1.14);z-index:0;
+  }
   /* Une image pivotée ne peut pas remplir : on la met en entier */
   video[data-rot="90"],video[data-rot="270"]{object-fit:contain}
   .cche.entier{object-fit:contain !important}
@@ -234,8 +303,13 @@
   }
   .cche.texte h3{font-family:var(--logo);font-weight:400;line-height:1.18;
                  letter-spacing:.01em;word-break:break-word;max-width:100%}
-  .cche.texte p{font-family:var(--etiq);letter-spacing:.24em;
-                text-transform:uppercase;color:var(--sourdine)}
+  /* La référence est ancrée en bas, comme un cartouche de bas d'écran */
+  .cche.texte p{
+    position:absolute;left:5%;right:5%;bottom:5%;
+    font-family:var(--etiq);font-weight:600;letter-spacing:.24em;
+    text-transform:uppercase;color:var(--pret);
+  }
+  .cche.texte p:empty{display:none}
   /* La couche de diffusion : une copie floutée du direct, posée en écran
      par-dessus l'originale. C'est le vieux truc des plateaux télé pour
      adoucir les peaux sans perdre le piqué de l'image. */
@@ -343,8 +417,27 @@
   /* Variantes de fond pour les diapositives de texte */
   .cche.texte.noir{background:#000}
   .cche.texte.blanc{background:#f4f7fc;color:#0a1730}
-  .cche.texte.blanc p{color:#54648c}
-  .cche.texte{z-index:2}
+  .cche.texte.blanc p{color:#b0430c}
+
+  /* Fonds de projection : dégradés sombres pour laisser le texte respirer,
+     et deux fonds clairs pour les salles très lumineuses. */
+  .cche.texte.or{background:linear-gradient(155deg,#4a3608 0%,#1a1203 60%,#0b0801 100%)}
+  .cche.texte.or p{color:#f2c14e}
+  .cche.texte.braise{background:linear-gradient(155deg,#5c1216 0%,#22060a 60%,#0d0204 100%)}
+  .cche.texte.braise p{color:#ff9a72}
+  .cche.texte.foret{background:linear-gradient(155deg,#08321f 0%,#03140e 100%)}
+  .cche.texte.foret p{color:#68e0a6}
+  .cche.texte.pourpre{background:linear-gradient(155deg,#33124a 0%,#12061f 100%)}
+  .cche.texte.pourpre p{color:#d4a3ff}
+  .cche.texte.aube{background:linear-gradient(155deg,#ff7a45 0%,#7a1f4b 55%,#26091f 100%)}
+  .cche.texte.aube p{color:#ffdcae}
+  .cche.texte.ardoise{background:linear-gradient(155deg,#2f3945 0%,#111820 100%)}
+  .cche.texte.ardoise p{color:#a8c0da}
+  .cche.texte.sable{background:linear-gradient(155deg,#f6ecd8 0%,#ddc8a1 100%);color:#2c1f09}
+  .cche.texte.sable p{color:#8a5712}
+  .cche.texte.ciel{background:linear-gradient(155deg,#e9f2fb 0%,#bcd4ea 100%);color:#0d2440}
+  .cche.texte.ciel p{color:#1d5c94}
+  .cche.texte{z-index:2;padding-bottom:13%}
   .cche.texte.surMedia{
     background:linear-gradient(rgba(3,8,20,.5),rgba(3,8,20,.72));
     text-shadow:0 2px 18px rgba(0,0,0,.7);
@@ -422,10 +515,11 @@
   <div id="onair">● À l'antenne</div>
   <div id="camInfos">
     <input id="camNom" maxlength="20" placeholder="Nom" autocomplete="off">
+    <select id="sourceCam" style="display:none"></select>
     <button class="bouton" id="basculer">Objectif</button>
     <button class="bouton" id="recadrer">Recadrer</button>
-    <button class="bouton" id="qualite">720p</button>
-    <span id="camEtat">Connexion…</span>
+    <button class="bouton" id="qualite">4K</button>
+    <span id="camEtat">Connexion…<i id="defReelle"></i></span>
   </div>
 </div>
 
@@ -445,6 +539,10 @@
       <div id="zoneSon">
         <button class="bouton mini" id="btnSon" title="Couper le son">♪</button>
         <input type="range" id="volume" min="0" max="100" value="90" title="Volume">
+      </div>
+      <div id="zoneSequence">
+        <button class="bouton" id="btnProgrammer">Programmer</button>
+        <button class="bouton" id="btnSequence">▶ Lancer</button>
       </div>
       <button class="bouton primaire pousse" id="ouvrirProjection">Ouvrir l'écran de projection</button>
       <button class="bouton rouge" id="fondu">Fondu au noir</button>
@@ -531,6 +629,30 @@
     <div class="actions">
       <button class="bouton" id="txtAnnuler">Annuler</button>
       <button class="bouton primaire" id="txtValider">Ajouter</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= PROGRAMMATION DE SÉQUENCE ================= -->
+<div id="modaleSeq">
+  <div class="carte large">
+    <h3>Programmer la séquence</h3>
+    <div class="seqGrille">
+      <div class="seqCol">
+        <div class="seqTitre">Disponibles</div>
+        <div class="seqListe" id="seqDispo"></div>
+      </div>
+      <div class="seqCol">
+        <div class="seqTitre">Séquence <span id="seqTotal"></span></div>
+        <div class="seqListe" id="seqOrdre"></div>
+      </div>
+    </div>
+    <div class="seqPied">
+      <label id="boucleSeq"><input type="checkbox" id="chkBoucle" checked> Boucle</label>
+      <button class="bouton" id="seqVider">Tout retirer</button>
+      <span style="flex:1"></span>
+      <button class="bouton" id="seqFermer">Fermer</button>
+      <button class="bouton primaire" id="seqLancer">Lancer</button>
     </div>
   </div>
 </div>
@@ -691,9 +813,28 @@ const BDD = {
    "doux" : opacité de la copie floutée posée par-dessus. C'est elle qui
             lisse le teint sans transformer l'image en bouillie.
    ========================================================================= */
+/* Fonds proposés pour les diapositives de texte. Les six premiers sont
+   sombres — c'est ce qui se lit le mieux en salle éclairée. Les deux
+   derniers sont clairs, pour les salles très lumineuses ou en plein jour. */
+const FONDS = [
+  { cle:"degrade", nom:"Dégradé VISION" },
+  { cle:"noir",    nom:"Noir" },
+  { cle:"or",      nom:"Or" },
+  { cle:"braise",  nom:"Braise" },
+  { cle:"foret",   nom:"Forêt" },
+  { cle:"pourpre", nom:"Pourpre" },
+  { cle:"aube",    nom:"Aube" },
+  { cle:"ardoise", nom:"Ardoise" },
+  { cle:"blanc",   nom:"Blanc" },
+  { cle:"sable",   nom:"Sable" },
+  { cle:"ciel",    nom:"Ciel" }
+];
+const CLES_FOND = FONDS.map(f => f.cle);
+
 const FILTRES = {
   aucun:  { nom:"Aucun",        css:"",                                                 doux:0    },
-  clarte: { nom:"Clarté",       css:"contrast(1.14) saturate(1.12) brightness(1.03)",   doux:0    },
+  diff:   { nom:"Diffusion",    css:"contrast(1.10) saturate(1.10) brightness(1.02)",   doux:0.10 },
+  clarte: { nom:"Clarté",       css:"contrast(1.18) saturate(1.14) brightness(1.03)",   doux:0    },
   teint:  { nom:"Teint",        css:"contrast(1.05) saturate(1.18) brightness(1.06)",   doux:0.26 },
   lisse:  { nom:"Lisse",        css:"contrast(1.02) saturate(1.12) brightness(1.08)",   doux:0.44 },
   sombre: { nom:"Salle sombre", css:"brightness(1.32) contrast(1.2) saturate(1.08)",    doux:0.12 }
@@ -713,21 +854,28 @@ function elementMedia(boite, src, id){
   if (el) return el;
 
   const doc = boite.ownerDocument;
-  if (src.type === "image"){
-    el = doc.createElement("img");
-    el.src = src.url;
-  } else {
-    el = doc.createElement("video");
-    el.src = src.url;
-    el.preload = "auto";        // le clip est prêt bien avant qu'on en ait besoin
-    el.loop = true;
-    el.muted = true;
-    el.setAttribute("playsinline", "");
-  }
-  el.className = "cche";
-  el.dataset.src = id;
-  el.style.display = "none";
-  boite.appendChild(el);
+  const fabriquer = (flou) => {
+    let e;
+    if (src.type === "image"){
+      e = doc.createElement("img");
+      e.src = src.url;
+    } else {
+      e = doc.createElement("video");
+      e.src = src.url;
+      e.preload = "auto";        // le clip est prêt bien avant qu'on en ait besoin
+      e.loop = true;
+      e.muted = true;
+      e.setAttribute("playsinline", "");
+    }
+    e.className = "cche" + (flou ? " flou" : "");
+    if (flou) e.dataset.fond = id; else e.dataset.src = id;
+    e.style.display = "none";
+    boite.appendChild(e);
+    return e;
+  };
+
+  const fond = fabriquer(true);   // le remplissage part derrière
+  el = fabriquer(false);
   return el;
 }
 
@@ -743,14 +891,14 @@ function ajusterTexte(boite, src){
             n < 200 ? 0.035 : n < 320 ? 0.027 : 0.021;
 
   h.style.fontSize = Math.max(13, Math.round(L * f)) + "px";
-  p.style.fontSize = Math.max(9,  Math.round(L * 0.016)) + "px";
+  p.style.fontSize = Math.max(11, Math.round(L * 0.024)) + "px";
 }
 
 function rendreSortie(boite, src, id, avecSon, fondSrc, fondId){
   boite.querySelectorAll(".cche").forEach((e) => {
     e.style.display = "none";
-    if (e.tagName === "VIDEO" && e.dataset.src &&
-        e.dataset.src !== id && e.dataset.src !== fondId) e.pause();
+    const cle = e.dataset.src || e.dataset.fond;
+    if (e.tagName === "VIDEO" && cle && cle !== id && cle !== fondId) e.pause();
   });
 
   const videL = boite.querySelector(".videSortie");
@@ -793,15 +941,15 @@ function rendreSortie(boite, src, id, avecSon, fondSrc, fondId){
     t.querySelector("h3").textContent = src.titre || "";
     t.querySelector("p").textContent  = src.sous  || "";
 
-    // Le fond : dégradé VISION, aplat, ou une image / vidéo importée
-    t.classList.remove("noir", "blanc", "surMedia");
+    // Le fond : palette de dégradés, ou une image / vidéo importée
+    t.className = "cche texte";
     if (fondSrc){
       const f = elementMedia(boite, fondSrc, fondId);
       f.style.display = "block";
       f.classList.remove("entier");
       if (f.tagName === "VIDEO"){ f.muted = true; f.play().catch(() => {}); }
       t.classList.add("surMedia");
-    } else if (src.fond === "noir" || src.fond === "blanc"){
+    } else if (src.fond && src.fond !== "degrade" && CLES_FOND.indexOf(src.fond) >= 0){
       t.classList.add(src.fond);
     }
     ajusterTexte(boite, src);
@@ -809,7 +957,21 @@ function rendreSortie(boite, src, id, avecSon, fondSrc, fondId){
   else {
     const el = elementMedia(boite, src, id);
     el.style.display = "block";
-    el.classList.toggle("entier", src.plein === false);
+
+    // Par défaut : image entière au centre, côtés comblés par le flou.
+    // Le bouton ⛶ bascule en plein cadre, quitte à rogner les bords.
+    const plein = src.plein === true;
+    el.classList.toggle("entier", !plein);
+
+    const fond = boite.querySelector('[data-fond="' + id + '"]');
+    if (fond){
+      fond.style.display = plein ? "none" : "block";
+      if (fond.tagName === "VIDEO"){
+        if (plein) fond.pause();
+        else { fond.muted = true; fond.play().catch(() => {}); }
+      }
+    }
+
     if (el.tagName === "VIDEO"){
       el.muted = !avecSon;
       el.play().catch(() => {});
@@ -918,7 +1080,8 @@ async function chercherIA(question){
    RÔLE CAMÉRA
    ========================================================================= */
 const cam = {
-  flux:null, appel:null, frontale:false, code:null, relance:null, qualite:720,
+  flux:null, appel:null, frontale:false, code:null, relance:null,
+  qualite:2160, source:null,
 
   async demarrer(code){
     if (typeof Peer === "undefined")
@@ -950,12 +1113,71 @@ const cam = {
   async ouvrirCamera(){
     if (this.flux) this.flux.getTracks().forEach(t => t.stop());
     const h = this.qualite;
-    this.flux = await navigator.mediaDevices.getUserMedia({
-      video:{ width:{ideal:Math.round(h * 16 / 9)}, height:{ideal:h}, frameRate:{ideal:30},
-              facingMode: this.frontale ? "user" : "environment" },
-      audio:false        // évite l'effet Larsen : plusieurs micros dans la même salle
-    });
+    const video = {
+      width:{ideal:Math.round(h * 16 / 9)}, height:{ideal:h},
+      frameRate:{ideal:30, min:24}
+    };
+    // Un appareil choisi explicitement (carte d'acquisition, reflex) prime
+    // sur la notion d'objectif avant/arrière, qui n'a de sens qu'au téléphone.
+    if (this.source) video.deviceId = { exact: this.source };
+    else video.facingMode = this.frontale ? "user" : "environment";
+
+    this.flux = await navigator.mediaDevices.getUserMedia({ video, audio:false });
+    // "detail" dit au codec de préserver la netteté plutôt que la fluidité :
+    // on filme des visages et du texte, pas du sport.
+    const piste = this.flux.getVideoTracks()[0];
+    if (piste) piste.contentHint = "detail";
     $("#camVideo").srcObject = this.flux;
+    this.majDefinition();
+    this.listerSources();
+  },
+
+  // La définition réellement obtenue : la 4K demandée n'est pas toujours accordée
+  majDefinition(){
+    const p = this.flux && this.flux.getVideoTracks()[0];
+    if (!p) return;
+    const r = p.getSettings ? p.getSettings() : {};
+    if (r.width) $("#defReelle").textContent = r.width + "×" + r.height;
+  },
+
+  async listerSources(){
+    try{
+      const liste = await navigator.mediaDevices.enumerateDevices();
+      const cams = liste.filter(d => d.kind === "videoinput");
+      const sel = $("#sourceCam");
+      // Un seul appareil : le sélecteur n'apporte rien, on le cache
+      if (cams.length < 2){ sel.style.display = "none"; return; }
+      sel.style.display = "";
+      if (sel.options.length === cams.length) return;
+      sel.innerHTML = "";
+      cams.forEach((d, i) => {
+        const o = document.createElement("option");
+        o.value = d.deviceId;
+        o.textContent = d.label || ("Appareil " + (i + 1));
+        sel.appendChild(o);
+      });
+      const actuel = this.flux && this.flux.getVideoTracks()[0].getSettings().deviceId;
+      if (actuel) sel.value = actuel;
+    }catch(_){}
+  },
+
+  // Sans ce réglage, WebRTC plafonne vers 1 Mbps et sacrifie la définition
+  // dès que le réseau hésite : c'est ce qui rend l'image molle sur grand écran.
+  async reglerDebit(){
+    const emetteur = this.appel && this.appel.peerConnection.getSenders()
+                      .find(s => s.track && s.track.kind === "video");
+    if (!emetteur) return;
+    try{
+      const p = emetteur.getParameters();
+      if (!p.encodings || !p.encodings.length) p.encodings = [{}];
+      const debits = { 2160:26000000, 1440:14000000, 1080:8000000,
+                       720:3200000, 480:1600000, 360:900000 };
+      p.encodings[0].maxBitrate = debits[this.qualite] || 8000000;
+      p.encodings[0].scaleResolutionDownBy = 1;
+      // On préfère perdre quelques images par seconde plutôt que du détail
+      p.degradationPreference = "maintain-resolution";
+      await emetteur.setParameters(p);
+    }catch(_){}
   },
 
   async remplacerPiste(){
@@ -964,6 +1186,7 @@ const cam = {
     const emetteur = this.appel && this.appel.peerConnection.getSenders()
                       .find(s => s.track && s.track.kind === "video");
     if (emetteur) await emetteur.replaceTrack(piste);
+    await this.reglerDebit();
   },
 
   appeler(){
@@ -979,6 +1202,7 @@ const cam = {
       if (pc.connectionState === "connected"){
         clearTimeout(this.relance);
         this.etat("Connecté", true);
+        this.reglerDebit();
       }
       if (["failed","disconnected","closed"].includes(pc.connectionState)){
         this.tally(false);
@@ -1004,7 +1228,9 @@ const cam = {
 
   etat(t, ok){
     const e = $("#camEtat");
+    const def = $("#defReelle");
     e.textContent = t;
+    if (def) e.appendChild(def);      // la définition reste visible sous l'état
     e.classList.toggle("ok", !!ok);
   },
 
@@ -1038,6 +1264,10 @@ const regie = {
   editionEnCours:null,
   onglet:"video",
   bannis:{},
+  seqActive:false,
+  seqIndex:0,
+  seqMinuterie:null,
+  sequence:[],
 
   async demarrer(){
     if (typeof Peer === "undefined"){
@@ -1059,6 +1289,22 @@ const regie = {
 
     $("#ouvrirProjection").onclick = () => this.ouvrirFenetre();
     $("#fondu").onclick            = () => this.basculerNoir();
+    $("#btnSequence").onclick      = () => this.basculerSequence();
+    $("#btnProgrammer").onclick    = () => this.ouvrirProgrammateur();
+    $("#seqFermer").onclick        = () => $("#modaleSeq").classList.remove("ouvert");
+    $("#seqLancer").onclick        = () => {
+      $("#modaleSeq").classList.remove("ouvert");
+      if (!this.seqActive) this.demarrerSequence();
+    };
+    $("#seqVider").onclick = () => {
+      this.sequence = [];
+      this.dessinerProgrammateur();
+      this.sauverSequence();
+    };
+    $("#chkBoucle").onchange = () => this.sauverSequence();
+    $("#modaleSeq").onclick = (e) => {
+      if (e.target.id === "modaleSeq") $("#modaleSeq").classList.remove("ouvert");
+    };
 
     $("#copierLien").onclick = async () => {
       try{
@@ -1107,6 +1353,8 @@ const regie = {
         if (id) this.projeter(id);
       } else if (e.key.toLowerCase() === "n"){
         this.basculerNoir();
+      } else if (e.key.toLowerCase() === "s"){
+        this.basculerSequence();
       }
     });
   },
@@ -1140,7 +1388,7 @@ const regie = {
 
       appel.on("stream", (flux) => {
         this.sources[id] = {
-          type:"cam", flux, rot:0, filtre:"clarte",
+          type:"cam", flux, rot:0, filtre:"diff",
           nom:(appel.metadata && appel.metadata.nom) || "Caméra"
         };
         if (!this.ordre.includes(id)) this.ordre.push(id);
@@ -1219,12 +1467,8 @@ const regie = {
     $("#txtSous").value  = src ? src.sous  : "";
     $("#txtValider").textContent = src ? "Enregistrer" : "Ajouter";
 
-    // Fonds proposés : les trois de base, puis tous les médias importés
-    const choix = [
-      { cle:"degrade", nom:"Dégradé VISION" },
-      { cle:"noir",    nom:"Noir" },
-      { cle:"blanc",   nom:"Blanc" }
-    ];
+    // Fonds proposés : la palette, puis tous les médias importés
+    const choix = FONDS.slice();
     this.ordre.forEach((mid) => {
       const m = this.sources[mid];
       if (m && (m.type === "image" || m.type === "video"))
@@ -1332,6 +1576,15 @@ const regie = {
       const v = tuile.querySelector("video");
       v.srcObject = src.flux;
       v.dataset.rot = src.rot || 0;
+      // La définition réellement reçue : si elle chute, on le voit tout de suite
+      const majDef = () => {
+        if (!v.videoWidth) return;
+        const e = tuile.querySelector(".etiquette");
+        if (e) e.textContent = src.nom + " · " + v.videoWidth + "×" + v.videoHeight;
+      };
+      v.onloadedmetadata = majDef;
+      v.onresize = majDef;
+      majDef();
     } else if (src.type === "image"){
       tuile.querySelector("img").src = src.url;
     } else if (src.type === "video"){
@@ -1346,12 +1599,23 @@ const regie = {
       // La vignette montre le fond réel, pour reconnaître la diapo d'un coup d'œil
       const f = src.fond;
       const media = f && this.sources[f];
-      ap.style.color      = f === "blanc" ? "#0a1730" : "";
+      const clair = (f === "blanc" || f === "sable" || f === "ciel");
+      const aplats = {
+        noir:"#000",
+        or:"linear-gradient(155deg,#4a3608,#0b0801)",
+        braise:"linear-gradient(155deg,#5c1216,#0d0204)",
+        foret:"linear-gradient(155deg,#08321f,#03140e)",
+        pourpre:"linear-gradient(155deg,#33124a,#12061f)",
+        aube:"linear-gradient(155deg,#ff7a45,#26091f)",
+        ardoise:"linear-gradient(155deg,#2f3945,#111820)",
+        blanc:"#f4f7fc",
+        sable:"linear-gradient(155deg,#f6ecd8,#ddc8a1)",
+        ciel:"linear-gradient(155deg,#e9f2fb,#bcd4ea)"
+      };
+      ap.style.color      = clair ? "#0a1730" : "";
       ap.style.background =
         media ? (media.type === "image" ? "#000 center/cover url(" + media.url + ")" : "#000")
-        : f === "noir"  ? "#000"
-        : f === "blanc" ? "#f4f7fc"
-        : "linear-gradient(160deg,#0a1c44,#050f26)";
+        : (aplats[f] || "linear-gradient(160deg,#0a1c44,#050f26)");
       ap.style.textShadow = media ? "0 2px 12px rgba(0,0,0,.85)" : "";
     }
   },
@@ -1382,7 +1646,7 @@ const regie = {
       id,
       type:  s.type,
       nom:   s.nom,
-      plein: s.plein !== false,
+      plein: s.plein === true,
       titre: s.titre || "",
       sous:  s.sous  || "",
       fond:  s.fond  || "degrade",
@@ -1399,11 +1663,17 @@ const regie = {
 
     let maxNum = 0;
     liste.forEach((r) => {
+      // L'enregistrement de la séquence n'est pas un média
+      if (r.id === "__sequence"){
+        this.sequence = Array.isArray(r.liste) ? r.liste : [];
+        $("#chkBoucle").checked = r.boucle !== false;
+        return;
+      }
       const num = parseInt(String(r.id).replace(/\D/g, ""), 10);
       if (num > maxNum) maxNum = num;
 
       const src = {
-        type:r.type, nom:r.nom, plein:r.plein !== false,
+        type:r.type, nom:r.nom, plein:r.plein === true,
         titre:r.titre, sous:r.sous, fond:r.fond
       };
       if (r.fichier){
@@ -1461,9 +1731,189 @@ const regie = {
     this.retirer(id);
   },
 
+  /* ---------- Séquence programmée ---------- */
+  // Tu choisis les éléments, leur ordre et la durée de chacun.
+  // Les caméras en sont exclues : un direct ne se met pas en diaporama.
+
+  ouvrirProgrammateur(){
+    $("#modaleSeq").classList.add("ouvert");
+    this.dessinerProgrammateur();
+  },
+
+  dessinerProgrammateur(){
+    const dispo = $("#seqDispo");
+    const ordre = $("#seqOrdre");
+    const genre = { image:"IMG", video:"VID", texte:"TXT" };
+    dispo.innerHTML = "";
+    ordre.innerHTML = "";
+
+    // Colonne de gauche : tout ce qui peut entrer dans une séquence
+    const candidats = this.ordre.filter(id => this.sources[id] &&
+                                              this.sources[id].type !== "cam");
+    if (!candidats.length){
+      dispo.innerHTML = '<div class="seqVideNote">Aucun média.<br>' +
+                        'Ajoute des images, vidéos ou textes avec le <b>+</b>.</div>';
+    }
+    candidats.forEach((id) => {
+      const s = this.sources[id];
+      const el = document.createElement("div");
+      el.className = "seqItem";
+      el.innerHTML = '<span class="genre">' + (genre[s.type] || "?") + '</span>' +
+                     '<span class="nom"></span><button title="Ajouter">+</button>';
+      el.querySelector(".nom").textContent = s.nom;
+      el.querySelector("button").onclick = () => {
+        this.sequence.push({ id, duree:8 });
+        this.dessinerProgrammateur();
+        this.sauverSequence();
+      };
+      dispo.appendChild(el);
+    });
+
+    // Colonne de droite : la séquence, dans l'ordre, avec sa minuterie
+    this.sequence = this.sequence.filter(e => this.sources[e.id]);
+    if (!this.sequence.length){
+      ordre.innerHTML = '<div class="seqVideNote">Vide.<br>' +
+                        'Ajoute des éléments depuis la gauche avec <b>+</b>.</div>';
+    }
+    this.sequence.forEach((entree, i) => {
+      const s = this.sources[entree.id];
+      const el = document.createElement("div");
+      el.className = "seqItem" + (s.type === "video" ? " fixe" : "");
+      el.innerHTML =
+        '<span class="genre">' + String(i + 1).padStart(2, "0") + '</span>' +
+        '<span class="nom"></span>' +
+        '<input type="number" min="1" max="999">' +
+        '<select><option value="1">sec</option><option value="60">min</option></select>' +
+        '<button class="haut" title="Monter">↑</button>' +
+        '<button class="bas" title="Descendre">↓</button>' +
+        '<button class="oter" title="Retirer">✕</button>';
+
+      el.querySelector(".nom").textContent = s.nom;
+
+      // Une vidéo se joue toujours en entier : sa durée n'est pas modifiable
+      const champ = el.querySelector("input");
+      const unite = el.querySelector("select");
+      if (s.type === "video"){
+        champ.value = "";
+        champ.placeholder = "auto";
+      } else {
+        const enMin = entree.duree >= 60 && entree.duree % 60 === 0;
+        unite.value = enMin ? "60" : "1";
+        champ.value = enMin ? entree.duree / 60 : entree.duree;
+      }
+      const majDuree = () => {
+        const n = Math.max(1, Number(champ.value) || 1);
+        entree.duree = n * Number(unite.value);
+        this.sauverSequence();
+      };
+      champ.onchange = majDuree;
+      unite.onchange = majDuree;
+
+      el.querySelector(".haut").onclick = () => this.deplacerSeq(i, -1);
+      el.querySelector(".bas").onclick  = () => this.deplacerSeq(i,  1);
+      el.querySelector(".oter").onclick = () => {
+        this.sequence.splice(i, 1);
+        this.dessinerProgrammateur();
+        this.sauverSequence();
+      };
+      ordre.appendChild(el);
+    });
+
+    // Durée totale, hors vidéos dont on ne connaît pas encore la longueur
+    let total = 0, auto = 0;
+    this.sequence.forEach(e => {
+      if (this.sources[e.id].type === "video") auto++;
+      else total += e.duree;
+    });
+    const mn = Math.floor(total / 60), sc = total % 60;
+    $("#seqTotal").textContent = this.sequence.length
+      ? "— " + (mn ? mn + " min " : "") + sc + " s" + (auto ? " + " + auto + " vidéo(s)" : "")
+      : "";
+  },
+
+  deplacerSeq(i, sens){
+    const j = i + sens;
+    if (j < 0 || j >= this.sequence.length) return;
+    const t = this.sequence[i];
+    this.sequence[i] = this.sequence[j];
+    this.sequence[j] = t;
+    this.dessinerProgrammateur();
+    this.sauverSequence();
+  },
+
+  sauverSequence(){
+    BDD.mettre({ id:"__sequence", type:"__seq",
+                 liste:this.sequence, boucle:$("#chkBoucle").checked });
+  },
+
+  basculerSequence(){
+    if (this.seqActive) this.arreterSequence();
+    else this.demarrerSequence();
+  },
+
+  demarrerSequence(){
+    // Rien de programmé : on enchaîne tous les médias, 8 secondes chacun
+    if (!this.sequence.length){
+      this.sequence = this.ordre
+        .filter(id => this.sources[id] && this.sources[id].type !== "cam")
+        .map(id => ({ id, duree:8 }));
+    }
+    if (!this.sequence.length){
+      $("#busNom").textContent = "Aucun média à enchaîner";
+      return;
+    }
+    this.seqActive = true;
+    $("#btnSequence").textContent = "■ Arrêter";
+    $("#btnSequence").classList.add("on");
+    this.sequence.forEach(e => {
+      const t = document.getElementById("t_" + e.id);
+      if (t) t.classList.add("enSeq");
+    });
+
+    const depart = this.sequence.findIndex(e => e.id === this.selection);
+    this.seqIndex = depart >= 0 ? depart : 0;
+    this.jouerEtape();
+  },
+
+  jouerEtape(){
+    if (!this.seqActive) return;
+    this.sequence = this.sequence.filter(e => this.sources[e.id]);
+    if (!this.sequence.length) return this.arreterSequence();
+
+    if (this.seqIndex >= this.sequence.length){
+      if (!$("#chkBoucle").checked) return this.arreterSequence();
+      this.seqIndex = 0;
+    }
+
+    const entree = this.sequence[this.seqIndex];
+    this.projeter(entree.id, true);      // true : ne pas interrompre la séquence
+
+    // Une vidéo se joue en entier ; le reste tient la durée programmée
+    let delai = Math.max(1, entree.duree || 8) * 1000;
+    const el = $("#apercu").querySelector('[data-src="' + entree.id + '"]');
+    if (el && el.tagName === "VIDEO" && isFinite(el.duration) && el.duration > 0.5){
+      delai = Math.round(el.duration * 1000) + 300;
+    }
+
+    clearTimeout(this.seqMinuterie);
+    this.seqMinuterie = setTimeout(() => {
+      this.seqIndex++;
+      this.jouerEtape();
+    }, delai);
+  },
+
+  arreterSequence(){
+    this.seqActive = false;
+    clearTimeout(this.seqMinuterie);
+    $("#btnSequence").textContent = "▶ Lancer";
+    $("#btnSequence").classList.remove("on");
+    document.querySelectorAll(".tuile").forEach(t => t.classList.remove("enSeq"));
+  },
+
   cadrer(id){
     const src = this.sources[id];
-    src.plein = src.plein === false;      // par défaut on remplit tout le cadre
+    // Par défaut l'image reste entière ; ce bouton bascule en plein cadre.
+    src.plein = src.plein !== true;
     if (this.selection === id) this.appliquer();
     if (src.type !== "cam") this.sauver(id);
   },
@@ -1505,6 +1955,10 @@ const regie = {
     }
     this.majComptes();
     this.filtrerPile();
+    if (this.seqActive){
+      this.sequence = this.sequence.filter(e => this.sources[e.id]);
+      if (!this.sequence.length) this.arreterSequence();
+    }
   },
 
   majComptes(){
@@ -1515,8 +1969,10 @@ const regie = {
   },
 
   /* ---------- Envoi à l'écran ---------- */
-  projeter(id){
+  projeter(id, depuisSequence){
     if (!this.sources[id]) return;
+    // Un clic manuel reprend toujours la main sur l'automatisme
+    if (this.seqActive && !depuisSequence) this.arreterSequence();
     const ancien = this.selection;
     this.selection = id;
 
@@ -1622,17 +2078,42 @@ const regie = {
       'video.cche,img.cche{object-fit:cover;background:#000}' +
       'video[data-rot="90"],video[data-rot="270"]{object-fit:contain}' +
       '.cche.entier{object-fit:contain !important}' +
+      '.cche.flou{object-fit:cover !important;' +
+      'filter:blur(26px) brightness(.5) saturate(1.2);transform:scale(1.14);z-index:0}' +
       '.cche.doux{mix-blend-mode:screen;pointer-events:none}' +
       'video[data-rot="90"]{transform:rotate(90deg) scale(.5625)}' +
       'video[data-rot="180"]{transform:rotate(180deg)}' +
       'video[data-rot="270"]{transform:rotate(270deg) scale(.5625)}' +
       '.cche.texte{flex-direction:column;align-items:center;justify-content:center;gap:3%;' +
-      'padding:5%;text-align:center;overflow:hidden;color:#e8eefb;' +
+      'padding:5% 5% 13%;text-align:center;overflow:hidden;color:#e8eefb;' +
       'background:radial-gradient(120% 80% at 50% 0%,#0a1c44 0%,#050f26 62%)}' +
+      '.cche.texte.noir{background:#000}' +
+      '.cche.texte.blanc{background:#f4f7fc;color:#0a1730}' +
+      '.cche.texte.blanc p{color:#b0430c}' +
+      '.cche.texte.or{background:linear-gradient(155deg,#4a3608 0%,#1a1203 60%,#0b0801 100%)}' +
+      '.cche.texte.or p{color:#f2c14e}' +
+      '.cche.texte.braise{background:linear-gradient(155deg,#5c1216 0%,#22060a 60%,#0d0204 100%)}' +
+      '.cche.texte.braise p{color:#ff9a72}' +
+      '.cche.texte.foret{background:linear-gradient(155deg,#08321f 0%,#03140e 100%)}' +
+      '.cche.texte.foret p{color:#68e0a6}' +
+      '.cche.texte.pourpre{background:linear-gradient(155deg,#33124a 0%,#12061f 100%)}' +
+      '.cche.texte.pourpre p{color:#d4a3ff}' +
+      '.cche.texte.aube{background:linear-gradient(155deg,#ff7a45 0%,#7a1f4b 55%,#26091f 100%)}' +
+      '.cche.texte.aube p{color:#ffdcae}' +
+      '.cche.texte.ardoise{background:linear-gradient(155deg,#2f3945 0%,#111820 100%)}' +
+      '.cche.texte.ardoise p{color:#a8c0da}' +
+      '.cche.texte.sable{background:linear-gradient(155deg,#f6ecd8 0%,#ddc8a1 100%);color:#2c1f09}' +
+      '.cche.texte.sable p{color:#8a5712}' +
+      '.cche.texte.ciel{background:linear-gradient(155deg,#e9f2fb 0%,#bcd4ea 100%);color:#0d2440}' +
+      '.cche.texte.ciel p{color:#1d5c94}' +
+      '.cche.texte.surMedia{background:linear-gradient(rgba(3,8,20,.5),rgba(3,8,20,.72));' +
+      'text-shadow:0 2px 18px rgba(0,0,0,.7)}' +
       '.cche.texte h3{margin:0;font:400 1em/1.18 "Archivo Black","Arial Black",sans-serif;' +
       'word-break:break-word;max-width:100%}' +
-      '.cche.texte p{margin:0;font:600 1em/1 "Barlow Condensed",Arial Narrow,sans-serif;' +
-      'letter-spacing:.26em;text-transform:uppercase;color:#8296bd}' +
+      '.cche.texte p{margin:0;position:absolute;left:5%;right:5%;bottom:5%;' +
+      'font:600 1em/1.2 "Barlow Condensed",Arial Narrow,sans-serif;' +
+      'letter-spacing:.26em;text-transform:uppercase;color:#f2a83c}' +
+      '.cche.texte p:empty{display:none}' +
       '#attente{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;' +
       'justify-content:center;gap:15px;color:#e8eefb;' +
       'background:radial-gradient(120% 80% at 50% 0%,#0a1c44 0%,#050f26 62%)}' +
@@ -1725,11 +2206,18 @@ $("#modale").onclick = (e) => {
   }
 };
 
-// En 4G, l'envoi est le goulot : baisser la définition stabilise l'image
+// L'utilisateur choisit lui-même sa définition : rien ne bascule tout seul
 $("#qualite").onclick = async () => {
-  const paliers = [720, 480, 360];
+  const paliers = [2160, 1440, 1080, 720, 480];
+  const noms    = { 2160:"4K", 1440:"1440p", 1080:"1080p", 720:"720p", 480:"480p" };
   cam.qualite = paliers[(paliers.indexOf(cam.qualite) + 1) % paliers.length];
-  $("#qualite").textContent = cam.qualite + "p";
+  $("#qualite").textContent = noms[cam.qualite];
+  await cam.remplacerPiste();
+};
+
+// Carte d'acquisition, reflex en mode webcam, seconde caméra du PC…
+$("#sourceCam").onchange = async (e) => {
+  cam.source = e.target.value;
   await cam.remplacerPiste();
 };
 
