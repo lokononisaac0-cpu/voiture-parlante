@@ -30,10 +30,30 @@ function repondre(objet, statut) {
 
 // Le modèle imbrique parfois sa réponse : on descend jusqu'au texte réel
 // plutôt que de convertir un objet en "[object Object]".
-function chaineDe(v) {
+function chaineDe(v, profondeur) {
+  profondeur = profondeur || 0;
   if (typeof v === "string") return v.trim();
-  if (v && typeof v === "object")
-    return chaineDe(v.texte || v.text || v.content || v.value || "");
+  if (typeof v === "number") return String(v);
+  if (profondeur > 6 || !v || typeof v !== "object") return "";
+
+  if (Array.isArray(v)) {
+    for (const x of v) {
+      const t = chaineDe(x, profondeur + 1);
+      if (t) return t;
+    }
+    return "";
+  }
+  for (const cle of ["texte", "text", "content", "value", "response",
+                     "reponse", "result", "answer", "output", "message"]) {
+    if (v[cle] !== undefined) {
+      const t = chaineDe(v[cle], profondeur + 1);
+      if (t) return t;
+    }
+  }
+  for (const cle of Object.keys(v)) {
+    const t = chaineDe(v[cle], profondeur + 1);
+    if (t) return t;
+  }
   return "";
 }
 
@@ -134,7 +154,9 @@ export default {
         temperature: 0.2        // basse : on veut du littéral, pas de l'inventif
       });
 
-      const brut = (ia.response || ia.result || "").toString();
+      // Surtout pas de .toString() ici : sur un objet il produirait
+      // littéralement "[object Object]" et le texte serait perdu.
+      const brut = chaineDe(ia.response) || chaineDe(ia.result) || chaineDe(ia);
 
       // Le modèle glisse parfois du texte autour : on isole l'objet JSON
       const bloc = brut.replace(/```json|```/g, "").trim();
