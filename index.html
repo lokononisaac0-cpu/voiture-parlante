@@ -1752,7 +1752,9 @@ async function lancerRecherche(){
     // Garde-fou : jamais de "[object Object]" dans les champs
     const texte = chaineDe(r.texte);
     const ref   = chaineDe(r.reference);
-    if (!texte){
+    // Un worker mal configuré peut renvoyer littéralement cette chaîne :
+    // dans ce cas le texte est irrécupérable, autant le dire clairement.
+    if (!texte || /^\[object\s+\w+\]$/i.test(texte)){
       etat.classList.add("souci");
       etat.textContent = "Réponse illisible. Reformule, ou tape le texte à la main.";
     } else {
