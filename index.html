@@ -152,7 +152,8 @@
   #busNom{font-family:var(--etiq);font-size:19px;letter-spacing:.09em;
           line-height:1.15;text-transform:uppercase}
   #busPgm.actif #busNom{color:var(--antenne)}
-  #busActions{display:flex;align-items:center;gap:9px;padding:13px 16px;flex:1}
+  #busActions{display:flex;align-items:center;gap:9px;padding:13px 16px;flex:1;
+              flex-wrap:wrap;row-gap:8px}
   #busCode{font-family:var(--chiffre);font-size:17px;letter-spacing:.22em;
            padding-right:16px;border-right:1px solid var(--trait);margin-right:4px}
   #busCode i{display:block;font-family:var(--etiq);font-style:normal;font-size:9.5px;
@@ -173,10 +174,12 @@
   }
   #transition:focus{outline:none;border-color:var(--pret)}
 
-  #zoneSequence{display:flex;align-items:center;gap:7px}
+  #zoneSequence{display:flex;align-items:center;gap:7px;flex-wrap:wrap;row-gap:7px}
   #btnSequence.on{background:var(--pret);border-color:var(--pret);color:#0a0f16;font-weight:600}
   #btnEcran.on{background:var(--pret);border-color:var(--pret);color:#0a0f16;font-weight:600}
   #btnEnregistrer.on{background:var(--antenne);border-color:var(--antenne);color:#fff;font-weight:600}
+  #btnDiffuser.on{background:var(--antenne);border-color:var(--antenne);color:#fff;font-weight:600}
+  #btnSpectateurs.on{background:var(--pret);border-color:var(--pret);color:#0a0f16;font-weight:600}
   #btnRepetiteur.on{background:var(--pret);border-color:var(--pret);color:#0a0f16;font-weight:600}
   /* Un écran partagé se voit en entier : rogner couperait du texte */
   .tuile[data-type="ecran"] video{object-fit:contain;background:#000}
@@ -203,6 +206,12 @@
   #modaleDiffusion{position:fixed;inset:0;background:rgba(3,8,20,.82);z-index:59;
                    display:none;align-items:center;justify-content:center;padding:20px}
   #modaleDiffusion.ouvert{display:flex}
+
+  #modaleSpectateurs{position:fixed;inset:0;background:rgba(3,8,20,.82);z-index:59;
+                     display:none;align-items:center;justify-content:center;padding:20px}
+  #modaleSpectateurs.ouvert{display:flex}
+  #qrSpectateurs{display:flex;justify-content:center;margin:10px 0}
+  #qrSpectateurs canvas,#qrSpectateurs img{width:150px;height:150px;display:block}
 
   #modaleLogo{position:fixed;inset:0;background:rgba(3,8,20,.82);z-index:58;
               display:none;align-items:center;justify-content:center;padding:20px}
@@ -561,6 +570,14 @@
   #repetChrono{font-family:var(--chiffre);font-size:clamp(30px,9vw,56px);font-weight:600;
                font-variant-numeric:tabular-nums}
   #repetMessage{font-size:clamp(15px,3.4vw,22px);line-height:1.4;min-height:1.4em}
+
+  /* ================= SPECTATEUR ================= */
+  #spectateur{background:#000;justify-content:center;align-items:center;position:relative}
+  #specVideo{width:100%;height:100%;object-fit:contain;background:#000}
+  #specEtat{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+            font-family:var(--etiq);font-size:13px;letter-spacing:.08em;
+            color:var(--sourdine);background:rgba(3,8,20,.7);
+            padding:12px 20px;border-radius:4px;text-align:center;max-width:80%}
 </style>
 </head>
 <body>
@@ -651,6 +668,7 @@
         <button class="bouton" id="btnRepetiteur">Répétiteur</button>
         <button class="bouton" id="btnEnregistrer">● Enregistrer</button>
         <button class="bouton" id="btnDiffuser">Diffuser en direct</button>
+        <button class="bouton" id="btnSpectateurs">Lien spectateurs</button>
         <button class="bouton" id="btnEcran">Partager l'écran</button>
         <button class="bouton" id="btnProgrammer">Programmer</button>
         <button class="bouton" id="btnSequence">▶ Lancer</button>
@@ -877,43 +895,70 @@
 <input type="file" id="fichierVideo" accept="video/*" multiple hidden>
 
 <!-- ================= DIFFUSION EN DIRECT (guide, sans coût) =================
-     Aucun relais payant : la diffusion se fait en dehors de VISION, avec
-     un outil gratuit qui capture l'onglet Projection. -->
+<!-- ================= DIFFUSION EN DIRECT (relais auto-hébergé, gratuit) =================
+     VISION n'envoie plus rien vers Cloudflare. Le flux part vers un relais
+     MediaMTX que tu fais tourner toi-même sur ton propre PC (voir mediamtx.yml
+     fourni) : c'est lui qui renvoie ensuite vers Facebook/YouTube/TikTok
+     en simultané, avec tes clés configurées côté relais — jamais dans le
+     navigateur, jamais facturées par un tiers. -->
 <div id="modaleDiffusion">
   <div class="carte">
     <h3>Diffuser en direct</h3>
     <p style="color:var(--sourdine);font-size:12px;line-height:1.7">
-      VISION n'envoie plus rien vers Cloudflare : Facebook, YouTube et TikTok
-      acceptent chacun une ingestion directe et gratuite. Il suffit d'un
-      petit outil qui capture l'écran de Projection et l'envoie en RTMP.
+      Connexion à ton relais MediaMTX (installé sur ce PC ou un autre PC du
+      même réseau). C'est lui qui répartit ensuite le flux vers Facebook,
+      YouTube et TikTok — configuré une fois pour toutes dans mediamtx.yml.
     </p>
-    <div style="text-align:left;display:grid;gap:14px;margin-top:6px">
-      <div>
-        <b style="display:block;font-family:var(--etiq);letter-spacing:.1em;
-                   text-transform:uppercase;font-size:12.5px;color:var(--pret);margin-bottom:4px">
-          Option A — OBS Studio (recommandé)
-        </b>
-        <p style="font-size:12.5px;color:var(--sourdine);line-height:1.6">
-          Ouvre OBS, ajoute une source « Capture de fenêtre » sur la fenêtre
-          Projection, puis ajoute autant de destinations RTMP que voulu
-          (Facebook, YouTube, TikTok) avec leur clé habituelle. Un seul
-          logiciel gratuit, tout en simultané, aucune ligne de code ici.
-        </p>
-      </div>
-      <div>
-        <b style="display:block;font-family:var(--etiq);letter-spacing:.1em;
-                   text-transform:uppercase;font-size:12.5px;color:var(--pret);margin-bottom:4px">
-          Option B — Sans logiciel externe
-        </b>
-        <p style="font-size:12.5px;color:var(--sourdine);line-height:1.6">
-          YouTube Studio (« Aller en direct » → Webcam/Navigateur) et le
-          Créateur TikTok Live via navigateur acceptent aussi un partage
-          direct de l'onglet Projection, sans passer par OBS.
-        </p>
+    <div>
+      <label for="diffUrl">Adresse WHIP du relais</label>
+      <input id="diffUrl" class="champLarge" placeholder="http://192.168.1.XX:8889/regie/whip">
+      <p style="font-size:11px;color:var(--sourdine);margin-top:4px">
+        Remplace 192.168.1.XX par l'adresse IP locale du PC où tourne MediaMTX
+        (« ipconfig » sous Windows). Si MediaMTX tourne sur ce même PC, tu
+        peux utiliser http://localhost:8889/regie/whip
+      </p>
+    </div>
+    <p id="diffEtat" style="min-height:1.4em;font-size:12.5px;color:var(--pret)"></p>
+    <div class="actions">
+      <button class="bouton" id="diffAnnuler">Fermer</button>
+      <button class="bouton primaire" id="diffValider">Démarrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= LIEN SPECTATEURS =================
+     Diffuse exactement ce que montre l'écran de Projection à quiconque
+     ouvre le lien, en direct, sans installer d'appli. Techniquement :
+     un partage d'écran (une seule fois) de la fenêtre Projection, relayé
+     à chaque spectateur qui se connecte — gratuit, pair à pair. -->
+<div id="modaleSpectateurs">
+  <div class="carte">
+    <h3>Lien spectateurs</h3>
+    <p style="color:var(--sourdine);font-size:12px;line-height:1.7">
+      Toute personne qui ouvre ce lien voit, en direct sur son téléphone,
+      exactement ce qui est projeté — comme une TV, sans bouton de régie.
+    </p>
+    <div id="specAvant">
+      <p style="font-size:12px;color:var(--sourdine);line-height:1.6">
+        Le navigateur va te demander de partager un écran : choisis
+        l'onglet ou la fenêtre <b>Projection</b> (et coche « partager
+        l'audio de l'onglet » si proposé, pour que les spectateurs
+        entendent aussi le son).
+      </p>
+      <div class="actions">
+        <button class="bouton" id="specAnnuler">Fermer</button>
+        <button class="bouton primaire" id="specActiver">Activer</button>
       </div>
     </div>
-    <div class="actions">
-      <button class="bouton primaire" id="diffAnnuler">Compris</button>
+    <div id="specApres" style="display:none">
+      <div id="qrSpectateurs"></div>
+      <div id="lienSpectateurs" style="font-family:var(--chiffre);font-size:10.5px;
+           color:var(--sourdine);word-break:break-all;text-align:center;margin:8px 0"></div>
+      <p id="compteSpectateurs" style="text-align:center;font-size:12.5px;color:var(--pret)"></p>
+      <div class="actions">
+        <button class="bouton mini" id="copierLienSpec">Copier le lien</button>
+        <button class="bouton rouge" id="specDesactiver">Désactiver</button>
+      </div>
     </div>
   </div>
 </div>
@@ -938,6 +983,14 @@
       <div id="repetMessage">—</div>
     </div>
   </div>
+</div>
+
+<!-- ================= SPECTATEUR (public, via lien) =================
+     Plein écran, aucun bouton de régie : exactement ce que montre
+     l'écran de Projection, en direct, comme une TV. -->
+<div class="ecran" id="spectateur">
+  <video id="specVideo" autoplay playsinline></video>
+  <p id="specEtat">Connexion…</p>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.5/peerjs.min.js"></script>
@@ -1667,6 +1720,70 @@ const repetiteur = {
 };
 
 /* =========================================================================
+   RÔLE SPECTATEUR
+   Reçoit uniquement l'image et le son projetés — aucun bouton de régie,
+   aucun envoi de flux : une simple fenêtre de réception, comme une TV.
+   ========================================================================= */
+const spectateur = {
+  code:null, peer:null, canal:null, relance:null,
+
+  demarrer(code){
+    this.code = code;
+    afficher("spectateur");
+    $("#specEtat").style.display = "";
+    $("#specEtat").textContent = "Connexion…";
+    this.connecter();
+  },
+
+  async connecter(){
+    if (typeof Peer === "undefined") return this.reprogrammer();
+    await chargerRelais();
+    this.peer = new Peer({ config: CONFIG_ICE, ...(SIGNALISATION || {}) });
+
+    this.peer.on("open", () => {
+      this.canal = this.peer.connect(PREFIXE + this.code, { metadata:{ role:"spectateur" } });
+      this.canal.on("open", () => {
+        $("#specEtat").textContent = "Connecté — en attente du direct…";
+        clearTimeout(this.relance);
+      });
+      this.canal.on("data", (d) => {
+        if (d && d.type === "attente"){
+          $("#specEtat").textContent = "Le direct n'a pas encore démarré…";
+        }
+      });
+      this.canal.on("close", () => this.perdu());
+    });
+
+    this.peer.on("call", (appel) => {
+      appel.answer(); // on ne renvoie rien : réception seule
+      appel.on("stream", (flux) => {
+        $("#specVideo").srcObject = flux;
+        $("#specEtat").style.display = "none";
+      });
+      appel.on("close", () => {
+        $("#specEtat").style.display = "";
+        $("#specEtat").textContent = "Le direct est terminé.";
+        $("#specVideo").srcObject = null;
+      });
+    });
+
+    this.peer.on("error", () => this.perdu());
+    this.peer.on("disconnected", () => { try{ this.peer.reconnect(); }catch(_){} });
+  },
+
+  perdu(){
+    $("#specEtat").style.display = "";
+    $("#specEtat").textContent = "Reconnexion…";
+    this.reprogrammer();
+  },
+
+  reprogrammer(){
+    clearTimeout(this.relance);
+    this.relance = setTimeout(() => this.connecter(), 3000);
+  }
+};
+
+/* =========================================================================
    RÔLE RÉGIE
    ========================================================================= */
 const regie = {
@@ -1696,6 +1813,8 @@ const regie = {
   messageRepet:"",
   enregistreur:null,
   diffusion:null,
+  fluxSpectateurs:null,
+  spectateurs:{},
 
   async demarrer(){
     if (typeof Peer === "undefined"){
@@ -1728,8 +1847,23 @@ const regie = {
     };
     $("#btnDiffuser").onclick = () => this.ouvrirDiffusion();
     $("#diffAnnuler").onclick = () => $("#modaleDiffusion").classList.remove("ouvert");
+    $("#diffValider").onclick = () => this.demarrerDiffusion();
     $("#modaleDiffusion").onclick = (e) => {
       if (e.target.id === "modaleDiffusion") $("#modaleDiffusion").classList.remove("ouvert");
+    };
+    $("#btnSpectateurs").onclick  = () => this.ouvrirSpectateurs();
+    $("#specAnnuler").onclick     = () => $("#modaleSpectateurs").classList.remove("ouvert");
+    $("#specActiver").onclick     = () => this.activerSpectateurs();
+    $("#specDesactiver").onclick  = () => this.desactiverSpectateurs();
+    $("#copierLienSpec").onclick  = async () => {
+      try{
+        await navigator.clipboard.writeText($("#lienSpectateurs").textContent);
+        $("#copierLienSpec").textContent = "Lien copié";
+      }catch(_){ $("#copierLienSpec").textContent = "Sélectionne le lien"; }
+      setTimeout(() => { $("#copierLienSpec").textContent = "Copier le lien"; }, 2200);
+    };
+    $("#modaleSpectateurs").onclick = (e) => {
+      if (e.target.id === "modaleSpectateurs") $("#modaleSpectateurs").classList.remove("ouvert");
     };
     $("#logoFichier").onchange = (e) => {
       const f = e.target.files && e.target.files[0];
@@ -1895,6 +2029,26 @@ const regie = {
         });
         canal.on("close", () => {
           this.repetiteurs = this.repetiteurs.filter(c => c !== canal);
+        });
+      }
+      else if (canal.metadata && canal.metadata.role === "spectateur"){
+        canal.on("open", () => {
+          if (this.fluxSpectateurs){
+            const appel = peer.call(canal.peer, this.fluxSpectateurs);
+            this.spectateurs[canal.peer] = { canal, appel };
+            appel.on("close", () => {
+              delete this.spectateurs[canal.peer];
+              this.majCompteSpectateurs();
+            });
+            this.majCompteSpectateurs();
+          }else{
+            canal.send({ type:"attente" });
+            this.spectateurs[canal.peer] = { canal, appel:null };
+          }
+        });
+        canal.on("close", () => {
+          delete this.spectateurs[canal.peer];
+          this.majCompteSpectateurs();
         });
       }
     });
@@ -2867,13 +3021,170 @@ const regie = {
     this.pousserRepetiteurs();
   },
 
-  /* ---------- Diffusion en direct (guide, sans relais payant) ----------
-     Plus aucun passage par Cloudflare Stream : Facebook, YouTube et TikTok
-     acceptent une ingestion RTMP/WebRTC directe et gratuite. VISION se
-     contente d'expliquer la marche à suivre (voir la modale) — aucun appel
-     réseau, aucun coût, aucune clé stockée ici. */
+  /* ---------- Diffusion en direct (relais auto-hébergé, gratuit) ----------
+     VISION envoie le flux, en WHIP (WebRTC standard), à un relais MediaMTX
+     que TU fais tourner sur ton propre PC (voir mediamtx.yml fourni à côté).
+     C'est ce relais qui répartit ensuite vers Facebook/YouTube/TikTok, avec
+     des clés configurées une fois pour toutes côté relais — jamais tapées
+     ici, jamais transmises à un service tiers payant. */
   ouvrirDiffusion(){
+    if (this.diffusion){ this.arreterDiffusion(); return; }
+    const derniere = localStorage.getItem("vision_whip_url");
+    if (derniere) $("#diffUrl").value = derniere;
+    $("#diffEtat").textContent = "";
     $("#modaleDiffusion").classList.add("ouvert");
+  },
+
+  async demarrerDiffusion(){
+    const url = $("#diffUrl").value.trim();
+    if (!url){ $("#diffEtat").textContent = "Indique l'adresse WHIP de ton relais."; return; }
+    if (!this.fenetre || this.fenetre.closed){
+      $("#diffEtat").textContent = "Ouvre d'abord l'écran de projection.";
+      return;
+    }
+    localStorage.setItem("vision_whip_url", url);
+
+    try{
+      $("#diffEtat").textContent = "Choisis l'onglet Projection dans la fenêtre du navigateur…";
+      const flux = await navigator.mediaDevices.getDisplayMedia({
+        video:{ frameRate:30 }, audio:true
+      });
+
+      const pc = new RTCPeerConnection();
+      flux.getTracks().forEach(t => pc.addTrack(t, flux));
+
+      // On attend la fin de la collecte ICE pour envoyer une offre complète
+      // (pas de "trickle") : plus fiable avec un relais auto-hébergé.
+      const offre = await pc.createOffer();
+      await pc.setLocalDescription(offre);
+      $("#diffEtat").textContent = "Préparation de la connexion…";
+      await new Promise((resoudre) => {
+        if (pc.iceGatheringState === "complete") return resoudre();
+        const verifier = () => {
+          if (pc.iceGatheringState === "complete"){
+            pc.removeEventListener("icegatheringstatechange", verifier);
+            resoudre();
+          }
+        };
+        pc.addEventListener("icegatheringstatechange", verifier);
+        setTimeout(resoudre, 3000); // filet de sécurité
+      });
+
+      $("#diffEtat").textContent = "Connexion au relais…";
+      const rep = await fetch(url, {
+        method:"POST",
+        headers:{ "Content-Type":"application/sdp" },
+        body: pc.localDescription.sdp
+      });
+      if (!rep.ok) throw new Error("Le relais a refusé la connexion (code " + rep.status + "). Vérifie que MediaMTX tourne et que l'adresse est correcte.");
+
+      const reponseSdp = await rep.text();
+      await pc.setRemoteDescription({ type:"answer", sdp:reponseSdp });
+
+      // Adresse à contacter pour couper proprement la session WHIP
+      const ressource = rep.headers.get("Location");
+      const urlRessource = ressource
+        ? new URL(ressource, url).href
+        : null;
+
+      this.diffusion = { pc, flux, urlRessource };
+      flux.getVideoTracks()[0].onended = () => this.arreterDiffusion();
+
+      $("#modaleDiffusion").classList.remove("ouvert");
+      $("#btnDiffuser").textContent = "■ Arrêter la diffusion";
+      $("#btnDiffuser").classList.add("on");
+    }catch(e){
+      $("#diffEtat").textContent = "Échec : " + e.message;
+    }
+  },
+
+  async arreterDiffusion(){
+    if (!this.diffusion) return;
+    const { pc, flux, urlRessource } = this.diffusion;
+    try{ pc.close(); }catch(_){}
+    try{ flux.getTracks().forEach(t => t.stop()); }catch(_){}
+    if (urlRessource){
+      try{ await fetch(urlRessource, { method:"DELETE" }); }catch(_){}
+    }
+    this.diffusion = null;
+    $("#btnDiffuser").textContent = "Diffuser en direct";
+    $("#btnDiffuser").classList.remove("on");
+  },
+
+  /* ---------- Lien spectateurs (public, gratuit, pair à pair) ----------
+     Capture une seule fois l'écran de Projection (comme pour la diffusion),
+     puis renvoie ce même flux à chaque spectateur qui ouvre le lien —
+     directement de navigateur à navigateur, sans serveur vidéo, donc
+     sans coût quel que soit le nombre de spectateurs. */
+  ouvrirSpectateurs(){
+    $("#modaleSpectateurs").classList.add("ouvert");
+    const actif = !!this.fluxSpectateurs;
+    $("#specAvant").style.display = actif ? "none" : "";
+    $("#specApres").style.display = actif ? "" : "none";
+    if (actif) this.majCompteSpectateurs();
+  },
+
+  async activerSpectateurs(){
+    if (!this.fenetre || this.fenetre.closed){
+      alert("Ouvre d'abord l'écran de projection : c'est lui que les spectateurs verront.");
+      return;
+    }
+    try{
+      const flux = await navigator.mediaDevices.getDisplayMedia({
+        video:{ frameRate:{ ideal:30 } }, audio:true
+      });
+      this.fluxSpectateurs = flux;
+      flux.getVideoTracks()[0].onended = () => this.desactiverSpectateurs();
+
+      const lien = location.origin + location.pathname + "?voir=" + this.code;
+      $("#lienSpectateurs").textContent = lien;
+      $("#qrSpectateurs").innerHTML = "";
+      if (typeof QRCode !== "undefined"){
+        new QRCode($("#qrSpectateurs"), {
+          text: lien, width:150, height:150,
+          colorDark:"#0a0f16", colorLight:"#e8eefb"
+        });
+      }
+      $("#specAvant").style.display = "none";
+      $("#specApres").style.display = "";
+      $("#btnSpectateurs").classList.add("on");
+      this.majCompteSpectateurs();
+
+      // Les spectateurs déjà en attente reçoivent le flux immédiatement
+      Object.keys(this.spectateurs || {}).forEach((id) => {
+        if (this.spectateurs[id].appel) return; // déjà en cours
+        try{
+          const appel = peer.call(id, this.fluxSpectateurs);
+          this.spectateurs[id].appel = appel;
+          appel.on("close", () => {
+            delete this.spectateurs[id];
+            this.majCompteSpectateurs();
+          });
+        }catch(_){}
+      });
+    }catch(_){ /* activation annulée par l'utilisateur */ }
+  },
+
+  desactiverSpectateurs(){
+    if (this.fluxSpectateurs){
+      try{ this.fluxSpectateurs.getTracks().forEach(t => t.stop()); }catch(_){}
+    }
+    this.fluxSpectateurs = null;
+    Object.values(this.spectateurs || {}).forEach(({ appel }) => {
+      try{ appel.close(); }catch(_){}
+    });
+    this.spectateurs = {};
+    $("#btnSpectateurs").classList.remove("on");
+    $("#specAvant").style.display = "";
+    $("#specApres").style.display = "none";
+  },
+
+  majCompteSpectateurs(){
+    const n = Object.keys(this.spectateurs || {}).length;
+    $("#compteSpectateurs").textContent =
+      n === 0 ? "Aucun spectateur connecté pour l'instant"
+      : n === 1 ? "1 spectateur connecté"
+      : n + " spectateurs connectés";
   },
 
   cadrer(id){
@@ -3313,9 +3624,13 @@ const params = new URLSearchParams(location.search);
 const salleUrl = nettoyerCode(params.get("salle"));
 const regieUrl = nettoyerCode(params.get("regie"));
 const repetUrl = nettoyerCode(params.get("repet"));
+const voirUrl  = nettoyerCode(params.get("voir"));
 
 if (repetUrl.length === 6){
   repetiteur.demarrer(repetUrl);
+}
+else if (voirUrl.length === 6){
+  spectateur.demarrer(voirUrl);
 }
 else if (salleUrl.length === 6){
   $("#inviteCode").textContent = salleUrl;
