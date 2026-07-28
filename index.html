@@ -167,10 +167,61 @@
   }
   #etatRelais.on{color:var(--pret);border-color:var(--pret)}
 
+  #transition{
+    background:var(--relief);border:1px solid var(--trait);border-radius:3px;
+    padding:9px 8px;color:var(--texte);font-size:12.5px;
+  }
+  #transition:focus{outline:none;border-color:var(--pret)}
+
   #zoneSequence{display:flex;align-items:center;gap:7px}
   #btnSequence.on{background:var(--pret);border-color:var(--pret);color:#0a0f16;font-weight:600}
+  #btnEcran.on{background:var(--pret);border-color:var(--pret);color:#0a0f16;font-weight:600}
+  #btnEnregistrer.on{background:var(--antenne);border-color:var(--antenne);color:#fff;font-weight:600}
+  #btnDiffuser.on{background:var(--antenne);border-color:var(--antenne);color:#fff;font-weight:600}
+  #btnRepetiteur.on{background:var(--pret);border-color:var(--pret);color:#0a0f16;font-weight:600}
+  /* Un écran partagé se voit en entier : rogner couperait du texte */
+  .tuile[data-type="ecran"] video{object-fit:contain;background:#000}
   /* Une vignette en attente dans la séquence en cours */
   .tuile.enSeq{border-color:var(--pret)}
+
+  /* Le minuteur : chiffres à chasse fixe pour qu'ils ne dansent pas
+     en défilant, message discret au-dessus. */
+  .cche.chrono{
+    display:none;flex-direction:column;align-items:center;justify-content:center;
+    gap:2%;padding:5%;text-align:center;z-index:2;
+    background:radial-gradient(120% 80% at 50% 0%,#0a1c44 0%,#050f26 62%);
+  }
+  .cche.chrono .chrTitre{
+    font-family:var(--etiq);font-weight:600;letter-spacing:.28em;
+    text-transform:uppercase;color:var(--sourdine);
+  }
+  .cche.chrono .chrVal{
+    font-family:var(--chiffre);font-weight:600;line-height:1;
+    font-variant-numeric:tabular-nums;letter-spacing:.04em;
+  }
+  .cche.chrono.fini .chrVal{color:var(--antenne)}
+
+  #modaleDiffusion{position:fixed;inset:0;background:rgba(3,8,20,.82);z-index:59;
+                   display:none;align-items:center;justify-content:center;padding:20px}
+  #modaleDiffusion.ouvert{display:flex}
+
+  #modaleLogo{position:fixed;inset:0;background:rgba(3,8,20,.82);z-index:58;
+              display:none;align-items:center;justify-content:center;padding:20px}
+  #modaleLogo.ouvert{display:flex}
+
+  #modaleChrono{position:fixed;inset:0;background:rgba(3,8,20,.82);z-index:57;
+                display:none;align-items:center;justify-content:center;padding:20px}
+  #modaleChrono.ouvert{display:flex}
+  .champLarge{
+    background:var(--fond);color:var(--texte);border:1px solid var(--trait);
+    border-radius:3px;padding:11px;font-size:14px;width:100%;
+  }
+  .champLarge:focus{outline:none;border-color:var(--pret)}
+  #chrFond{display:flex;flex-wrap:wrap;gap:7px}
+
+  #modaleBandeau{position:fixed;inset:0;background:rgba(3,8,20,.82);z-index:56;
+                 display:none;align-items:center;justify-content:center;padding:20px}
+  #modaleBandeau.ouvert{display:flex}
 
   #modaleSeq{position:fixed;inset:0;background:rgba(3,8,20,.82);z-index:55;
              display:none;align-items:center;justify-content:center;padding:20px}
@@ -283,7 +334,9 @@
   #apercu.direct{border-color:var(--antenne);box-shadow:0 0 0 1px var(--antenne),0 0 34px var(--lueur)}
 
   /* Couches de sortie, communes à l'aperçu et au projecteur */
-  .cche{position:absolute;inset:0;width:100%;height:100%;display:none}
+  .cche{position:absolute;inset:0;width:100%;height:100%;display:none;
+        opacity:0;transition:opacity .5s ease}
+  .cche.visible{opacity:1}
   video.cche,img.cche{object-fit:cover;background:#000}
   /* Remplissage : une copie floutée de l'image comble les côtés,
      pendant que l'originale reste entière au centre. Ni bande noire,
@@ -314,6 +367,9 @@
      par-dessus l'originale. C'est le vieux truc des plateaux télé pour
      adoucir les peaux sans perdre le piqué de l'image. */
   .cche.doux{mix-blend-mode:screen;pointer-events:none}
+  /* Sa cible d'opacité vient du rendu choisi, mais elle passe quand même
+     par le fondu comme les autres couches. */
+  .cche.doux.visible{opacity:var(--doux,.2)}
 
   #barreFiltres{
     flex:0 0 auto;display:flex;align-items:center;gap:12px;
@@ -329,6 +385,42 @@
   .puceFiltre:hover{border-color:var(--sourdine)}
   .puceFiltre.choisi{border-color:var(--pret);color:var(--pret)}
   #barreFiltres.inactif{opacity:.4;pointer-events:none}
+
+  /* Le bandeau de nom : filet rouge, nom en gras, fonction en dessous.
+     Il glisse depuis la gauche et se pose dans le tiers bas de l'image. */
+  /* Le logo reste au-dessus de tout, y compris des versets et des vidéos.
+     Il ne bouge jamais : c'est ce qui en fait une signature. */
+  .filigrane{
+    position:absolute;z-index:8;pointer-events:none;
+    max-width:40%;max-height:26%;object-fit:contain;display:none;
+    filter:drop-shadow(0 2px 10px rgba(0,0,0,.55));
+  }
+  .filigrane.visible{display:block}
+  .filigrane.hg{top:4%;left:4%}
+  .filigrane.hd{top:4%;right:4%}
+  .filigrane.bg{bottom:4%;left:4%}
+  .filigrane.bd{bottom:4%;right:4%}
+
+  /* Glisser-déposer : la vignette survolée montre où l'élément se posera */
+  .tuile.enGlisse{opacity:.4}
+  .tuile.survol{border-color:var(--pret);box-shadow:0 -3px 0 var(--pret)}
+
+  .bandeau{
+    position:absolute;left:0;bottom:9%;z-index:6;pointer-events:none;
+    display:flex;flex-direction:column;gap:.25em;
+    padding:.7em 1.4em .7em 1.1em;
+    background:linear-gradient(90deg,rgba(5,15,38,.94) 60%,rgba(5,15,38,0));
+    border-left:.28em solid var(--antenne);
+    opacity:0;transform:translateX(-14%);
+    transition:opacity .38s ease,transform .38s cubic-bezier(.2,.75,.3,1);
+  }
+  .bandeau.visible{opacity:1;transform:none}
+  .bandeau b{font-family:var(--logo);font-weight:400;line-height:1.05;
+             letter-spacing:.01em;white-space:nowrap}
+  .bandeau i{font-family:var(--etiq);font-style:normal;font-weight:600;font-size:.38em;
+             letter-spacing:.22em;text-transform:uppercase;color:var(--pret);
+             white-space:nowrap}
+  .bandeau i:empty{display:none}
 
   .videSortie{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
               font-family:var(--etiq);font-size:12px;letter-spacing:.26em;
@@ -455,6 +547,21 @@
     #busActions{flex-wrap:wrap}
     #busCode{border-right:none}
   }
+
+  /* ================= RÉPÉTITEUR ================= */
+  #repet{background:#04060c;padding:22px 18px;gap:18px}
+  #repetBarre{display:flex;justify-content:space-between;align-items:center;
+              flex:0 0 auto;padding-bottom:10px;border-bottom:1px solid var(--trait)}
+  #repetEtat{font-family:var(--chiffre);font-size:11px;color:var(--sourdine)}
+  #repetEtat.ok{color:var(--pret)}
+  #repetCorps{flex:1;display:flex;flex-direction:column;gap:16px;justify-content:center}
+  #repetSection{background:var(--panneau);border:1px solid var(--trait);border-radius:4px;
+                padding:16px 18px}
+  #repetSection .filtreLabel{margin-bottom:8px}
+  #repetSource{font-family:var(--etiq);font-size:clamp(20px,5vw,32px);font-weight:600}
+  #repetChrono{font-family:var(--chiffre);font-size:clamp(30px,9vw,56px);font-weight:600;
+               font-variant-numeric:tabular-nums}
+  #repetMessage{font-size:clamp(15px,3.4vw,22px);line-height:1.4;min-height:1.4em}
 </style>
 </head>
 <body>
@@ -541,9 +648,19 @@
         <input type="range" id="volume" min="0" max="100" value="90" title="Volume">
       </div>
       <div id="zoneSequence">
+        <button class="bouton" id="btnLogo">Logo</button>
+        <button class="bouton" id="btnRepetiteur">Répétiteur</button>
+        <button class="bouton" id="btnEnregistrer">● Enregistrer</button>
+        <button class="bouton" id="btnDiffuser">Diffuser en direct</button>
+        <button class="bouton" id="btnEcran">Partager l'écran</button>
         <button class="bouton" id="btnProgrammer">Programmer</button>
         <button class="bouton" id="btnSequence">▶ Lancer</button>
       </div>
+      <select id="transition" title="Enchaînement">
+        <option value="500">Fondu</option>
+        <option value="900">Fondu lent</option>
+        <option value="0">Coupe</option>
+      </select>
       <button class="bouton primaire pousse" id="ouvrirProjection">Ouvrir l'écran de projection</button>
       <button class="bouton rouge" id="fondu">Fondu au noir</button>
     </div>
@@ -574,10 +691,15 @@
       </div>
       <div id="centreCorps">
         <div id="apercu">
-          <video class="cche cam" autoplay playsinline muted></video>
-          <video class="cche doux" autoplay playsinline muted></video>
+          <video class="cche cam cam1" autoplay playsinline muted></video>
+          <video class="cche doux doux1" autoplay playsinline muted></video>
+          <video class="cche cam cam2" autoplay playsinline muted></video>
+          <video class="cche doux doux2" autoplay playsinline muted></video>
           <div class="cche texte"><h3></h3><p></p></div>
+          <div class="cche chrono"><span class="chrTitre"></span><b class="chrVal"></b></div>
           <div class="videSortie" id="videSortie">Aucune source</div>
+          <div class="bandeau"><b></b><i></i></div>
+          <img class="filigrane" alt="">
         </div>
       </div>
       <div id="barreFiltres">
@@ -593,10 +715,13 @@
         <button class="onglet actif" data-onglet="video">Vidéo</button>
         <button class="onglet" data-onglet="texte">Texte</button>
         <button class="onglet" data-onglet="image">Image</button>
+        <button class="onglet" data-onglet="chrono">Chrono</button>
         <button id="ajouter" title="Ajouter">+</button>
       </div>
       <div class="pile" id="pileMedia"></div>
-      <div id="pileVide">Rien ici pour l'instant.<br>Appuie sur <b>+</b> pour ajouter.</div>
+      <div id="pileVide">Rien ici pour l'instant.<br>Appuie sur <b>+</b> pour ajouter.<br>
+        <small style="opacity:.7">L'onglet Image accepte aussi les PDF :<br>chaque page devient une diapositive.</small>
+      </div>
     </aside>
 
   </div>
@@ -633,6 +758,98 @@
   </div>
 </div>
 
+<!-- ================= LOGO ================= -->
+<div id="modaleLogo">
+  <div class="carte">
+    <h3>Logo permanent</h3>
+    <p style="color:var(--sourdine);font-size:12.5px;line-height:1.6">
+      Une image PNG à fond transparent donne le meilleur résultat.
+      Elle restera affichée sur tout ce qui sort à l'écran.
+    </p>
+    <div>
+      <label for="logoFichier">Image</label>
+      <input type="file" id="logoFichier" accept="image/*" class="champLarge">
+    </div>
+    <div>
+      <label>Position</label>
+      <div id="logoPos" style="display:flex;flex-wrap:wrap;gap:7px"></div>
+    </div>
+    <div>
+      <label for="logoTaille">Taille <span id="logoTailleVal">14 %</span></label>
+      <input type="range" id="logoTaille" min="5" max="40" value="14" style="width:100%;accent-color:var(--pret)">
+    </div>
+    <div>
+      <label for="logoOpacite">Opacité <span id="logoOpaciteVal">85 %</span></label>
+      <input type="range" id="logoOpacite" min="15" max="100" value="85" style="width:100%;accent-color:var(--pret)">
+    </div>
+    <div class="actions">
+      <button class="bouton" id="logoRetirer">Retirer</button>
+      <span style="flex:1"></span>
+      <button class="bouton primaire" id="logoFermer">Terminé</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MINUTEUR ================= -->
+<div id="modaleChrono">
+  <div class="carte">
+    <h3>Minuteur</h3>
+    <div>
+      <label for="chrType">Type</label>
+      <select id="chrType" class="champLarge">
+        <option value="rebours">Compte à rebours</option>
+        <option value="horloge">Heure actuelle</option>
+      </select>
+    </div>
+    <div id="chrDuree">
+      <label>Durée</label>
+      <div style="display:flex;gap:9px;align-items:center">
+        <input type="number" id="chrMin" min="0" max="180" value="10" class="champLarge" style="width:80px">
+        <span style="color:var(--sourdine);font-size:12px">min</span>
+        <input type="number" id="chrSec" min="0" max="59" value="0" class="champLarge" style="width:80px">
+        <span style="color:var(--sourdine);font-size:12px">sec</span>
+      </div>
+    </div>
+    <div>
+      <label for="chrTitre">Message au-dessus</label>
+      <input id="chrTitre" maxlength="40" placeholder="Reprise dans">
+    </div>
+    <div id="chrZone">
+      <label for="chrFin">Message à zéro</label>
+      <input id="chrFin" maxlength="40" placeholder="C'est parti !">
+    </div>
+    <div>
+      <label>Fond</label>
+      <div id="chrFond"></div>
+    </div>
+    <div class="actions">
+      <button class="bouton" id="chrAnnuler">Annuler</button>
+      <button class="bouton primaire" id="chrValider">Ajouter</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= BANDEAU DE NOM ================= -->
+<div id="modaleBandeau">
+  <div class="carte">
+    <h3>Bandeau de nom</h3>
+    <div>
+      <label for="bandNom">Nom</label>
+      <input id="bandNom" maxlength="40" placeholder="Pasteur Jean Dossou">
+    </div>
+    <div>
+      <label for="bandRole">Fonction</label>
+      <input id="bandRole" maxlength="40" placeholder="Invité · Église Oasis">
+    </div>
+    <div class="actions">
+      <button class="bouton" id="bandCacher">Masquer</button>
+      <span style="flex:1"></span>
+      <button class="bouton" id="bandAnnuler">Annuler</button>
+      <button class="bouton primaire" id="bandAfficher">Afficher</button>
+    </div>
+  </div>
+</div>
+
 <!-- ================= PROGRAMMATION DE SÉQUENCE ================= -->
 <div id="modaleSeq">
   <div class="carte large">
@@ -657,11 +874,67 @@
   </div>
 </div>
 
-<input type="file" id="fichierImage" accept="image/*" hidden>
-<input type="file" id="fichierVideo" accept="video/*" hidden>
+<input type="file" id="fichierImage" accept="image/*,application/pdf" multiple hidden>
+<input type="file" id="fichierVideo" accept="video/*" multiple hidden>
+
+<!-- ================= DIFFUSION EN DIRECT ================= -->
+<div id="modaleDiffusion">
+  <div class="carte">
+    <h3>Diffuser en direct</h3>
+    <p style="color:var(--sourdine);font-size:12px;line-height:1.7">
+      Diffuse ce que le public voit vers Facebook ou YouTube, en simultané
+      de la salle. Facturé par Cloudflare — vérifie le coût avant un usage
+      régulier.
+    </p>
+    <div>
+      <label for="diffCible">Destination</label>
+      <select id="diffCible" class="champLarge">
+        <option value="rtmps://live-api-s.facebook.com:443/rtmp/">Facebook Live</option>
+        <option value="rtmp://a.rtmp.youtube.com/live2">YouTube</option>
+        <option value="autre">Autre (URL personnalisée)</option>
+      </select>
+    </div>
+    <div id="diffUrlPerso" style="display:none">
+      <label for="diffUrl">URL du serveur</label>
+      <input id="diffUrl" class="champLarge" placeholder="rtmp://...">
+    </div>
+    <div>
+      <label for="diffCle">Clé de diffusion</label>
+      <input id="diffCle" class="champLarge" placeholder="Fournie par Facebook / YouTube" type="password">
+    </div>
+    <p id="diffEtat" style="min-height:1.4em;font-size:12.5px;color:var(--pret)"></p>
+    <div class="actions">
+      <button class="bouton" id="diffAnnuler">Annuler</button>
+      <button class="bouton primaire" id="diffValider">Démarrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= RÉPÉTITEUR ================= -->
+<div class="ecran" id="repet">
+  <div id="repetBarre">
+    <span class="sous" style="margin:0">VISION · Répétiteur</span>
+    <span id="repetEtat"></span>
+  </div>
+  <div id="repetCorps">
+    <div id="repetSection">
+      <div class="filtreLabel">À l'antenne</div>
+      <div id="repetSource">—</div>
+    </div>
+    <div id="repetSection">
+      <div class="filtreLabel">Minuteur</div>
+      <div id="repetChrono">—</div>
+    </div>
+    <div id="repetSection">
+      <div class="filtreLabel">Message de la régie</div>
+      <div id="repetMessage">—</div>
+    </div>
+  </div>
+</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.5/peerjs.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
 /* =========================================================================
    VISION — régie vidéo. Aucun compte, aucune installation.
@@ -752,6 +1025,12 @@ function nettoyerCode(v){
 const enLocal = location.protocol === "file:";
 if (enLocal) $("#local").classList.add("visible");
 
+// PDF.js a besoin qu'on lui indique son moteur de traitement
+if (typeof pdfjsLib !== "undefined"){
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+}
+
 /* =========================================================================
    STOCKAGE LOCAL
    Tout reste sur cet appareil, dans le navigateur. Rien n'est envoyé
@@ -816,6 +1095,9 @@ const BDD = {
 /* Fonds proposés pour les diapositives de texte. Les six premiers sont
    sombres — c'est ce qui se lit le mieux en salle éclairée. Les deux
    derniers sont clairs, pour les salles très lumineuses ou en plein jour. */
+/* Durée du fondu enchaîné, en millisecondes. 0 = coupe franche. */
+let DUREE_FONDU = 500;
+
 const FONDS = [
   { cle:"degrade", nom:"Dégradé VISION" },
   { cle:"noir",    nom:"Noir" },
@@ -894,58 +1176,140 @@ function ajusterTexte(boite, src){
   p.style.fontSize = Math.max(11, Math.round(L * 0.024)) + "px";
 }
 
-function rendreSortie(boite, src, id, avecSon, fondSrc, fondId){
-  boite.querySelectorAll(".cche").forEach((e) => {
-    e.style.display = "none";
-    const cle = e.dataset.src || e.dataset.fond;
-    if (e.tagName === "VIDEO" && cle && cle !== id && cle !== fondId) e.pause();
-  });
+// Calcule ce qu'affiche le minuteur à l'instant présent
+function majChrono(boite, src){
+  const c = boite.querySelector(".cche.chrono");
+  if (!c) return;
+  const val = c.querySelector(".chrVal");
+  const tit = c.querySelector(".chrTitre");
 
+  if (src.mode === "horloge"){
+    const d = new Date();
+    val.textContent = String(d.getHours()).padStart(2, "0") + ":" +
+                      String(d.getMinutes()).padStart(2, "0");
+    tit.textContent = src.titre || "";
+    c.classList.remove("fini");
+    return;
+  }
+
+  const reste = Math.max(0, Math.round(((src.fin || 0) - Date.now()) / 1000));
+  const h = Math.floor(reste / 3600);
+  const m = Math.floor((reste % 3600) / 60);
+  const s = reste % 60;
+  val.textContent = (h ? h + ":" + String(m).padStart(2, "0") : String(m).padStart(2, "0"))
+                    + ":" + String(s).padStart(2, "0");
+  c.classList.toggle("fini", reste === 0);
+  tit.textContent = reste === 0 ? (src.messageFin || "") : (src.titre || "");
+}
+
+function rendreBandeau(boite, src){
+  const bn = boite.querySelector(".bandeau");
+  if (!bn) return;
+  const b = src && src.bandeau;
+  const ok = !!(b && b.visible && b.nom);
+  bn.classList.toggle("visible", ok);
+  if (!ok) return;
+  bn.querySelector("b").textContent = b.nom;
+  bn.querySelector("i").textContent = b.role || "";
+  // Tout est en em : une seule taille de base suffit à l'échelle de l'écran
+  bn.style.fontSize = Math.max(9, Math.round((boite.clientWidth || 1280) * 0.026)) + "px";
+}
+
+/* Enchaînement en fondu : la couche sortante s'efface pendant que
+   l'entrante apparaît. Sans ça, chaque changement est une coupe sèche. */
+function afficherCouches(boite, visibles){
+  boite.querySelectorAll(".cche").forEach((e) => {
+    if (visibles.indexOf(e) >= 0){
+      const bloc = e.classList.contains("texte") || e.classList.contains("chrono");
+      e.style.display = bloc ? "flex" : "block";
+      if (e._masquer){ clearTimeout(e._masquer); e._masquer = null; }
+      // Un souffle avant d'activer, sinon le navigateur saute la transition
+      requestAnimationFrame(() => requestAnimationFrame(() => e.classList.add("visible")));
+    } else if (e.style.display !== "none"){
+      e.classList.remove("visible");
+      if (e._masquer) clearTimeout(e._masquer);
+      e._masquer = setTimeout(() => {
+        if (!e.classList.contains("visible")){
+          e.style.display = "none";
+          if (e.tagName === "VIDEO" && (e.dataset.src || e.dataset.fond)) e.pause();
+        }
+      }, DUREE_FONDU + 60);
+    }
+  });
+}
+
+function rendreSortie(boite, src, id, avecSon, fondSrc, fondId){
+  const visibles = [];
   const videL = boite.querySelector(".videSortie");
   if (!src){
+    afficherCouches(boite, visibles);
     if (videL) videL.style.display = "flex";
     return;
   }
   if (videL) videL.style.display = "none";
 
-  if (src.type === "cam"){
-    const c = boite.querySelector(".cche.cam");
-    const d = boite.querySelector(".cche.doux");
+  if (src.type === "cam" || src.type === "ecran"){
+    // Deux jeux de couches en alternance : sans cela, passer d'une caméra
+    // à l'autre réutiliserait le même élément et donnerait une coupe sèche.
+    const c1 = boite.querySelector(".cche.cam1"), c2 = boite.querySelector(".cche.cam2");
+    let c, d;
+    if (c1.srcObject === src.flux && c1.classList.contains("visible")){
+      c = c1; d = boite.querySelector(".cche.doux1");
+    } else if (c2.srcObject === src.flux && c2.classList.contains("visible")){
+      c = c2; d = boite.querySelector(".cche.doux2");
+    } else if (!c1.classList.contains("visible")){
+      c = c1; d = boite.querySelector(".cche.doux1");
+    } else {
+      c = c2; d = boite.querySelector(".cche.doux2");
+    }
     const f = FILTRES[src.filtre] || FILTRES.aucun;
 
-    c.style.display = "block";
+    visibles.push(c);
     if (c.srcObject !== src.flux) c.srcObject = src.flux;
     c.dataset.rot = src.rot || 0;
-    c.classList.toggle("entier", src.plein === false);
-    c.style.filter = f.css;
+    // Un écran partagé n'est jamais rogné : on couperait du texte
+    c.classList.toggle("entier", src.type === "ecran" || src.plein === false);
+    c.style.filter = src.type === "ecran" ? "" : f.css;
 
     if (d){
-      if (f.doux > 0){
+      if (src.type !== "ecran" && f.doux > 0){
         // Le flou doit grandir avec l'écran, sinon il disparaît au projecteur
         const rayon = Math.max(3, Math.round((boite.clientHeight || 400) * 0.014));
-        d.style.display = "block";
+        visibles.push(d);
         if (d.srcObject !== src.flux) d.srcObject = src.flux;
         d.dataset.rot = src.rot || 0;
         d.classList.toggle("entier", src.plein === false);
-        d.style.opacity = f.doux;
+        d.style.setProperty("--doux", f.doux);
         d.style.filter  = "blur(" + rayon + "px) " + f.css;
         d.play().catch(() => {});
-      } else {
-        d.style.display = "none";
       }
     }
   }
+  else if (src.type === "chrono"){
+    const c = boite.querySelector(".cche.chrono");
+    if (!c) return;
+    visibles.push(c);
+    const etaitVisible = c.classList.contains("visible");
+    c.className = "cche chrono" + (etaitVisible ? " visible" : "");
+    if (src.fond && src.fond !== "degrade" && CLES_FOND.indexOf(src.fond) >= 0)
+      c.classList.add(src.fond);
+    majChrono(boite, src);
+    const L = boite.clientWidth || 1280;
+    c.querySelector(".chrVal").style.fontSize   = Math.round(L * 0.17) + "px";
+    c.querySelector(".chrTitre").style.fontSize = Math.round(L * 0.026) + "px";
+  }
   else if (src.type === "texte"){
     const t = boite.querySelector(".cche.texte");
-    t.style.display = "flex";
+    visibles.push(t);
     t.querySelector("h3").textContent = src.titre || "";
     t.querySelector("p").textContent  = src.sous  || "";
 
     // Le fond : palette de dégradés, ou une image / vidéo importée
-    t.className = "cche texte";
+    const tVisible = t.classList.contains("visible");
+    t.className = "cche texte" + (tVisible ? " visible" : "");
     if (fondSrc){
       const f = elementMedia(boite, fondSrc, fondId);
-      f.style.display = "block";
+      visibles.push(f);
       f.classList.remove("entier");
       if (f.tagName === "VIDEO"){ f.muted = true; f.play().catch(() => {}); }
       t.classList.add("surMedia");
@@ -956,7 +1320,7 @@ function rendreSortie(boite, src, id, avecSon, fondSrc, fondId){
   }
   else {
     const el = elementMedia(boite, src, id);
-    el.style.display = "block";
+    visibles.push(el);
 
     // Par défaut : image entière au centre, côtés comblés par le flou.
     // Le bouton ⛶ bascule en plein cadre, quitte à rogner les bords.
@@ -964,12 +1328,9 @@ function rendreSortie(boite, src, id, avecSon, fondSrc, fondId){
     el.classList.toggle("entier", !plein);
 
     const fond = boite.querySelector('[data-fond="' + id + '"]');
-    if (fond){
-      fond.style.display = plein ? "none" : "block";
-      if (fond.tagName === "VIDEO"){
-        if (plein) fond.pause();
-        else { fond.muted = true; fond.play().catch(() => {}); }
-      }
+    if (fond && !plein){
+      visibles.push(fond);
+      if (fond.tagName === "VIDEO"){ fond.muted = true; fond.play().catch(() => {}); }
     }
 
     if (el.tagName === "VIDEO"){
@@ -977,6 +1338,8 @@ function rendreSortie(boite, src, id, avecSon, fondSrc, fondId){
       el.play().catch(() => {});
     }
   }
+
+  afficherCouches(boite, visibles);
 }
 
 /* =========================================================================
@@ -1246,6 +1609,56 @@ const cam = {
 };
 
 /* =========================================================================
+   RÔLE RÉPÉTITEUR
+   Un écran discret pour l'orateur : uniquement du texte, aucune vidéo,
+   donc utilisable même sur un réseau très faible.
+   ========================================================================= */
+const repetiteur = {
+  code:null, canal:null, relance:null,
+
+  demarrer(code){
+    this.code = code;
+    afficher("repet");
+    $("#repetEtat").textContent = "Connexion…";
+    this.connecter();
+  },
+
+  async connecter(){
+    if (typeof Peer === "undefined") return this.reprogrammer();
+    await chargerRelais();
+    const p = new Peer({ config: CONFIG_ICE, ...(SIGNALISATION || {}) });
+    p.on("open", () => {
+      this.canal = p.connect(PREFIXE + this.code, { metadata:{ role:"repet" } });
+      this.canal.on("open", () => {
+        $("#repetEtat").textContent = "Connecté";
+        $("#repetEtat").classList.add("ok");
+        clearTimeout(this.relance);
+      });
+      this.canal.on("data", (d) => {
+        if (!d || d.type !== "etat") return;
+        $("#repetSource").textContent = d.source || "—";
+        $("#repetChrono").textContent = d.chrono || "—";
+        $("#repetMessage").textContent = d.message || "—";
+      });
+      this.canal.on("close", () => this.perdu());
+    });
+    p.on("error", () => this.perdu());
+    p.on("disconnected", () => { try{ p.reconnect(); }catch(_){} });
+  },
+
+  perdu(){
+    $("#repetEtat").textContent = "Reconnexion…";
+    $("#repetEtat").classList.remove("ok");
+    this.reprogrammer();
+  },
+
+  reprogrammer(){
+    clearTimeout(this.relance);
+    this.relance = setTimeout(() => this.connecter(), 3000);
+  }
+};
+
+/* =========================================================================
    RÔLE RÉGIE
    ========================================================================= */
 const regie = {
@@ -1268,6 +1681,13 @@ const regie = {
   seqIndex:0,
   seqMinuterie:null,
   sequence:[],
+  bandeauEnCours:null,
+  glisse:null,
+  logo:{ url:null, fichier:null, position:"hd", taille:14, opacite:0.85 },
+  repetiteurs:[],
+  messageRepet:"",
+  enregistreur:null,
+  diffusion:null,
 
   async demarrer(){
     if (typeof Peer === "undefined"){
@@ -1291,6 +1711,72 @@ const regie = {
     $("#fondu").onclick            = () => this.basculerNoir();
     $("#btnSequence").onclick      = () => this.basculerSequence();
     $("#btnProgrammer").onclick    = () => this.ouvrirProgrammateur();
+    $("#btnEcran").onclick         = () => this.partagerEcran();
+    $("#btnLogo").onclick = () => this.ouvrirLogo();
+    $("#btnEnregistrer").onclick = () => this.basculerEnregistrement();
+    $("#btnRepetiteur").onclick = () => {
+      const lien = location.origin + location.pathname + "?repet=" + this.code;
+      window.open(lien, "repetiteur_" + this.code);
+    };
+    $("#btnDiffuser").onclick = () => this.ouvrirDiffusion();
+    $("#diffAnnuler").onclick = () => $("#modaleDiffusion").classList.remove("ouvert");
+    $("#diffValider").onclick = () => this.demarrerDiffusion();
+    $("#modaleDiffusion").onclick = (e) => {
+      if (e.target.id === "modaleDiffusion") $("#modaleDiffusion").classList.remove("ouvert");
+    };
+    $("#logoFichier").onchange = (e) => {
+      const f = e.target.files && e.target.files[0];
+      e.target.value = "";
+      if (f) this.chargerLogo(f);
+    };
+    $("#logoTaille").oninput = (e) => {
+      this.logo.taille = Number(e.target.value);
+      $("#logoTailleVal").textContent = this.logo.taille + " %";
+      this.majLogo();
+    };
+    $("#logoOpacite").oninput = (e) => {
+      this.logo.opacite = Number(e.target.value) / 100;
+      $("#logoOpaciteVal").textContent = e.target.value + " %";
+      this.majLogo();
+    };
+    $("#logoTaille").onchange = () => this.sauverLogo();
+    $("#logoOpacite").onchange = () => this.sauverLogo();
+    $("#logoRetirer").onclick = () => this.retirerLogo();
+    $("#logoFermer").onclick = () => $("#modaleLogo").classList.remove("ouvert");
+    $("#modaleLogo").onclick = (e) => {
+      if (e.target.id === "modaleLogo") $("#modaleLogo").classList.remove("ouvert");
+    };
+
+    $("#chrAnnuler").onclick = () => $("#modaleChrono").classList.remove("ouvert");
+    $("#chrValider").onclick = () => this.validerChrono();
+    $("#modaleChrono").onclick = (e) => {
+      if (e.target.id === "modaleChrono") $("#modaleChrono").classList.remove("ouvert");
+    };
+    $("#transition").onchange = (e) => {
+      DUREE_FONDU = Number(e.target.value) || 0;
+      const regle = (doc) => {
+        doc.querySelectorAll(".cche").forEach(c => {
+          c.style.transitionDuration = DUREE_FONDU ? (DUREE_FONDU / 1000) + "s" : "0s";
+        });
+      };
+      regle(document);
+      if (this.fenetre && !this.fenetre.closed) regle(this.fenetre.document);
+    };
+
+    this.lancerHorloge();
+
+    $("#bandAfficher").onclick     = () => this.validerBandeau(true);
+    $("#bandCacher").onclick       = () => this.validerBandeau(false);
+    $("#bandAnnuler").onclick      = () => {
+      this.bandeauEnCours = null;
+      $("#modaleBandeau").classList.remove("ouvert");
+    };
+    $("#modaleBandeau").onclick = (e) => {
+      if (e.target.id === "modaleBandeau"){
+        this.bandeauEnCours = null;
+        $("#modaleBandeau").classList.remove("ouvert");
+      }
+    };
     $("#seqFermer").onclick        = () => $("#modaleSeq").classList.remove("ouvert");
     $("#seqLancer").onclick        = () => {
       $("#modaleSeq").classList.remove("ouvert");
@@ -1317,9 +1803,10 @@ const regie = {
     };
 
     $("#ajouter").onclick = () => {
-      if (this.onglet === "video")      $("#fichierVideo").click();
-      else if (this.onglet === "image") $("#fichierImage").click();
-      else                              this.ouvrirEditeur();
+      if (this.onglet === "video")       $("#fichierVideo").click();
+      else if (this.onglet === "image")  $("#fichierImage").click();
+      else if (this.onglet === "chrono") this.ouvrirChrono();
+      else                               this.ouvrirEditeur();
     };
 
     document.querySelectorAll(".onglet").forEach((o) => {
@@ -1355,6 +1842,17 @@ const regie = {
         this.basculerNoir();
       } else if (e.key.toLowerCase() === "s"){
         this.basculerSequence();
+      } else if (e.key.toLowerCase() === "b"){
+        this.basculerBandeau();
+      } else if (e.key.toLowerCase() === "m"){
+        const msg = prompt("Message pour l'orateur (vide pour effacer) :", this.messageRepet || "");
+        if (msg !== null) this.envoyerMessageRepet(msg.trim());
+      } else if (e.key === "ArrowRight" || e.key === "PageDown" || e.key === " "){
+        e.preventDefault();
+        this.avancer(1);
+      } else if (e.key === "ArrowLeft" || e.key === "PageUp"){
+        e.preventDefault();
+        this.avancer(-1);
       }
     });
   },
@@ -1379,6 +1877,20 @@ const regie = {
     });
 
     peer.on("disconnected", () => { try{ peer.reconnect(); }catch(_){} });
+
+    peer.on("connection", (canal) => {
+      // Un répétiteur ne fait qu'écouter : distinct des canaux de tally
+      // ouverts vers les caméras, qu'on garde dans this.canaux.
+      if (canal.metadata && canal.metadata.role === "repet"){
+        canal.on("open", () => {
+          this.repetiteurs.push(canal);
+          this.pousserRepetiteurs();
+        });
+        canal.on("close", () => {
+          this.repetiteurs = this.repetiteurs.filter(c => c !== canal);
+        });
+      }
+    });
 
     peer.on("call", (appel) => {
       if (this.bannis[appel.peer]){ try{ appel.close(); }catch(_){} return; }
@@ -1440,22 +1952,67 @@ const regie = {
   },
 
   /* ---------- Médias ---------- */
-  ajouterFichier(evt, type){
-    const f = evt.target.files && evt.target.files[0];
+  async ajouterFichier(evt, type){
+    const fichiers = Array.from(evt.target.files || []);
     evt.target.value = "";              // permet de rechoisir le même fichier
-    if (!f) return;
+    for (const f of fichiers){
+      if (f.type === "application/pdf" || /\.pdf$/i.test(f.name)) await this.importerPdf(f);
+      else this.ajouterMedia(f, type, f.name.replace(/\.[^.]+$/, "").slice(0, 22));
+    }
+  },
 
+  ajouterMedia(fichier, type, nom){
     const id = "m" + (++this.compteurMedia);
-    this.sources[id] = {
-      type, fichier: f, url: URL.createObjectURL(f),
-      nom: f.name.replace(/\.[^.]+$/, "").slice(0, 22)
-    };
+    this.sources[id] = { type, fichier, url: URL.createObjectURL(fichier), nom };
     this.ordre.push(id);
     this.dessinerTuile(id, "#pileMedia");
     this.precharger(id);          // prêt à partir instantanément
     this.majComptes();
     this.changerOnglet(type);
     this.sauver(id);
+    return id;
+  },
+
+  // Chaque page du PDF devient une image : le support de formation
+  // entre d'un coup, sans export manuel diapositive par diapositive.
+  async importerPdf(f){
+    if (typeof pdfjsLib === "undefined"){
+      alert("Le lecteur PDF n'a pas pu être chargé. Vérifie la connexion internet.");
+      return;
+    }
+    const busAvant = $("#busNom").textContent;
+    try{
+      const doc = await pdfjsLib.getDocument({ data: await f.arrayBuffer() }).promise;
+      const base = f.name.replace(/\.[^.]+$/, "").slice(0, 16);
+
+      for (let n = 1; n <= doc.numPages; n++){
+        $("#busNom").textContent = "Import PDF " + n + " / " + doc.numPages;
+
+        const page = await doc.getPage(n);
+        const v1 = page.getViewport({ scale: 1 });
+        // On vise 1920 px de large : net au projecteur sans peser une tonne
+        const vp = page.getViewport({ scale: Math.min(3, 1920 / v1.width) });
+
+        const toile = document.createElement("canvas");
+        toile.width = vp.width;
+        toile.height = vp.height;
+        // Fond blanc : un PDF transparent deviendrait noir à l'écran
+        const ctx = toile.getContext("2d");
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, toile.width, toile.height);
+        await page.render({ canvasContext: ctx, viewport: vp }).promise;
+
+        const blob = await new Promise(r => toile.toBlob(r, "image/jpeg", 0.92));
+        if (!blob) continue;
+        const nom = base + " · " + String(n).padStart(2, "0");
+        this.ajouterMedia(new File([blob], nom + ".jpg", { type:"image/jpeg" }), "image", nom);
+      }
+      $("#busNom").textContent = doc.numPages + " page(s) importée(s)";
+      setTimeout(() => this.majBus(), 2500);
+    }catch(e){
+      $("#busNom").textContent = busAvant;
+      alert("PDF illisible : " + e.message);
+    }
   },
 
   ouvrirEditeur(idExistant){
@@ -1535,17 +2092,25 @@ const regie = {
       tuile.dataset.type = src.type;
 
       let coeur = "";
-      if (src.type === "cam")        coeur = '<video autoplay playsinline muted></video>';
+      if (src.type === "cam" || src.type === "ecran")
+        coeur = '<video autoplay playsinline muted></video>';
       else if (src.type === "image") coeur = '<img alt="">';
       else if (src.type === "video") coeur = '<video muted></video>';
+      else if (src.type === "chrono")
+        coeur = '<div class="apercuTexte"><b></b><i></i></div>';
       else                           coeur = '<div class="apercuTexte"><b></b><i></i></div>';
 
       const outils = (src.type === "cam"
         ? '<button class="pivoter" title="Pivoter">⟳</button>' +
+          '<button class="nommer" title="Bandeau de nom">▤</button>' +
           '<button class="exclure" title="Exclure cette caméra">✕</button>'
+        : src.type === "ecran"
+        ? '<button class="nommer" title="Bandeau de nom">▤</button>' +
+          '<button class="retirer" title="Retirer">✕</button>'
         : '<button class="retirer" title="Retirer">✕</button>')
         + (src.type === "texte"
         ? '<button class="modifier" title="Modifier le texte et le fond">✎</button>'
+        : src.type === "ecran" ? ""
         : '<button class="cadrer" title="Plein cadre ou image entière">⛶</button>');
 
       tuile.innerHTML = coeur +
@@ -1554,6 +2119,34 @@ const regie = {
         '<div class="etiquette"></div>';
 
       tuile.onclick = () => this.projeter(id);
+
+      // Glisser-déposer : uniquement pour les médias, jamais pour un direct
+      if (src.type !== "cam" && src.type !== "ecran"){
+        tuile.draggable = true;
+        tuile.ondragstart = (e) => {
+          this.glisse = id;
+          tuile.classList.add("enGlisse");
+          e.dataTransfer.effectAllowed = "move";
+          try{ e.dataTransfer.setData("text/plain", id); }catch(_){}
+        };
+        tuile.ondragend = () => {
+          tuile.classList.remove("enGlisse");
+          document.querySelectorAll(".survol").forEach(x => x.classList.remove("survol"));
+          this.glisse = null;
+        };
+        tuile.ondragover = (e) => {
+          if (!this.glisse || this.glisse === id) return;
+          e.preventDefault();
+          tuile.classList.add("survol");
+        };
+        tuile.ondragleave = () => tuile.classList.remove("survol");
+        tuile.ondrop = (e) => {
+          e.preventDefault();
+          tuile.classList.remove("survol");
+          this.deplacerMedia(this.glisse, id);
+          this.glisse = null;
+        };
+      }
 
       const bPiv = tuile.querySelector(".pivoter");
       if (bPiv) bPiv.onclick = (e) => { e.stopPropagation(); this.pivoter(id); };
@@ -1565,6 +2158,8 @@ const regie = {
       if (bMod) bMod.onclick = (e) => { e.stopPropagation(); this.ouvrirEditeur(id); };
       const bExc = tuile.querySelector(".exclure");
       if (bExc) bExc.onclick = (e) => { e.stopPropagation(); this.exclure(id); };
+      const bNom = tuile.querySelector(".nommer");
+      if (bNom) bNom.onclick = (e) => { e.stopPropagation(); this.ouvrirBandeau(id); };
 
       $(pile).appendChild(tuile);
     }
@@ -1572,7 +2167,7 @@ const regie = {
     tuile.querySelector(".num").textContent       = this.numeroDe(id);
     tuile.querySelector(".etiquette").textContent = src.nom;
 
-    if (src.type === "cam"){
+    if (src.type === "cam" || src.type === "ecran"){
       const v = tuile.querySelector("video");
       v.srcObject = src.flux;
       v.dataset.rot = src.rot || 0;
@@ -1593,8 +2188,16 @@ const regie = {
       v.currentTime = 0.1;         // une image fixe suffit pour reconnaître le clip
     } else {
       const ap = tuile.querySelector(".apercuTexte");
-      ap.querySelector("b").textContent = src.titre;
-      ap.querySelector("i").textContent = src.sous;
+      if (src.type === "chrono"){
+        const mn = Math.floor((src.secondes || 0) / 60);
+        const sc = (src.secondes || 0) % 60;
+        ap.querySelector("b").textContent = src.mode === "horloge" ? "⏱ Heure"
+          : "⏱ " + String(mn).padStart(2, "0") + ":" + String(sc).padStart(2, "0");
+        ap.querySelector("i").textContent = src.titre || "";
+      } else {
+        ap.querySelector("b").textContent = src.titre;
+        ap.querySelector("i").textContent = src.sous;
+      }
 
       // La vignette montre le fond réel, pour reconnaître la diapo d'un coup d'œil
       const f = src.fond;
@@ -1641,7 +2244,7 @@ const regie = {
   /* ---------- Stockage local ---------- */
   async sauver(id){
     const s = this.sources[id];
-    if (!s || s.type === "cam") return;
+    if (!s || s.type === "cam" || s.type === "ecran") return;
     await BDD.mettre({
       id,
       type:  s.type,
@@ -1650,6 +2253,9 @@ const regie = {
       titre: s.titre || "",
       sous:  s.sous  || "",
       fond:  s.fond  || "degrade",
+      mode:  s.mode  || "",
+      secondes: s.secondes || 0,
+      messageFin: s.messageFin || "",
       rang:  this.ordre.indexOf(id),
       fichier: s.fichier || null
     });
@@ -1669,12 +2275,24 @@ const regie = {
         $("#chkBoucle").checked = r.boucle !== false;
         return;
       }
+      if (r.id === "__logo"){
+        if (r.fichier){
+          this.logo.fichier = r.fichier;
+          this.logo.url = URL.createObjectURL(r.fichier);
+        }
+        this.logo.position = r.position || "hd";
+        this.logo.taille   = r.taille   || 14;
+        this.logo.opacite  = (r.opacite === undefined) ? 0.85 : r.opacite;
+        this.majLogo();
+        return;
+      }
       const num = parseInt(String(r.id).replace(/\D/g, ""), 10);
       if (num > maxNum) maxNum = num;
 
       const src = {
         type:r.type, nom:r.nom, plein:r.plein === true,
-        titre:r.titre, sous:r.sous, fond:r.fond
+        titre:r.titre, sous:r.sous, fond:r.fond,
+        mode:r.mode, secondes:r.secondes, messageFin:r.messageFin
       };
       if (r.fichier){
         src.fichier = r.fichier;
@@ -1748,8 +2366,10 @@ const regie = {
     ordre.innerHTML = "";
 
     // Colonne de gauche : tout ce qui peut entrer dans une séquence
-    const candidats = this.ordre.filter(id => this.sources[id] &&
-                                              this.sources[id].type !== "cam");
+    const candidats = this.ordre.filter(id => {
+      const s = this.sources[id];
+      return s && s.type !== "cam" && s.type !== "ecran";
+    });
     if (!candidats.length){
       dispo.innerHTML = '<div class="seqVideNote">Aucun média.<br>' +
                         'Ajoute des images, vidéos ou textes avec le <b>+</b>.</div>';
@@ -1855,7 +2475,8 @@ const regie = {
     // Rien de programmé : on enchaîne tous les médias, 8 secondes chacun
     if (!this.sequence.length){
       this.sequence = this.ordre
-        .filter(id => this.sources[id] && this.sources[id].type !== "cam")
+        .filter(id => { const s = this.sources[id];
+                        return s && s.type !== "cam" && s.type !== "ecran"; })
         .map(id => ({ id, duree:8 }));
     }
     if (!this.sequence.length){
@@ -1910,6 +2531,424 @@ const regie = {
     document.querySelectorAll(".tuile").forEach(t => t.classList.remove("enSeq"));
   },
 
+  // Flèches : on déroule un support de formation page après page.
+  // On reste dans la même famille que la source affichée — dérouler des
+  // diapositives ne doit pas faire tomber sur une caméra par surprise.
+  avancer(sens){
+    const actuel = this.selection && this.sources[this.selection];
+    const memeFamille = (id) => {
+      const s = this.sources[id];
+      if (!s) return false;
+      const live = (t) => t === "cam" || t === "ecran";
+      if (!actuel) return !live(s.type);
+      return live(actuel.type) ? live(s.type) : !live(s.type);
+    };
+    const liste = this.ordre.filter(memeFamille);
+    if (!liste.length) return;
+
+    const i = liste.indexOf(this.selection);
+    const suivant = i < 0 ? (sens > 0 ? 0 : liste.length - 1)
+                          : (i + sens + liste.length) % liste.length;
+    this.projeter(liste[suivant]);
+
+    // La vignette suit, pour ne pas perdre le fil sur un long support
+    const t = document.getElementById("t_" + liste[suivant]);
+    if (t && t.scrollIntoView) t.scrollIntoView({ block:"nearest" });
+  },
+
+  /* ---------- Partage d'écran ---------- */
+  // Capte une fenêtre ou un onglet du PC et en fait une source comme une caméra.
+  async partagerEcran(){
+    if (this.sources.ecran){ this.retirer("ecran"); return; }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia){
+      alert("Ce navigateur ne sait pas partager l'écran. Utilise Chrome ou Edge sur ordinateur.");
+      return;
+    }
+    try{
+      const flux = await navigator.mediaDevices.getDisplayMedia({
+        video:{ frameRate:{ ideal:30 } },
+        audio:false        // le son du PC sort déjà par les haut-parleurs de la salle
+      });
+      this.sources.ecran = { type:"ecran", flux, rot:0, nom:"Écran partagé" };
+      if (!this.ordre.includes("ecran")) this.ordre.push("ecran");
+      this.dessinerTuile("ecran", "#pileCam");
+      this.majComptes();
+
+      // Le bouton « Arrêter le partage » du navigateur doit aussi nettoyer ici
+      flux.getVideoTracks()[0].onended = () => this.retirer("ecran");
+
+      $("#btnEcran").textContent = "Arrêter le partage";
+      $("#btnEcran").classList.add("on");
+      this.projeter("ecran");
+    }catch(_){ /* l'utilisateur a annulé la sélection */ }
+  },
+
+  /* ---------- Bandeau de nom ---------- */
+  ouvrirBandeau(id){
+    const src = this.sources[id];
+    if (!src) return;
+    this.bandeauEnCours = id;
+    const b = src.bandeau || {};
+    $("#bandNom").value  = b.nom  || "";
+    $("#bandRole").value = b.role || "";
+    $("#modaleBandeau").classList.add("ouvert");
+    setTimeout(() => $("#bandNom").focus(), 50);
+  },
+
+  validerBandeau(visible){
+    const id = this.bandeauEnCours;
+    const src = id && this.sources[id];
+    if (src){
+      src.bandeau = {
+        nom:  $("#bandNom").value.trim(),
+        role: $("#bandRole").value.trim(),
+        visible: visible && !!$("#bandNom").value.trim()
+      };
+      if (this.selection === id) this.appliquer();
+    }
+    this.bandeauEnCours = null;
+    $("#modaleBandeau").classList.remove("ouvert");
+  },
+
+  // Raccourci B : montrer ou cacher le bandeau de la source à l'antenne
+  basculerBandeau(){
+    const src = this.selection && this.sources[this.selection];
+    if (!src) return;
+    if (!src.bandeau || !src.bandeau.nom) return this.ouvrirBandeau(this.selection);
+    src.bandeau.visible = !src.bandeau.visible;
+    this.appliquer();
+  },
+
+  /* ---------- Minuteur ---------- */
+  ouvrirChrono(){
+    $("#chrType").value  = "rebours";
+    $("#chrMin").value   = 10;
+    $("#chrSec").value   = 0;
+    $("#chrTitre").value = "Reprise dans";
+    $("#chrFin").value   = "C'est parti !";
+    this.chrFond = "degrade";
+
+    const boite = $("#chrFond");
+    boite.innerHTML = "";
+    FONDS.forEach((f) => {
+      const b = document.createElement("button");
+      b.className = "pastilleFond" + (f.cle === "degrade" ? " choisi" : "");
+      b.textContent = f.nom;
+      b.onclick = () => {
+        this.chrFond = f.cle;
+        boite.querySelectorAll(".pastilleFond").forEach(x => x.classList.remove("choisi"));
+        b.classList.add("choisi");
+      };
+      boite.appendChild(b);
+    });
+
+    const majType = () => {
+      const rebours = $("#chrType").value === "rebours";
+      $("#chrDuree").style.display = rebours ? "" : "none";
+      $("#chrZone").style.display  = rebours ? "" : "none";
+    };
+    $("#chrType").onchange = majType;
+    majType();
+
+    $("#modaleChrono").classList.add("ouvert");
+  },
+
+  validerChrono(){
+    const mode = $("#chrType").value;
+    const secondes = Math.max(0, (Number($("#chrMin").value) || 0) * 60 +
+                                 (Number($("#chrSec").value) || 0));
+    const titre = $("#chrTitre").value.trim();
+    const id = "m" + (++this.compteurMedia);
+
+    this.sources[id] = {
+      type:"chrono", mode, secondes, titre,
+      messageFin: $("#chrFin").value.trim(),
+      fond: this.chrFond,
+      nom: mode === "horloge" ? "Heure"
+           : (titre || "Minuteur") + " " + Math.floor(secondes / 60) + " min"
+    };
+    this.ordre.push(id);
+    this.dessinerTuile(id, "#pileMedia");
+    this.majComptes();
+    this.changerOnglet("chrono");
+    this.sauver(id);
+    $("#modaleChrono").classList.remove("ouvert");
+  },
+
+  // Un seul battement pour tout le monde : il ne tourne que si un
+  // minuteur est réellement à l'antenne.
+  lancerHorloge(){
+    setInterval(() => {
+      const src = this.selection && this.sources[this.selection];
+      if (src && src.type === "chrono" && !this.noir){
+        majChrono($("#apercu"), src);
+        if (this.fenetre && !this.fenetre.closed){
+          const scene = this.fenetre.document.getElementById("scene");
+          if (scene) majChrono(scene, src);
+        }
+      }
+      this.pousserRepetiteurs();
+    }, 1000);
+  },
+
+  /* ---------- Logo permanent ---------- */
+  ouvrirLogo(){
+    const boite = $("#logoPos");
+    boite.innerHTML = "";
+    [["hg","Haut gauche"],["hd","Haut droite"],
+     ["bg","Bas gauche"],["bd","Bas droite"]].forEach(([cle, nom]) => {
+      const b = document.createElement("button");
+      b.className = "pastilleFond" + (this.logo.position === cle ? " choisi" : "");
+      b.textContent = nom;
+      b.onclick = () => {
+        this.logo.position = cle;
+        boite.querySelectorAll(".pastilleFond").forEach(x => x.classList.remove("choisi"));
+        b.classList.add("choisi");
+        this.majLogo();
+      };
+      boite.appendChild(b);
+    });
+    $("#logoTaille").value   = this.logo.taille;
+    $("#logoOpacite").value  = Math.round(this.logo.opacite * 100);
+    $("#logoTailleVal").textContent  = this.logo.taille + " %";
+    $("#logoOpaciteVal").textContent = Math.round(this.logo.opacite * 100) + " %";
+    $("#modaleLogo").classList.add("ouvert");
+  },
+
+  chargerLogo(fichier){
+    if (this.logo.url) URL.revokeObjectURL(this.logo.url);
+    this.logo.fichier = fichier;
+    this.logo.url = URL.createObjectURL(fichier);
+    this.majLogo();
+    this.sauverLogo();
+  },
+
+  // Applique le logo à l'aperçu et au projecteur d'un seul geste
+  majLogo(){
+    const poser = (doc) => {
+      const el = doc.querySelector(".filigrane");
+      if (!el) return;
+      if (!this.logo.url){ el.classList.remove("visible"); return; }
+      if (el.getAttribute("src") !== this.logo.url) el.src = this.logo.url;
+      el.className = "filigrane visible " + this.logo.position;
+      el.style.width   = this.logo.taille + "%";
+      el.style.opacity = this.logo.opacite;
+    };
+    poser(document);
+    if (this.fenetre && !this.fenetre.closed) poser(this.fenetre.document);
+  },
+
+  sauverLogo(){
+    BDD.mettre({ id:"__logo", type:"__logo", fichier:this.logo.fichier,
+                 position:this.logo.position, taille:this.logo.taille,
+                 opacite:this.logo.opacite });
+  },
+
+  retirerLogo(){
+    if (this.logo.url) URL.revokeObjectURL(this.logo.url);
+    this.logo = { url:null, fichier:null, position:this.logo.position,
+                  taille:this.logo.taille, opacite:this.logo.opacite };
+    this.majLogo();
+    BDD.retirer("__logo");
+    $("#modaleLogo").classList.remove("ouvert");
+  },
+
+  /* ---------- Réordonnancement par glisser-déposer ---------- */
+  deplacerMedia(idBouge, idCible){
+    if (!idBouge || idBouge === idCible) return;
+    const de = this.ordre.indexOf(idBouge);
+    if (de < 0) return;
+    this.ordre.splice(de, 1);
+    const vers = this.ordre.indexOf(idCible);
+    this.ordre.splice(vers < 0 ? this.ordre.length : vers, 0, idBouge);
+    this.reordonner();
+  },
+
+  reordonner(){
+    const pile = $("#pileMedia");
+    // On replace les vignettes dans le DOM selon le nouvel ordre
+    this.ordre.forEach((id) => {
+      const t = document.getElementById("t_" + id);
+      if (t && t.parentNode === pile) pile.appendChild(t);
+    });
+    // Les numéros et la sauvegarde suivent
+    this.ordre.forEach((id) => {
+      const t = document.getElementById("t_" + id);
+      if (t){
+        const n = t.querySelector(".num");
+        if (n) n.textContent = this.numeroDe(id);
+      }
+      const s = this.sources[id];
+      if (s && s.type !== "cam" && s.type !== "ecran") this.sauver(id);
+    });
+  },
+
+  /* ---------- Enregistrement local ----------
+     On capture l'onglet de projection lui-même : c'est exactement ce que
+     le public voit, sans avoir à recomposer les couches en JavaScript.
+     Rien ne quitte le PC, aucun serveur, aucun coût. */
+  async basculerEnregistrement(){
+    if (this.enregistreur && this.enregistreur.state !== "inactive"){
+      this.enregistreur.stop();
+      return;
+    }
+    if (!this.fenetre || this.fenetre.closed){
+      alert("Ouvre d'abord l'écran de projection : c'est lui qu'on enregistre.");
+      return;
+    }
+    try{
+      const flux = await navigator.mediaDevices.getDisplayMedia({
+        video:{ frameRate:30 }, audio:true,
+        // Certains navigateurs présélectionnent l'onglet actif si on le demande
+        preferCurrentTab:false, selfBrowserSurface:"include"
+      });
+      const type = MediaRecorder.isTypeSupported("video/webm;codecs=vp9,opus")
+                 ? "video/webm;codecs=vp9,opus" : "video/webm";
+      this.enregistreur = new MediaRecorder(flux, { mimeType:type, videoBitsPerSecond:6000000 });
+      const morceaux = [];
+      this.enregistreur.ondataavailable = (e) => { if (e.data.size) morceaux.push(e.data); };
+      this.enregistreur.onstop = () => {
+        flux.getTracks().forEach(t => t.stop());
+        const blob = new Blob(morceaux, { type:"video/webm" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        const h = new Date();
+        a.download = "vision-" + h.toISOString().slice(0,16).replace(/[:T]/g,"-") + ".webm";
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+        $("#btnEnregistrer").textContent = "● Enregistrer";
+        $("#btnEnregistrer").classList.remove("on");
+      };
+      flux.getVideoTracks()[0].onended = () => {
+        if (this.enregistreur.state !== "inactive") this.enregistreur.stop();
+      };
+
+      this.enregistreur.start(1000);
+      $("#btnEnregistrer").textContent = "■ Arrêter l'enregistrement";
+      $("#btnEnregistrer").classList.add("on");
+    }catch(_){ /* fenêtre de sélection annulée */ }
+  },
+
+  /* ---------- Répétiteur ---------- */
+  // Diffuse en continu : source à l'antenne, minuteur, message manuel.
+  // Aucune vidéo ici, juste du texte — ça passe même en 2G.
+  pousserRepetiteurs(){
+    if (!this.repetiteurs.length) return;
+    const src = this.selection && this.sources[this.selection];
+    let chrono = "";
+    if (src && src.type === "chrono"){
+      if (src.mode === "horloge"){
+        const d = new Date();
+        chrono = String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0");
+      } else {
+        const reste = Math.max(0, Math.round(((src.fin || 0) - Date.now()) / 1000));
+        chrono = Math.floor(reste/60) + ":" + String(reste%60).padStart(2,"0");
+      }
+    }
+    const paquet = {
+      type:"etat",
+      source: this.noir ? "Fondu au noir" : (src ? src.nom : "Aucune source"),
+      chrono,
+      message: this.messageRepet || ""
+    };
+    this.repetiteurs = this.repetiteurs.filter(c => c.open);
+    this.repetiteurs.forEach(c => { try{ c.send(paquet); }catch(_){} });
+  },
+
+  envoyerMessageRepet(texte){
+    this.messageRepet = texte;
+    this.pousserRepetiteurs();
+  },
+
+  /* ---------- Diffusion en direct (Facebook / YouTube) ----------
+     On capture l'onglet de projection, exactement comme pour l'enregistrement,
+     et on l'envoie par WHIP à Cloudflare Stream, qui relaie vers la
+     destination choisie. Payant côté Cloudflare : voir la fenêtre d'aide. */
+  ouvrirDiffusion(){
+    if (this.diffusion){ this.arreterDiffusion(); return; }
+    $("#diffCle").value = "";
+    $("#diffEtat").textContent = "";
+    $("#diffCible").onchange = () => {
+      $("#diffUrlPerso").style.display =
+        $("#diffCible").value === "autre" ? "" : "none";
+    };
+    $("#diffCible").onchange();
+    $("#modaleDiffusion").classList.add("ouvert");
+  },
+
+  async demarrerDiffusion(){
+    const cle = $("#diffCle").value.trim();
+    if (!cle){ $("#diffEtat").textContent = "La clé de diffusion est requise."; return; }
+    const cible = $("#diffCible").value === "autre"
+      ? $("#diffUrl").value.trim() : $("#diffCible").value;
+    if (!cible){ $("#diffEtat").textContent = "URL de destination requise."; return; }
+
+    $("#diffEtat").textContent = "Création du canal…";
+    try{
+      const r1 = await fetch(IA_URL.replace(/\/+$/, "") + "/stream/creer", { method:"POST" });
+      const c = await r1.json();
+      if (c.erreur || !c.webRTC) throw new Error(c.erreur || "Réponse incomplète du serveur.");
+
+      $("#diffEtat").textContent = "Connexion à " +
+        ($("#diffCible").selectedOptions[0].textContent) + "…";
+      const r2 = await fetch(IA_URL.replace(/\/+$/, "") + "/stream/sortie", {
+        method:"POST", headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ uid:c.uid, url:cible, streamKey:cle })
+      });
+      const s = await r2.json();
+      if (!s.ok) throw new Error("La destination a refusé la connexion.");
+
+      if (!this.fenetre || this.fenetre.closed)
+        throw new Error("Ouvre d'abord l'écran de projection.");
+
+      $("#diffEtat").textContent = "Choisis l'onglet Projection dans la fenêtre du navigateur…";
+      const flux = await navigator.mediaDevices.getDisplayMedia({
+        video:{ frameRate:30 }, audio:true
+      });
+
+      // Envoi WHIP : une connexion WebRTC standard, Cloudflare Stream
+      // parle directement ce protocole sans bibliothèque supplémentaire.
+      const pc = new RTCPeerConnection();
+      flux.getTracks().forEach(t => pc.addTrack(t, flux));
+      const offre = await pc.createOffer();
+      await pc.setLocalDescription(offre);
+
+      const rep = await fetch(c.webRTC, {
+        method:"POST",
+        headers:{ "Content-Type":"application/sdp" },
+        body: offre.sdp
+      });
+      if (!rep.ok) throw new Error("Cloudflare a refusé la connexion vidéo.");
+      const reponseSdp = await rep.text();
+      await pc.setRemoteDescription({ type:"answer", sdp:reponseSdp });
+
+      this.diffusion = { uid:c.uid, pc, flux };
+      flux.getVideoTracks()[0].onended = () => this.arreterDiffusion();
+
+      $("#modaleDiffusion").classList.remove("ouvert");
+      $("#btnDiffuser").textContent = "■ Arrêter la diffusion";
+      $("#btnDiffuser").classList.add("on");
+    }catch(e){
+      $("#diffEtat").textContent = "Échec : " + e.message;
+    }
+  },
+
+  async arreterDiffusion(){
+    if (!this.diffusion) return;
+    const { uid, pc, flux } = this.diffusion;
+    try{ pc.close(); }catch(_){}
+    try{ flux.getTracks().forEach(t => t.stop()); }catch(_){}
+    try{
+      await fetch(IA_URL.replace(/\/+$/, "") + "/stream/arreter", {
+        method:"POST", headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ uid })
+      });
+    }catch(_){}
+    this.diffusion = null;
+    $("#btnDiffuser").textContent = "Diffuser en direct";
+    $("#btnDiffuser").classList.remove("on");
+  },
+
   cadrer(id){
     const src = this.sources[id];
     // Par défaut l'image reste entière ; ce bouton bascule en plein cadre.
@@ -1933,13 +2972,17 @@ const regie = {
     if (src.type === "cam"){
       if (this.appels[id]){ try{ this.appels[id].close(); }catch(_){} }
       delete this.appels[id]; delete this.canaux[id];
+    } else if (src.type === "ecran"){
+      try{ src.flux.getTracks().forEach(t => t.stop()); }catch(_){}
+      $("#btnEcran").textContent = "Partager l'écran";
+      $("#btnEcran").classList.remove("on");
     } else if (src.url){
       URL.revokeObjectURL(src.url);
     }
 
     delete this.sources[id];
     this.ordre = this.ordre.filter(x => x !== id);
-    if (src.type !== "cam") BDD.retirer(id);
+    if (src.type !== "cam" && src.type !== "ecran") BDD.retirer(id);
     const t = document.getElementById("t_" + id);
     if (t) t.remove();
 
@@ -1963,7 +3006,8 @@ const regie = {
 
   majComptes(){
     let cams = 0, medias = 0;
-    Object.values(this.sources).forEach(s => s.type === "cam" ? cams++ : medias++);
+    Object.values(this.sources).forEach(s =>
+      (s.type === "cam" || s.type === "ecran") ? cams++ : medias++);
     $("#compteCam").textContent   = cams;
     $("#compteMedia").textContent = medias;
   },
@@ -1973,6 +3017,12 @@ const regie = {
     if (!this.sources[id]) return;
     // Un clic manuel reprend toujours la main sur l'automatisme
     if (this.seqActive && !depuisSequence) this.arreterSequence();
+
+    // Un compte à rebours repart de zéro chaque fois qu'on l'envoie
+    const s = this.sources[id];
+    if (s.type === "chrono" && s.mode === "rebours")
+      s.fin = Date.now() + (s.secondes || 0) * 1000;
+
     const ancien = this.selection;
     this.selection = id;
 
@@ -2015,6 +3065,7 @@ const regie = {
     // 1. L'aperçu central porte le son : c'est la fenêtre où tu cliques,
     //    donc la seule où le navigateur autorise l'audio à démarrer.
     rendreSortie($("#apercu"), src, id, true, fondSrc, fondId);
+    rendreBandeau($("#apercu"), src);
     $("#videSortie").textContent = this.noir ? "Fondu au noir" : "Aucune source";
     this.majSon();
 
@@ -2023,6 +3074,7 @@ const regie = {
     const scene = this.fenetre.document.getElementById("scene");
     if (!scene) return;
     rendreSortie(scene, src, id, false, fondSrc, fondId);
+    rendreBandeau(scene, src);
     const att = this.fenetre.document.getElementById("attente");
     if (att) att.style.display = src ? "none" : "flex";
     this.fenetre.document.body.style.background = (this.noir && this.selection) ? "#000" : "#050f26";
@@ -2046,7 +3098,7 @@ const regie = {
   // au moment de la bascule, il ne reste plus qu'à le montrer.
   precharger(id){
     const src = this.sources[id];
-    if (!src || src.type === "cam" || src.type === "texte") return;
+    if (!src || src.type === "cam" || src.type === "ecran" || src.type === "texte") return;
     elementMedia($("#apercu"), src, id);
     if (this.fenetre && !this.fenetre.closed){
       const scene = this.fenetre.document.getElementById("scene");
@@ -2062,19 +3114,48 @@ const regie = {
     this.appliquer();
   },
 
-  ouvrirFenetre(){
-    this.fenetre = window.open("", "projection", "width=1280,height=720");
+  async ouvrirFenetre(){
+    // On cherche un second écran : le projecteur ou la télé.
+    // S'il existe, la fenêtre s'y place seule — plus rien à glisser.
+    let cible = null;
+    try{
+      if (window.getScreenDetails){
+        const d = await window.getScreenDetails();
+        cible = d.screens.find(e => !e.isPrimary) || null;
+      }
+    }catch(_){ /* permission refusée : on ouvre au centre */ }
+
+    const specs = cible
+      ? "left=" + cible.availLeft + ",top=" + cible.availTop +
+        ",width=" + cible.availWidth + ",height=" + cible.availHeight
+      : "width=1280,height=720";
+
+    this.fenetre = window.open("", "projection", specs);
     if (!this.fenetre){
       alert("Le navigateur a bloqué la fenêtre. Autorise les pop-up pour ce site, puis réessaie.");
       return;
     }
+    // Certains navigateurs ignorent la position à l'ouverture : on insiste
+    if (cible){
+      try{
+        this.fenetre.moveTo(cible.availLeft, cible.availTop);
+        this.fenetre.resizeTo(cible.availWidth, cible.availHeight);
+      }catch(_){}
+    }
+    this.ecrireFenetre(!!cible);
+  },
+
+  ecrireFenetre(place){
     this.fenetre.document.write(
       '<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>VISION — Projection</title>' +
-      '<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Barlow+Condensed:wght@600&display=swap" rel="stylesheet">' +
+      '<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Barlow+Condensed:wght@600&family=IBM+Plex+Mono:wght@600&display=swap" rel="stylesheet">' +
       '<style>' +
       'html,body{margin:0;height:100%;background:#050f26;overflow:hidden;cursor:none}' +
       '#scene{position:absolute;inset:0}' +
-      '.cche{position:absolute;inset:0;width:100%;height:100%;display:none}' +
+      '.cche{position:absolute;inset:0;width:100%;height:100%;display:none;' +
+      'opacity:0;transition:opacity .5s ease}' +
+      '.cche.visible{opacity:1}' +
+      '.cche.doux.visible{opacity:var(--doux,.2)}' +
       'video.cche,img.cche{object-fit:cover;background:#000}' +
       'video[data-rot="90"],video[data-rot="270"]{object-fit:contain}' +
       '.cche.entier{object-fit:contain !important}' +
@@ -2114,6 +3195,31 @@ const regie = {
       'font:600 1em/1.2 "Barlow Condensed",Arial Narrow,sans-serif;' +
       'letter-spacing:.26em;text-transform:uppercase;color:#f2a83c}' +
       '.cche.texte p:empty{display:none}' +
+      '.cche.chrono{flex-direction:column;align-items:center;justify-content:center;' +
+      'gap:2%;padding:5%;text-align:center;color:#e8eefb;' +
+      'background:radial-gradient(120% 80% at 50% 0%,#0a1c44 0%,#050f26 62%)}' +
+      '.cche.chrono .chrTitre{font:600 1em/1.2 "Barlow Condensed",Arial Narrow,sans-serif;' +
+      'letter-spacing:.28em;text-transform:uppercase;color:#8296bd}' +
+      '.cche.chrono .chrVal{font:600 1em/1 "IBM Plex Mono",ui-monospace,monospace;' +
+      'font-variant-numeric:tabular-nums;letter-spacing:.04em}' +
+      '.cche.chrono.fini .chrVal{color:#ff2d38}' +
+      '.filigrane{position:absolute;z-index:8;pointer-events:none;' +
+      'max-width:40%;max-height:26%;object-fit:contain;display:none;' +
+      'filter:drop-shadow(0 2px 10px rgba(0,0,0,.55))}' +
+      '.filigrane.visible{display:block}' +
+      '.filigrane.hg{top:4%;left:4%}.filigrane.hd{top:4%;right:4%}' +
+      '.filigrane.bg{bottom:4%;left:4%}.filigrane.bd{bottom:4%;right:4%}' +
+      '.bandeau{position:absolute;left:0;bottom:9%;z-index:6;pointer-events:none;' +
+      'display:flex;flex-direction:column;gap:.25em;padding:.7em 1.4em .7em 1.1em;' +
+      'background:linear-gradient(90deg,rgba(5,15,38,.94) 60%,rgba(5,15,38,0));' +
+      'border-left:.28em solid #ff2d38;color:#e8eefb;opacity:0;transform:translateX(-14%);' +
+      'transition:opacity .38s ease,transform .38s cubic-bezier(.2,.75,.3,1)}' +
+      '.bandeau.visible{opacity:1;transform:none}' +
+      '.bandeau b{font:400 1em/1.05 "Archivo Black","Arial Black",sans-serif;white-space:nowrap}' +
+      '.bandeau i{font:600 .38em/1.2 "Barlow Condensed",Arial Narrow,sans-serif;' +
+      'font-style:normal;letter-spacing:.22em;text-transform:uppercase;' +
+      'color:#f2a83c;white-space:nowrap}' +
+      '.bandeau i:empty{display:none}' +
       '#attente{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;' +
       'justify-content:center;gap:15px;color:#e8eefb;' +
       'background:radial-gradient(120% 80% at 50% 0%,#0a1c44 0%,#050f26 62%)}' +
@@ -2123,24 +3229,35 @@ const regie = {
       '#aide{position:absolute;left:50%;bottom:34px;transform:translateX(-50%);' +
       'color:#050f26;background:#f2a83c;padding:11px 22px;border-radius:3px;' +
       'font:600 13px/1 "Barlow Condensed",Arial Narrow,sans-serif;letter-spacing:.2em;' +
-      'text-transform:uppercase;z-index:5}' +
+      'text-transform:uppercase;z-index:5;transition:opacity .6s ease}' +
       '</style></head><body>' +
       '<div id="scene">' +
-      '<video class="cche cam" autoplay playsinline muted></video>' +
-      '<video class="cche doux" autoplay playsinline muted></video>' +
+      '<video class="cche cam cam1" autoplay playsinline muted></video>' +
+      '<video class="cche doux doux1" autoplay playsinline muted></video>' +
+      '<video class="cche cam cam2" autoplay playsinline muted></video>' +
+      '<video class="cche doux doux2" autoplay playsinline muted></video>' +
       '<div class="cche texte"><h3></h3><p></p></div>' +
+      '<div class="cche chrono"><span class="chrTitre"></span><b class="chrVal"></b></div>' +
       '<div class="videSortie" style="display:none"></div>' +
+      '<div class="bandeau"><b></b><i></i></div>' +
+      '<img class="filigrane" alt="">' +
       '</div>' +
       '<div id="attente"><div id="logo">VISION</div>' +
       '<div id="txt">En attente d\'une source</div></div>' +
-      '<div id="aide">Clique ici pour le plein écran</div>' +
+      '<div id="aide">' + (place ? "Clique ici pour le plein écran"
+                                 : "Glisse sur le projecteur, puis clique ici") + '</div>' +
       '<scr' + 'ipt>' +
+      'var aide=document.getElementById("aide");' +
+      // Le bandeau s'efface tout seul : le public ne doit pas le lire
+      'var minuteur=setTimeout(function(){aide.style.opacity=0;},12000);' +
+      'document.body.onmousemove=function(){' +
+      'if(!document.fullscreenElement){aide.style.opacity=1;clearTimeout(minuteur);' +
+      'minuteur=setTimeout(function(){aide.style.opacity=0;},6000);}};' +
       'document.body.onclick=function(){' +
       'if(document.fullscreenElement){document.exitFullscreen();}' +
       'else{document.documentElement.requestFullscreen();}};' +
       'document.addEventListener("fullscreenchange",function(){' +
-      'document.getElementById("aide").style.display=' +
-      'document.fullscreenElement?"none":"block";});' +
+      'aide.style.display=document.fullscreenElement?"none":"block";});' +
       '</scr' + 'ipt>' +
       '</body></html>'
     );
@@ -2152,6 +3269,7 @@ const regie = {
     // On recharge tous les médias déjà présents dans la nouvelle fenêtre
     setTimeout(() => {
       this.ordre.forEach((id) => this.precharger(id));
+      this.majLogo();
       this.appliquer();
     }, 350);
   }
@@ -2267,8 +3385,12 @@ $("#iaQuestion").addEventListener("keydown", (e) => {
 const params = new URLSearchParams(location.search);
 const salleUrl = nettoyerCode(params.get("salle"));
 const regieUrl = nettoyerCode(params.get("regie"));
+const repetUrl = nettoyerCode(params.get("repet"));
 
-if (salleUrl.length === 6){
+if (repetUrl.length === 6){
+  repetiteur.demarrer(repetUrl);
+}
+else if (salleUrl.length === 6){
   $("#inviteCode").textContent = salleUrl;
   afficher("invite");
   // Un seul appui : les navigateurs mobiles exigent un geste avant d'ouvrir la caméra
