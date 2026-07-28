@@ -177,7 +177,6 @@
   #btnSequence.on{background:var(--pret);border-color:var(--pret);color:#0a0f16;font-weight:600}
   #btnEcran.on{background:var(--pret);border-color:var(--pret);color:#0a0f16;font-weight:600}
   #btnEnregistrer.on{background:var(--antenne);border-color:var(--antenne);color:#fff;font-weight:600}
-  #btnDiffuser.on{background:var(--antenne);border-color:var(--antenne);color:#fff;font-weight:600}
   #btnRepetiteur.on{background:var(--pret);border-color:var(--pret);color:#0a0f16;font-weight:600}
   /* Un écran partagé se voit en entier : rogner couperait du texte */
   .tuile[data-type="ecran"] video{object-fit:contain;background:#000}
@@ -877,35 +876,44 @@
 <input type="file" id="fichierImage" accept="image/*,application/pdf" multiple hidden>
 <input type="file" id="fichierVideo" accept="video/*" multiple hidden>
 
-<!-- ================= DIFFUSION EN DIRECT ================= -->
+<!-- ================= DIFFUSION EN DIRECT (guide, sans coût) =================
+     Aucun relais payant : la diffusion se fait en dehors de VISION, avec
+     un outil gratuit qui capture l'onglet Projection. -->
 <div id="modaleDiffusion">
   <div class="carte">
     <h3>Diffuser en direct</h3>
     <p style="color:var(--sourdine);font-size:12px;line-height:1.7">
-      Diffuse ce que le public voit vers Facebook ou YouTube, en simultané
-      de la salle. Facturé par Cloudflare — vérifie le coût avant un usage
-      régulier.
+      VISION n'envoie plus rien vers Cloudflare : Facebook, YouTube et TikTok
+      acceptent chacun une ingestion directe et gratuite. Il suffit d'un
+      petit outil qui capture l'écran de Projection et l'envoie en RTMP.
     </p>
-    <div>
-      <label for="diffCible">Destination</label>
-      <select id="diffCible" class="champLarge">
-        <option value="rtmps://live-api-s.facebook.com:443/rtmp/">Facebook Live</option>
-        <option value="rtmp://a.rtmp.youtube.com/live2">YouTube</option>
-        <option value="autre">Autre (URL personnalisée)</option>
-      </select>
+    <div style="text-align:left;display:grid;gap:14px;margin-top:6px">
+      <div>
+        <b style="display:block;font-family:var(--etiq);letter-spacing:.1em;
+                   text-transform:uppercase;font-size:12.5px;color:var(--pret);margin-bottom:4px">
+          Option A — OBS Studio (recommandé)
+        </b>
+        <p style="font-size:12.5px;color:var(--sourdine);line-height:1.6">
+          Ouvre OBS, ajoute une source « Capture de fenêtre » sur la fenêtre
+          Projection, puis ajoute autant de destinations RTMP que voulu
+          (Facebook, YouTube, TikTok) avec leur clé habituelle. Un seul
+          logiciel gratuit, tout en simultané, aucune ligne de code ici.
+        </p>
+      </div>
+      <div>
+        <b style="display:block;font-family:var(--etiq);letter-spacing:.1em;
+                   text-transform:uppercase;font-size:12.5px;color:var(--pret);margin-bottom:4px">
+          Option B — Sans logiciel externe
+        </b>
+        <p style="font-size:12.5px;color:var(--sourdine);line-height:1.6">
+          YouTube Studio (« Aller en direct » → Webcam/Navigateur) et le
+          Créateur TikTok Live via navigateur acceptent aussi un partage
+          direct de l'onglet Projection, sans passer par OBS.
+        </p>
+      </div>
     </div>
-    <div id="diffUrlPerso" style="display:none">
-      <label for="diffUrl">URL du serveur</label>
-      <input id="diffUrl" class="champLarge" placeholder="rtmp://...">
-    </div>
-    <div>
-      <label for="diffCle">Clé de diffusion</label>
-      <input id="diffCle" class="champLarge" placeholder="Fournie par Facebook / YouTube" type="password">
-    </div>
-    <p id="diffEtat" style="min-height:1.4em;font-size:12.5px;color:var(--pret)"></p>
     <div class="actions">
-      <button class="bouton" id="diffAnnuler">Annuler</button>
-      <button class="bouton primaire" id="diffValider">Démarrer</button>
+      <button class="bouton primaire" id="diffAnnuler">Compris</button>
     </div>
   </div>
 </div>
@@ -1720,7 +1728,6 @@ const regie = {
     };
     $("#btnDiffuser").onclick = () => this.ouvrirDiffusion();
     $("#diffAnnuler").onclick = () => $("#modaleDiffusion").classList.remove("ouvert");
-    $("#diffValider").onclick = () => this.demarrerDiffusion();
     $("#modaleDiffusion").onclick = (e) => {
       if (e.target.id === "modaleDiffusion") $("#modaleDiffusion").classList.remove("ouvert");
     };
@@ -2860,93 +2867,13 @@ const regie = {
     this.pousserRepetiteurs();
   },
 
-  /* ---------- Diffusion en direct (Facebook / YouTube) ----------
-     On capture l'onglet de projection, exactement comme pour l'enregistrement,
-     et on l'envoie par WHIP à Cloudflare Stream, qui relaie vers la
-     destination choisie. Payant côté Cloudflare : voir la fenêtre d'aide. */
+  /* ---------- Diffusion en direct (guide, sans relais payant) ----------
+     Plus aucun passage par Cloudflare Stream : Facebook, YouTube et TikTok
+     acceptent une ingestion RTMP/WebRTC directe et gratuite. VISION se
+     contente d'expliquer la marche à suivre (voir la modale) — aucun appel
+     réseau, aucun coût, aucune clé stockée ici. */
   ouvrirDiffusion(){
-    if (this.diffusion){ this.arreterDiffusion(); return; }
-    $("#diffCle").value = "";
-    $("#diffEtat").textContent = "";
-    $("#diffCible").onchange = () => {
-      $("#diffUrlPerso").style.display =
-        $("#diffCible").value === "autre" ? "" : "none";
-    };
-    $("#diffCible").onchange();
     $("#modaleDiffusion").classList.add("ouvert");
-  },
-
-  async demarrerDiffusion(){
-    const cle = $("#diffCle").value.trim();
-    if (!cle){ $("#diffEtat").textContent = "La clé de diffusion est requise."; return; }
-    const cible = $("#diffCible").value === "autre"
-      ? $("#diffUrl").value.trim() : $("#diffCible").value;
-    if (!cible){ $("#diffEtat").textContent = "URL de destination requise."; return; }
-
-    $("#diffEtat").textContent = "Création du canal…";
-    try{
-      const r1 = await fetch(IA_URL.replace(/\/+$/, "") + "/stream/creer", { method:"POST" });
-      const c = await r1.json();
-      if (c.erreur || !c.webRTC) throw new Error(c.erreur || "Réponse incomplète du serveur.");
-
-      $("#diffEtat").textContent = "Connexion à " +
-        ($("#diffCible").selectedOptions[0].textContent) + "…";
-      const r2 = await fetch(IA_URL.replace(/\/+$/, "") + "/stream/sortie", {
-        method:"POST", headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({ uid:c.uid, url:cible, streamKey:cle })
-      });
-      const s = await r2.json();
-      if (!s.ok) throw new Error("La destination a refusé la connexion.");
-
-      if (!this.fenetre || this.fenetre.closed)
-        throw new Error("Ouvre d'abord l'écran de projection.");
-
-      $("#diffEtat").textContent = "Choisis l'onglet Projection dans la fenêtre du navigateur…";
-      const flux = await navigator.mediaDevices.getDisplayMedia({
-        video:{ frameRate:30 }, audio:true
-      });
-
-      // Envoi WHIP : une connexion WebRTC standard, Cloudflare Stream
-      // parle directement ce protocole sans bibliothèque supplémentaire.
-      const pc = new RTCPeerConnection();
-      flux.getTracks().forEach(t => pc.addTrack(t, flux));
-      const offre = await pc.createOffer();
-      await pc.setLocalDescription(offre);
-
-      const rep = await fetch(c.webRTC, {
-        method:"POST",
-        headers:{ "Content-Type":"application/sdp" },
-        body: offre.sdp
-      });
-      if (!rep.ok) throw new Error("Cloudflare a refusé la connexion vidéo.");
-      const reponseSdp = await rep.text();
-      await pc.setRemoteDescription({ type:"answer", sdp:reponseSdp });
-
-      this.diffusion = { uid:c.uid, pc, flux };
-      flux.getVideoTracks()[0].onended = () => this.arreterDiffusion();
-
-      $("#modaleDiffusion").classList.remove("ouvert");
-      $("#btnDiffuser").textContent = "■ Arrêter la diffusion";
-      $("#btnDiffuser").classList.add("on");
-    }catch(e){
-      $("#diffEtat").textContent = "Échec : " + e.message;
-    }
-  },
-
-  async arreterDiffusion(){
-    if (!this.diffusion) return;
-    const { uid, pc, flux } = this.diffusion;
-    try{ pc.close(); }catch(_){}
-    try{ flux.getTracks().forEach(t => t.stop()); }catch(_){}
-    try{
-      await fetch(IA_URL.replace(/\/+$/, "") + "/stream/arreter", {
-        method:"POST", headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({ uid })
-      });
-    }catch(_){}
-    this.diffusion = null;
-    $("#btnDiffuser").textContent = "Diffuser en direct";
-    $("#btnDiffuser").classList.remove("on");
   },
 
   cadrer(id){
