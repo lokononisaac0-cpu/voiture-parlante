@@ -178,7 +178,6 @@
   #btnSequence.on{background:var(--pret);border-color:var(--pret);color:#0a0f16;font-weight:600}
   #btnEcran.on{background:var(--pret);border-color:var(--pret);color:#0a0f16;font-weight:600}
   #btnEnregistrer.on{background:var(--antenne);border-color:var(--antenne);color:#fff;font-weight:600}
-  #btnDiffuser.on{background:var(--antenne);border-color:var(--antenne);color:#fff;font-weight:600}
   #btnSpectateurs.on{background:var(--pret);border-color:var(--pret);color:#0a0f16;font-weight:600}
   #btnRepetiteur.on{background:var(--pret);border-color:var(--pret);color:#0a0f16;font-weight:600}
   /* Un écran partagé se voit en entier : rogner couperait du texte */
@@ -894,34 +893,37 @@
 <input type="file" id="fichierImage" accept="image/*,application/pdf" multiple hidden>
 <input type="file" id="fichierVideo" accept="video/*" multiple hidden>
 
-<!-- ================= DIFFUSION EN DIRECT (guide, sans coût) =================
-<!-- ================= DIFFUSION EN DIRECT (relais auto-hébergé, gratuit) =================
-     VISION n'envoie plus rien vers Cloudflare. Le flux part vers un relais
-     MediaMTX que tu fais tourner toi-même sur ton propre PC (voir mediamtx.yml
-     fourni) : c'est lui qui renvoie ensuite vers Facebook/YouTube/TikTok
-     en simultané, avec tes clés configurées côté relais — jamais dans le
-     navigateur, jamais facturées par un tiers. -->
+<!-- ================= DIFFUSION EN DIRECT (une plateforme à la fois, gratuite) =================
+     Pas de serveur, pas de clé à coller dans VISION : chaque plateforme a
+     son propre outil natif dans le navigateur (ou une petite appli gratuite
+     pour TikTok) qui capture directement l'écran de Projection. -->
 <div id="modaleDiffusion">
   <div class="carte">
     <h3>Diffuser en direct</h3>
     <p style="color:var(--sourdine);font-size:12px;line-height:1.7">
-      Connexion à ton relais MediaMTX (installé sur ce PC ou un autre PC du
-      même réseau). C'est lui qui répartit ensuite le flux vers Facebook,
-      YouTube et TikTok — configuré une fois pour toutes dans mediamtx.yml.
+      Ouvre d'abord l'écran de Projection. Puis choisis une plateforme —
+      elle te demandera de partager cet onglet/cette fenêtre, exactement
+      comme pour un partage d'écran classique. Une seule plateforme à la
+      fois par direct.
     </p>
-    <div>
-      <label for="diffUrl">Adresse WHIP du relais</label>
-      <input id="diffUrl" class="champLarge" placeholder="http://192.168.1.XX:8889/regie/whip">
-      <p style="font-size:11px;color:var(--sourdine);margin-top:4px">
-        Remplace 192.168.1.XX par l'adresse IP locale du PC où tourne MediaMTX
-        (« ipconfig » sous Windows). Si MediaMTX tourne sur ce même PC, tu
-        peux utiliser http://localhost:8889/regie/whip
+    <div style="display:grid;gap:10px;margin-top:8px">
+      <button class="bouton" id="diffOuvrirYoutube">▶ YouTube — ouvrir YouTube Studio</button>
+      <p style="font-size:11px;color:var(--sourdine);margin:-4px 0 2px">
+        « Créer » → « Aller en direct » → partage l'onglet Projection. Aucune app à installer.
+      </p>
+      <button class="bouton" id="diffOuvrirFacebook">▶ Facebook — ouvrir Live Producer</button>
+      <p style="font-size:11px;color:var(--sourdine);margin:-4px 0 2px">
+        Bouton « Partager l'écran » → choisis l'onglet Projection. Aucune app à installer.
+      </p>
+      <button class="bouton" id="diffOuvrirTiktok">▶ TikTok — ouvrir TikTok Live</button>
+      <p style="font-size:11px;color:var(--sourdine);margin:-4px 0 2px">
+        Nécessite l'appli gratuite « TikTok Live Studio » (Windows) pour partager l'écran,
+        et un compte avec un minimum d'abonnés pour diffuser depuis un PC — vérifie que
+        l'option est disponible chez toi avant.
       </p>
     </div>
-    <p id="diffEtat" style="min-height:1.4em;font-size:12.5px;color:var(--pret)"></p>
     <div class="actions">
-      <button class="bouton" id="diffAnnuler">Fermer</button>
-      <button class="bouton primaire" id="diffValider">Démarrer</button>
+      <button class="bouton primaire" id="diffAnnuler">Fermer</button>
     </div>
   </div>
 </div>
@@ -1812,7 +1814,6 @@ const regie = {
   repetiteurs:[],
   messageRepet:"",
   enregistreur:null,
-  diffusion:null,
   fluxSpectateurs:null,
   spectateurs:{},
 
@@ -1847,7 +1848,18 @@ const regie = {
     };
     $("#btnDiffuser").onclick = () => this.ouvrirDiffusion();
     $("#diffAnnuler").onclick = () => $("#modaleDiffusion").classList.remove("ouvert");
-    $("#diffValider").onclick = () => this.demarrerDiffusion();
+    $("#diffOuvrirYoutube").onclick = () => {
+      if (!this.verifierProjectionOuverte()) return;
+      this.ouvrirFenetreDiffusion("https://studio.youtube.com/live_dashboard");
+    };
+    $("#diffOuvrirFacebook").onclick = () => {
+      if (!this.verifierProjectionOuverte()) return;
+      this.ouvrirFenetreDiffusion("https://www.facebook.com/live/producer");
+    };
+    $("#diffOuvrirTiktok").onclick = () => {
+      if (!this.verifierProjectionOuverte()) return;
+      this.ouvrirFenetreDiffusion("https://www.tiktok.com/live/creator");
+    };
     $("#modaleDiffusion").onclick = (e) => {
       if (e.target.id === "modaleDiffusion") $("#modaleDiffusion").classList.remove("ouvert");
     };
@@ -3021,94 +3033,38 @@ const regie = {
     this.pousserRepetiteurs();
   },
 
-  /* ---------- Diffusion en direct (relais auto-hébergé, gratuit) ----------
-     VISION envoie le flux, en WHIP (WebRTC standard), à un relais MediaMTX
-     que TU fais tourner sur ton propre PC (voir mediamtx.yml fourni à côté).
-     C'est ce relais qui répartit ensuite vers Facebook/YouTube/TikTok, avec
-     des clés configurées une fois pour toutes côté relais — jamais tapées
-     ici, jamais transmises à un service tiers payant. */
+  /* ---------- Diffusion en direct (une plateforme à la fois, gratuite) ----------
+     Aucun serveur, aucune clé à taper dans VISION : chaque bouton ouvre le
+     studio natif de la plateforme dans un nouvel onglet. Là-bas, l'utilisateur
+     clique "Partager l'écran"/"Aller en direct" et choisit l'onglet Projection
+     — exactement comme un partage d'écran classique, géré entièrement par
+     YouTube/Facebook/TikTok eux-mêmes. */
   ouvrirDiffusion(){
-    if (this.diffusion){ this.arreterDiffusion(); return; }
-    const derniere = localStorage.getItem("vision_whip_url");
-    if (derniere) $("#diffUrl").value = derniere;
-    $("#diffEtat").textContent = "";
     $("#modaleDiffusion").classList.add("ouvert");
   },
 
-  async demarrerDiffusion(){
-    const url = $("#diffUrl").value.trim();
-    if (!url){ $("#diffEtat").textContent = "Indique l'adresse WHIP de ton relais."; return; }
+  verifierProjectionOuverte(){
     if (!this.fenetre || this.fenetre.closed){
-      $("#diffEtat").textContent = "Ouvre d'abord l'écran de projection.";
-      return;
+      alert("Ouvre d'abord l'écran de projection : c'est lui que tu partageras là-bas.");
+      return false;
     }
-    localStorage.setItem("vision_whip_url", url);
-
-    try{
-      $("#diffEtat").textContent = "Choisis l'onglet Projection dans la fenêtre du navigateur…";
-      const flux = await navigator.mediaDevices.getDisplayMedia({
-        video:{ frameRate:30 }, audio:true
-      });
-
-      const pc = new RTCPeerConnection();
-      flux.getTracks().forEach(t => pc.addTrack(t, flux));
-
-      // On attend la fin de la collecte ICE pour envoyer une offre complète
-      // (pas de "trickle") : plus fiable avec un relais auto-hébergé.
-      const offre = await pc.createOffer();
-      await pc.setLocalDescription(offre);
-      $("#diffEtat").textContent = "Préparation de la connexion…";
-      await new Promise((resoudre) => {
-        if (pc.iceGatheringState === "complete") return resoudre();
-        const verifier = () => {
-          if (pc.iceGatheringState === "complete"){
-            pc.removeEventListener("icegatheringstatechange", verifier);
-            resoudre();
-          }
-        };
-        pc.addEventListener("icegatheringstatechange", verifier);
-        setTimeout(resoudre, 3000); // filet de sécurité
-      });
-
-      $("#diffEtat").textContent = "Connexion au relais…";
-      const rep = await fetch(url, {
-        method:"POST",
-        headers:{ "Content-Type":"application/sdp" },
-        body: pc.localDescription.sdp
-      });
-      if (!rep.ok) throw new Error("Le relais a refusé la connexion (code " + rep.status + "). Vérifie que MediaMTX tourne et que l'adresse est correcte.");
-
-      const reponseSdp = await rep.text();
-      await pc.setRemoteDescription({ type:"answer", sdp:reponseSdp });
-
-      // Adresse à contacter pour couper proprement la session WHIP
-      const ressource = rep.headers.get("Location");
-      const urlRessource = ressource
-        ? new URL(ressource, url).href
-        : null;
-
-      this.diffusion = { pc, flux, urlRessource };
-      flux.getVideoTracks()[0].onended = () => this.arreterDiffusion();
-
-      $("#modaleDiffusion").classList.remove("ouvert");
-      $("#btnDiffuser").textContent = "■ Arrêter la diffusion";
-      $("#btnDiffuser").classList.add("on");
-    }catch(e){
-      $("#diffEtat").textContent = "Échec : " + e.message;
-    }
+    return true;
   },
 
-  async arreterDiffusion(){
-    if (!this.diffusion) return;
-    const { pc, flux, urlRessource } = this.diffusion;
-    try{ pc.close(); }catch(_){}
-    try{ flux.getTracks().forEach(t => t.stop()); }catch(_){}
-    if (urlRessource){
-      try{ await fetch(urlRessource, { method:"DELETE" }); }catch(_){}
-    }
-    this.diffusion = null;
-    $("#btnDiffuser").textContent = "Diffuser en direct";
-    $("#btnDiffuser").classList.remove("on");
+  // Ouvre une PETITE FENÊTRE par-dessus VISION (pas un nouvel onglet) :
+  // VISION reste ouvert et visible juste derrière, on ne le quitte jamais.
+  ouvrirFenetreDiffusion(url){
+    const largeur = Math.min(1000, window.screen.availWidth - 80);
+    const hauteur = Math.min(720, window.screen.availHeight - 80);
+    const gauche = Math.round((window.screen.availWidth - largeur) / 2);
+    const haut = Math.round((window.screen.availHeight - hauteur) / 2);
+    const fenetre = window.open(
+      url, "diffusion_" + Date.now(),
+      `width=${largeur},height=${hauteur},left=${gauche},top=${haut},` +
+      `popup=yes,noopener=no`
+    );
+    if (fenetre) fenetre.focus();
+    $("#modaleDiffusion").classList.remove("ouvert");
   },
 
   /* ---------- Lien spectateurs (public, gratuit, pair à pair) ----------
@@ -3363,10 +3319,17 @@ const regie = {
       }
     }catch(_){ /* permission refusée : on ouvre au centre */ }
 
+    // Pas de deuxième écran trouvé : on ouvre tout petit, casé dans le
+    // coin en bas à droite, pour ne jamais cacher les commandes de la régie.
+    const PETIT_L = 360, PETIT_H = 220, MARGE = 16;
+    const coinGauche = Math.max(0, (window.screen.availWidth  || 1280) - PETIT_L - MARGE);
+    const coinHaut   = Math.max(0, (window.screen.availHeight || 720)  - PETIT_H - MARGE);
+
     const specs = cible
       ? "left=" + cible.availLeft + ",top=" + cible.availTop +
         ",width=" + cible.availWidth + ",height=" + cible.availHeight
-      : "width=1280,height=720";
+      : "left=" + coinGauche + ",top=" + coinHaut +
+        ",width=" + PETIT_L + ",height=" + PETIT_H;
 
     this.fenetre = window.open("", "projection", specs);
     if (!this.fenetre){
@@ -3379,8 +3342,19 @@ const regie = {
         this.fenetre.moveTo(cible.availLeft, cible.availTop);
         this.fenetre.resizeTo(cible.availWidth, cible.availHeight);
       }catch(_){}
+    }else{
+      try{
+        this.fenetre.moveTo(coinGauche, coinHaut);
+        this.fenetre.resizeTo(PETIT_L, PETIT_H);
+      }catch(_){}
     }
     this.ecrireFenetre(!!cible);
+
+    // On rend aussitôt le focus à la Régie : la Projection continue de
+    // s'actualiser toute seule dans son coin, sans jamais passer devant.
+    if (!cible){
+      setTimeout(() => { try{ window.focus(); }catch(_){} }, 60);
+    }
   },
 
   ecrireFenetre(place){
