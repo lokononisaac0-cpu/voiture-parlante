@@ -111,8 +111,11 @@
         padding:21px 40px;border-radius:3px;box-shadow:0 0 30px var(--lueur)}
 
   /* ================= CAMÉRA ================= */
-  #cam{background:#000;position:relative}
-  #camVideo{width:100%;height:100%;object-fit:cover;background:#000}
+  #cam{background:#000;position:relative;overflow:hidden}
+  #camVideo{width:100%;height:100%;object-fit:cover;background:#000;transition:transform .12s ease}
+  #camZoom{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+  #zoomVal{font-family:var(--chiffre);font-size:12px;min-width:34px;text-align:center;color:var(--sourdine)}
+  #camMemo.on{background:var(--pret);border-color:var(--pret);color:#0a0f16;font-weight:600}
   #tally{position:fixed;inset:0;pointer-events:none;
          border:0 solid var(--antenne);transition:border-width .2s ease}
   #tally.antenne{border-width:14px}
@@ -545,6 +548,117 @@
   kbd{font-family:var(--chiffre);font-size:11px;background:var(--relief);
       border:1px solid var(--trait);border-bottom-width:2px;border-radius:2px;padding:2px 6px}
 
+  #ligneValiderCam{display:flex;align-items:center;gap:6px;font-family:var(--etiq);
+                   font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+                   color:var(--sourdine);border:1px solid var(--trait);border-radius:3px;
+                   padding:5px 9px;cursor:pointer;white-space:nowrap}
+  #ligneValiderCam input{width:auto}
+
+  #demandeCam{position:fixed;top:calc(14px + env(safe-area-inset-top));left:50%;
+              transform:translate(-50%,-140%);z-index:80;background:var(--panneau);
+              border:1px solid var(--pret);border-radius:4px;padding:12px 16px;
+              display:flex;align-items:center;gap:14px;box-shadow:0 8px 30px rgba(0,0,0,.4);
+              transition:transform .22s ease;max-width:min(92vw,420px)}
+  #demandeCam.visible{transform:translate(-50%,0)}
+  #demandeCam span{font-size:13px}
+  #demandeCam div{display:flex;gap:8px;flex:0 0 auto}
+
+  #ligneRelaisLocal{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12.5px;
+                    color:var(--texte);margin:10px 0 6px}
+  #ligneRelaisLocal input{width:auto}
+  #capaciteRelaisLigne{display:flex;align-items:center;justify-content:space-between;
+                       gap:10px;font-size:12px;color:var(--sourdine);margin-bottom:10px}
+  #capaciteRelais{width:56px;background:var(--fond);color:var(--texte);
+                  border:1px solid var(--trait);border-radius:3px;padding:6px 8px;text-align:center}
+
+  #modaleAttente{position:fixed;inset:0;background:rgba(3,8,20,.82);z-index:54;
+                 display:none;align-items:center;justify-content:center;padding:20px}
+  #modaleAttente.ouvert{display:flex}
+  #btnSalleAttente.on{background:var(--pret);border-color:var(--pret);color:#0a0f16;font-weight:600}
+
+  .tuile.enReconnexion{box-shadow:inset 0 0 0 2px var(--pret)}
+  .tuile.enReconnexion::after{
+    content:"Reconnexion…";position:absolute;top:6px;left:6px;
+    background:rgba(3,8,20,.78);color:var(--pret);font-family:var(--etiq);
+    font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+    padding:3px 6px;border-radius:2px;z-index:4
+  }
+
+  /* ================= MES ENREGISTREMENTS ================= */
+  #panneauEnrFond{position:fixed;inset:0;background:rgba(3,8,20,.72);z-index:64;display:none}
+  #panneauEnrFond.ouvert{display:block}
+  #panneauEnr{position:fixed;left:0;right:0;bottom:0;height:52vh;max-height:560px;
+              background:var(--panneau);border-top:1px solid var(--trait);
+              border-radius:10px 10px 0 0;z-index:65;display:flex;flex-direction:column;
+              transform:translateY(101%);transition:transform .28s cubic-bezier(.2,.8,.3,1);
+              box-shadow:0 -12px 40px rgba(0,0,0,.45)}
+  #panneauEnr.ouvert{transform:translateY(0)}
+  #enrPoignee{width:44px;height:4px;background:var(--trait);border-radius:3px;margin:10px auto 4px;flex:0 0 auto}
+  #enrEntete{display:flex;align-items:center;justify-content:space-between;
+             padding:6px 18px 12px;border-bottom:1px solid var(--trait);flex:0 0 auto}
+  #enrEntete h3{font-family:var(--etiq);font-size:13px;letter-spacing:.22em;text-transform:uppercase}
+  #enrBarreRecherche{padding:12px 18px 0;flex:0 0 auto}
+  #enrRecherche{width:100%;background:var(--fond);color:var(--texte);
+                border:1px solid var(--trait);border-radius:3px;padding:9px 11px;font-size:13px}
+  #enrRecherche:focus{outline:none;border-color:var(--pret)}
+  #enrGrille{flex:1;overflow-y:auto;display:grid;
+             grid-template-columns:repeat(auto-fill,minmax(140px,1fr));
+             gap:12px;padding:16px 18px calc(20px + env(safe-area-inset-bottom));align-content:start}
+  #enrVide{display:none;color:var(--sourdine);font-size:13px;text-align:center;padding:0 24px 24px;line-height:1.7}
+  #enrVide.visible{display:block}
+
+  .enrAjouter{aspect-ratio:16/10;border:1.5px dashed var(--trait);border-radius:6px;
+              background:transparent;display:flex;flex-direction:column;align-items:center;
+              justify-content:center;gap:6px;color:var(--sourdine);font-size:11.5px;
+              text-align:center;padding:10px;transition:border-color .16s,color .16s}
+  .enrAjouter:hover{border-color:var(--pret);color:var(--pret)}
+  .enrPlus{font-size:26px;font-family:var(--logo);line-height:1}
+
+  .enrCarte{display:flex;flex-direction:column;border-radius:6px;overflow:hidden;
+            background:var(--relief);border:1px solid var(--trait)}
+  .enrVignette{position:relative;aspect-ratio:16/10;background:#000;cursor:pointer}
+  .enrVignette video{width:100%;height:100%;object-fit:cover;pointer-events:none}
+  .enrBadge{position:absolute;left:6px;bottom:6px;background:rgba(3,8,20,.78);
+            color:var(--pret);font-family:var(--etiq);font-size:10.5px;letter-spacing:.06em;
+            padding:4px 7px;border-radius:3px;max-width:calc(100% - 12px);
+            overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .enrPied{display:flex;align-items:center;justify-content:space-between;gap:6px;
+           padding:7px 8px;background:var(--panneau)}
+  .enrNom{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .enrModifier{flex:0 0 auto;font-size:13px;color:var(--sourdine);padding:2px 5px}
+  .enrModifier:hover{color:var(--texte)}
+
+  #enrVerrouChamps{display:none;flex-direction:column;gap:13px}
+
+  /* ---- Édition d'un enregistrement ---- */
+  #modaleEnr{position:fixed;inset:0;background:rgba(3,8,20,.82);z-index:70;
+             display:none;align-items:center;justify-content:center;padding:20px;overflow-y:auto}
+  #modaleEnr.ouvert{display:flex}
+
+  /* ---- Lecture avec verrou de monétisation ---- */
+  #modaleLectureEnr{position:fixed;inset:0;background:#000;z-index:75;display:none;
+                    align-items:center;justify-content:center}
+  #modaleLectureEnr.ouvert{display:flex}
+  #lectureEnrBoite{position:relative;width:100%;height:100%;display:flex;
+                   align-items:center;justify-content:center}
+  #lectureEnrVideo{width:100%;height:100%;object-fit:contain;background:#000}
+  #lectureEnrFermer{position:fixed;top:calc(14px + env(safe-area-inset-top));right:14px;
+                    width:38px;height:38px;border-radius:50%;background:rgba(3,8,20,.6);
+                    color:var(--texte);font-size:16px;z-index:2}
+  #lectureEnrVerrou{position:absolute;inset:0;background:rgba(3,8,20,.9);display:none;
+                    flex-direction:column;align-items:center;justify-content:center;
+                    gap:12px;text-align:center;padding:30px}
+  #lectureEnrVerrou.visible{display:flex}
+  #lectureEnrVerrou b{font-family:var(--etiq);font-size:16px;letter-spacing:.14em;
+                      text-transform:uppercase;color:var(--pret)}
+  #lectureEnrPrix{font-family:var(--chiffre);font-size:26px;font-weight:600}
+  #lectureEnrVerrou p{color:var(--sourdine);font-size:13px;max-width:340px;line-height:1.7}
+  #lectureEnrActions{display:flex;flex-wrap:wrap;gap:9px;justify-content:center;margin-top:6px}
+
+  @media (max-width:640px){
+    #panneauEnr{height:60vh}
+  }
+
   @media (max-width:1000px){
     #plateau{grid-template-columns:1fr;grid-auto-rows:auto}
     .pile{flex-direction:row;flex-wrap:wrap;max-height:230px}
@@ -641,6 +755,15 @@
     <button class="bouton" id="basculer">Objectif</button>
     <button class="bouton" id="recadrer">Recadrer</button>
     <button class="bouton" id="qualite">4K</button>
+    <div id="camZoom">
+      <button class="bouton mini" id="zoomMoins">−</button>
+      <span id="zoomVal">1.0×</span>
+      <button class="bouton mini" id="zoomPlus">+</button>
+      <button class="bouton mini" id="camPreset1" title="Cadrage 1">①</button>
+      <button class="bouton mini" id="camPreset2" title="Cadrage 2">②</button>
+      <button class="bouton mini" id="camPreset3" title="Cadrage 3">③</button>
+      <button class="bouton mini" id="camMemo" title="Mémoriser le zoom actuel : active puis touche ①②③">Mémo</button>
+    </div>
     <span id="camEtat">Connexion…<i id="defReelle"></i></span>
   </div>
 </div>
@@ -658,6 +781,9 @@
     <div id="busActions">
       <div id="busCode"><i>Salle</i><span id="regieCode">----</span></div>
       <span id="etatRelais">…</span>
+      <label id="ligneValiderCam" title="Si coché, chaque nouvelle caméra doit être acceptée à la main">
+        <input type="checkbox" id="chkValiderCam"> Valider les caméras
+      </label>
       <div id="zoneSon">
         <button class="bouton mini" id="btnSon" title="Couper le son">♪</button>
         <input type="range" id="volume" min="0" max="100" value="90" title="Volume">
@@ -666,10 +792,12 @@
         <button class="bouton" id="btnLogo">Logo</button>
         <button class="bouton" id="btnRepetiteur">Répétiteur</button>
         <button class="bouton" id="btnEnregistrer">● Enregistrer</button>
+        <button class="bouton" id="btnMesEnr">🎬 Mes enregistrements</button>
         <button class="bouton" id="btnDiffuser">Diffuser en direct</button>
         <button class="bouton" id="btnSpectateurs">Lien spectateurs</button>
         <button class="bouton" id="btnEcran">Partager l'écran</button>
         <button class="bouton" id="btnProgrammer">Programmer</button>
+        <button class="bouton" id="btnSalleAttente">⏳ Salle d'attente</button>
         <button class="bouton" id="btnSequence">▶ Lancer</button>
       </div>
       <select id="transition" title="Enchaînement">
@@ -890,6 +1018,31 @@
   </div>
 </div>
 
+<!-- ================= SALLE D'ATTENTE / DÉMARRAGE PROGRAMMÉ ================= -->
+<div id="modaleAttente">
+  <div class="carte">
+    <h3>Salle d'attente</h3>
+    <p style="color:var(--sourdine);font-size:12.5px;line-height:1.7;margin:0 0 4px">
+      Le projecteur affiche un compte à rebours jusqu'à l'heure choisie, puis reprend
+      automatiquement le programme normal — sans que tu aies à y toucher.
+    </p>
+    <div>
+      <label for="attenteHeure">Le direct commence à</label>
+      <input type="datetime-local" id="attenteHeure">
+    </div>
+    <div>
+      <label for="attenteMessage">Message affiché</label>
+      <input id="attenteMessage" placeholder="Le direct commence dans" maxlength="60">
+    </div>
+    <div class="actions">
+      <button class="bouton rouge" id="attenteDesactiver">Désactiver</button>
+      <span style="flex:1"></span>
+      <button class="bouton" id="attenteFermer">Fermer</button>
+      <button class="bouton primaire" id="attenteActiver">Activer</button>
+    </div>
+  </div>
+</div>
+
 <input type="file" id="fichierImage" accept="image/*,application/pdf" multiple hidden>
 <input type="file" id="fichierVideo" accept="video/*" multiple hidden>
 
@@ -947,6 +1100,13 @@
         l'audio de l'onglet » si proposé, pour que les spectateurs
         entendent aussi le son).
       </p>
+      <label id="ligneRelaisLocal" title="Chaque spectateur relaie le direct à quelques voisins : un seul flux suffit pour toute la salle, même avec un internet faible.">
+        <input type="checkbox" id="chkRelaisLocal"> Relais local (mode salle)
+      </label>
+      <div id="capaciteRelaisLigne">
+        <span>Spectateurs par relais</span>
+        <input type="number" id="capaciteRelais" min="2" max="8" value="3">
+      </div>
       <div class="actions">
         <button class="bouton" id="specAnnuler">Fermer</button>
         <button class="bouton primaire" id="specActiver">Activer</button>
@@ -957,6 +1117,7 @@
       <div id="lienSpectateurs" style="font-family:var(--chiffre);font-size:10.5px;
            color:var(--sourdine);word-break:break-all;text-align:center;margin:8px 0"></div>
       <p id="compteSpectateurs" style="text-align:center;font-size:12.5px;color:var(--pret)"></p>
+      <p id="etatRelaisLocal" style="text-align:center;font-size:11px;color:var(--sourdine)"></p>
       <div class="actions">
         <button class="bouton mini" id="copierLienSpec">Copier le lien</button>
         <button class="bouton rouge" id="specDesactiver">Désactiver</button>
@@ -993,6 +1154,98 @@
 <div class="ecran" id="spectateur">
   <video id="specVideo" autoplay playsinline></video>
   <p id="specEtat">Connexion…</p>
+</div>
+
+<!-- ================= MES ENREGISTREMENTS (catalogue local + monétisation) ================= -->
+<div id="panneauEnrFond"></div>
+<div id="panneauEnr">
+  <div id="enrPoignee"></div>
+  <div id="enrEntete">
+    <h3>Mes enregistrements</h3>
+    <button class="bouton mini" id="enrFermer">Fermer ▾</button>
+  </div>
+  <div id="enrBarreRecherche">
+    <input id="enrRecherche" placeholder="Rechercher un enregistrement…">
+  </div>
+  <div id="enrGrille">
+    <button class="enrAjouter" id="enrAjouterCarte" title="Ajouter une vidéo depuis la galerie">
+      <span class="enrPlus">+</span>
+      <span>Ajouter depuis la galerie</span>
+    </button>
+  </div>
+  <p id="enrVide">Aucun enregistrement pour l'instant. Enregistre une diffusion ou ajoute une vidéo depuis la galerie.</p>
+  <input type="file" id="enrFichierGalerie" accept="video/*" multiple style="display:none">
+</div>
+
+<!-- ---- Édition d'un enregistrement : titre + verrou de monétisation ---- -->
+<div id="modaleEnr">
+  <div class="carte">
+    <h3>Vidéo</h3>
+    <video id="enrEditApercu" controls playsinline style="width:100%;border-radius:3px;background:#000;max-height:200px"></video>
+    <div>
+      <label for="enrTitreChamp">Titre</label>
+      <input id="enrTitreChamp" maxlength="60" placeholder="Nom de la vidéo">
+    </div>
+    <label style="display:flex;align-items:center;gap:9px;cursor:pointer;margin:2px 0">
+      <input type="checkbox" id="enrVerrouCase" style="width:auto">
+      <span style="font-family:var(--etiq);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--sourdine)">
+        Verrouiller la suite de la vidéo (monétisation)
+      </span>
+    </label>
+    <div id="enrVerrouChamps">
+      <div style="display:flex;gap:9px">
+        <label style="flex:1;margin:0">
+          <span style="display:block;font-family:var(--etiq);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--sourdine);margin-bottom:5px">Bloque après (min)</span>
+          <input id="enrMinutes" type="number" min="0" max="999" placeholder="3" style="width:100%;background:var(--fond);color:var(--texte);border:1px solid var(--trait);border-radius:3px;padding:11px">
+        </label>
+        <label style="flex:1;margin:0">
+          <span style="display:block;font-family:var(--etiq);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--sourdine);margin-bottom:5px">Sec.</span>
+          <input id="enrSecondes" type="number" min="0" max="59" placeholder="0" style="width:100%;background:var(--fond);color:var(--texte);border:1px solid var(--trait);border-radius:3px;padding:11px">
+        </label>
+      </div>
+      <div>
+        <label for="enrPrix">Prix à afficher</label>
+        <input id="enrPrix" placeholder="ex : 10 000 F CFA">
+      </div>
+      <div>
+        <label for="enrContact">Numéro / contact pour débloquer</label>
+        <input id="enrContact" placeholder="ex : 90 00 00 00">
+      </div>
+    </div>
+    <div class="actions">
+      <button class="bouton rouge" id="enrSupprimer">Supprimer</button>
+      <span style="flex:1"></span>
+      <button class="bouton" id="enrEditAnnuler">Annuler</button>
+      <button class="bouton primaire" id="enrEditValider">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ---- Lecture d'un enregistrement, avec verrou de monétisation ---- -->
+<div id="modaleLectureEnr">
+  <div id="lectureEnrBoite">
+    <video id="lectureEnrVideo" playsinline></video>
+    <div id="lectureEnrVerrou">
+      <b>Contenu verrouillé</b>
+      <span id="lectureEnrPrix"></span>
+      <p>La suite de cette vidéo est réservée. Débloque-la, contacte le responsable, ou renseigne-toi.</p>
+      <div id="lectureEnrActions">
+        <button class="bouton primaire" id="lectureEnrDebloquer">Débloquer</button>
+        <button class="bouton" id="lectureEnrContacter">Contacter</button>
+        <button class="bouton" id="lectureEnrSavoir">En savoir plus</button>
+      </div>
+    </div>
+    <button id="lectureEnrFermer">✕</button>
+  </div>
+</div>
+
+<!-- ================= VALIDATION D'UNE CAMÉRA ENTRANTE ================= -->
+<div id="demandeCam">
+  <span id="demandeCamTexte">Une caméra veut rejoindre…</span>
+  <div>
+    <button class="bouton primaire mini" id="demCamAccepter">Accepter</button>
+    <button class="bouton rouge mini" id="demCamRefuser">Refuser</button>
+  </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.5/peerjs.min.js"></script>
@@ -1108,10 +1361,14 @@ const BDD = {
     if (!("indexedDB" in window)) return false;
     try{
       this.db = await new Promise((res, rej) => {
-        const r = indexedDB.open("vision-regie", 1);
+        // Version 2 : ajoute le magasin "enregistrements" (catalogue "Mes
+        // enregistrements") sans toucher au magasin "medias" existant.
+        const r = indexedDB.open("vision-regie", 2);
         r.onupgradeneeded = () => {
           if (!r.result.objectStoreNames.contains("medias"))
             r.result.createObjectStore("medias", { keyPath:"id" });
+          if (!r.result.objectStoreNames.contains("enregistrements"))
+            r.result.createObjectStore("enregistrements", { keyPath:"id" });
         };
         r.onsuccess = () => res(r.result);
         r.onerror   = () => rej(r.error);
@@ -1121,8 +1378,8 @@ const BDD = {
     }catch(_){ return false; }
   },
 
-  magasin(mode){
-    return this.db.transaction("medias", mode).objectStore("medias");
+  magasin(mode, nom){
+    return this.db.transaction(nom || "medias", mode).objectStore(nom || "medias");
   },
 
   promesse(requete){
@@ -1132,20 +1389,274 @@ const BDD = {
     });
   },
 
-  async tout(){
+  async tout(nom){
     if (!this.dispo) return [];
-    try{ return await this.promesse(this.magasin("readonly").getAll()) || []; }
+    try{ return await this.promesse(this.magasin("readonly", nom).getAll()) || []; }
     catch(_){ return []; }
   },
 
-  async mettre(obj){
+  async mettre(obj, nom){
     if (!this.dispo) return;
-    try{ await this.promesse(this.magasin("readwrite").put(obj)); }catch(_){}
+    try{ await this.promesse(this.magasin("readwrite", nom).put(obj)); }catch(_){}
   },
 
-  async retirer(id){
+  async retirer(id, nom){
     if (!this.dispo) return;
-    try{ await this.promesse(this.magasin("readwrite").delete(id)); }catch(_){}
+    try{ await this.promesse(this.magasin("readwrite", nom).delete(id)); }catch(_){}
+  }
+};
+
+/* =========================================================================
+   MES ENREGISTREMENTS — catalogue local + verrou de monétisation
+   Chaque vidéo (enregistrée depuis la régie, ou ajoutée depuis la galerie)
+   est gardée dans son propre magasin IndexedDB ("enregistrements"), séparé
+   du catalogue de médias de la régie. Rien ne quitte l'appareil : c'est
+   la seule vraie façon de garder des vidéos "en local" (localStorage
+   plafonne à 5 Mo et ne sait pas garder de fichiers vidéo).
+   ========================================================================= */
+const Enregistrements = {
+  liste:[],
+  edition:null,
+  lectureId:null,
+  debloque:false,
+  urls:{},
+  filtre:"",
+
+  idNeuf(){
+    return "e" + Date.now() + Math.random().toString(36).slice(2, 8);
+  },
+
+  // Capture une image de la vidéo pour servir de vignette fiable dans le
+  // catalogue (plus sûr que compter sur le navigateur pour afficher une
+  // image sans lecture, qui ne marche pas partout).
+  genererVignette(blob){
+    return new Promise((resolve) => {
+      const v = document.createElement("video");
+      v.muted = true; v.playsInline = true; v.preload = "metadata";
+      const url = URL.createObjectURL(blob);
+      v.src = url;
+      const fini = (val) => { URL.revokeObjectURL(url); resolve(val); };
+      const secours = setTimeout(() => fini(""), 4000);
+      v.onloadeddata = () => {
+        try{ v.currentTime = Math.min(1, (v.duration || 2) / 4) || 0.3; }
+        catch(_){ fini(""); }
+      };
+      v.onseeked = () => {
+        clearTimeout(secours);
+        try{
+          const c = document.createElement("canvas");
+          c.width = 320;
+          c.height = Math.round(320 * ((v.videoHeight / v.videoWidth) || 0.6));
+          c.getContext("2d").drawImage(v, 0, 0, c.width, c.height);
+          fini(c.toDataURL("image/jpeg", 0.6));
+        }catch(_){ fini(""); }
+      };
+      v.onerror = () => { clearTimeout(secours); fini(""); };
+    });
+  },
+
+  async ouvrir(){
+    $("#panneauEnrFond").classList.add("ouvert");
+    $("#panneauEnr").classList.add("ouvert");
+    await this.charger();
+  },
+
+  fermer(){
+    $("#panneauEnrFond").classList.remove("ouvert");
+    $("#panneauEnr").classList.remove("ouvert");
+  },
+
+  async charger(){
+    if (!(await BDD.ouvrir())){ this.liste = []; this.dessiner(); return; }
+    const tout = await BDD.tout("enregistrements");
+    this.liste = tout.slice().sort((a, b) => (b.date || 0) - (a.date || 0));
+    this.dessiner();
+  },
+
+  async ajouter(blob, titre){
+    const id = this.idNeuf();
+    const vignette = await this.genererVignette(blob).catch(() => "");
+    const enr = {
+      id, fichier:blob, titre:(titre || "Enregistrement").slice(0, 60), date:Date.now(),
+      vignette:vignette || "",
+      verrou:{ actif:false, minutes:0, secondes:0, prix:"", contact:"" }
+    };
+    await BDD.mettre(enr, "enregistrements");
+    await this.charger();
+    return id;
+  },
+
+  dessiner(){
+    const grille = $("#enrGrille");
+    grille.querySelectorAll(".enrCarte").forEach((c) => c.remove());
+
+    const q = this.filtre.trim().toLowerCase();
+    const visibles = q
+      ? this.liste.filter((r) => (r.titre || "").toLowerCase().includes(q))
+      : this.liste;
+
+    $("#enrVide").classList.toggle("visible", visibles.length === 0);
+    $("#enrVide").textContent = this.liste.length === 0
+      ? "Aucun enregistrement pour l'instant. Enregistre une diffusion ou ajoute une vidéo depuis la galerie."
+      : "Aucun résultat pour cette recherche.";
+
+    visibles.forEach((r) => {
+      if (!this.urls[r.id] && r.fichier) this.urls[r.id] = URL.createObjectURL(r.fichier);
+
+      const carte = document.createElement("div");
+      carte.className = "enrCarte";
+
+      const vignette = document.createElement("div");
+      vignette.className = "enrVignette";
+
+      if (r.vignette){
+        const img = document.createElement("img");
+        img.src = r.vignette;
+        img.alt = "";
+        vignette.appendChild(img);
+      } else {
+        const vid = document.createElement("video");
+        vid.muted = true; vid.playsInline = true; vid.preload = "metadata";
+        vid.src = (this.urls[r.id] || "") + "#t=0.6";
+        vignette.appendChild(vid);
+      }
+
+      if (r.verrou && r.verrou.actif){
+        const badge = document.createElement("span");
+        badge.className = "enrBadge";
+        badge.textContent = "🔒 " + (r.verrou.prix || "Verrouillé");
+        vignette.appendChild(badge);
+      }
+      vignette.onclick = () => this.ouvrirLecture(r.id);
+
+      const pied = document.createElement("div");
+      pied.className = "enrPied";
+      const nom = document.createElement("span");
+      nom.className = "enrNom";
+      nom.textContent = r.titre || "Sans titre";
+      const modifier = document.createElement("button");
+      modifier.className = "enrModifier";
+      modifier.title = "Modifier";
+      modifier.textContent = "✎";
+      modifier.onclick = () => this.ouvrirEdition(r.id);
+
+      pied.appendChild(nom);
+      pied.appendChild(modifier);
+      carte.appendChild(vignette);
+      carte.appendChild(pied);
+      grille.appendChild(carte);
+    });
+  },
+
+  /* ---------- Édition : titre + verrou de monétisation ---------- */
+  ouvrirEdition(id){
+    const r = this.liste.find((x) => x.id === id);
+    if (!r) return;
+    this.edition = id;
+    $("#enrEditApercu").src = this.urls[id] || "";
+    $("#enrTitreChamp").value = r.titre || "";
+    const v = r.verrou || {};
+    $("#enrVerrouCase").checked = !!v.actif;
+    $("#enrMinutes").value  = v.minutes  || 0;
+    $("#enrSecondes").value = v.secondes || 0;
+    $("#enrPrix").value     = v.prix     || "";
+    $("#enrContact").value  = v.contact  || "";
+    this.majChampsVerrou();
+    $("#modaleEnr").classList.add("ouvert");
+  },
+
+  fermerEdition(){
+    $("#enrEditApercu").pause();
+    $("#enrEditApercu").removeAttribute("src");
+    $("#modaleEnr").classList.remove("ouvert");
+    this.edition = null;
+  },
+
+  majChampsVerrou(){
+    $("#enrVerrouChamps").style.display = $("#enrVerrouCase").checked ? "flex" : "none";
+  },
+
+  async valider(){
+    const r = this.liste.find((x) => x.id === this.edition);
+    if (!r) return;
+    r.titre = $("#enrTitreChamp").value.trim().slice(0, 60) || "Sans titre";
+    r.verrou = {
+      actif:    $("#enrVerrouCase").checked,
+      minutes:  Math.max(0, Number($("#enrMinutes").value)  || 0),
+      secondes: Math.max(0, Math.min(59, Number($("#enrSecondes").value) || 0)),
+      prix:     $("#enrPrix").value.trim().slice(0, 40),
+      contact:  $("#enrContact").value.trim().slice(0, 40)
+    };
+    await BDD.mettre(r, "enregistrements");
+    this.fermerEdition();
+    await this.charger();
+  },
+
+  async supprimer(){
+    if (!this.edition) return;
+    if (!confirm("Supprimer définitivement cet enregistrement ?")) return;
+    const id = this.edition;
+    await BDD.retirer(id, "enregistrements");
+    if (this.urls[id]){ URL.revokeObjectURL(this.urls[id]); delete this.urls[id]; }
+    this.fermerEdition();
+    await this.charger();
+  },
+
+  /* ---------- Lecture, avec pause automatique au verrou ---------- */
+  ouvrirLecture(id){
+    const r = this.liste.find((x) => x.id === id);
+    if (!r) return;
+    this.lectureId = id;
+    this.debloque = false;
+
+    const v = $("#lectureEnrVideo");
+    v.src = this.urls[id] || "";
+    v.currentTime = 0;
+    $("#lectureEnrVerrou").classList.remove("visible");
+    $("#modaleLectureEnr").classList.add("ouvert");
+
+    const verrou = (r.verrou && r.verrou.actif) ? r.verrou : null;
+    const limite = verrou ? (Number(verrou.minutes || 0) * 60 + Number(verrou.secondes || 0)) : 0;
+
+    $("#lectureEnrPrix").textContent = (verrou && verrou.prix) ? verrou.prix : "";
+    $("#lectureEnrContacter").style.display = (verrou && verrou.contact) ? "" : "none";
+
+    v.onloadedmetadata = () => { v.play().catch(() => {}); };
+    v.ontimeupdate = () => {
+      if (verrou && !this.debloque && limite > 0 && v.currentTime >= limite){
+        v.pause();
+        v.currentTime = limite;
+        $("#lectureEnrVerrou").classList.add("visible");
+      }
+    };
+
+    $("#lectureEnrContacter").onclick = () => {
+      const num = (verrou && verrou.contact) || "";
+      if (num) location.href = "tel:" + num.replace(/[^\d+]/g, "");
+    };
+    $("#lectureEnrSavoir").onclick = () => {
+      let msg = "Pour débloquer le contenu complet, contacte " +
+                ((verrou && verrou.contact) || "le responsable") + ".";
+      if (verrou && verrou.prix) msg += " Prix : " + verrou.prix + ".";
+      alert(msg);
+    };
+    $("#lectureEnrDebloquer").onclick = () => {
+      // Ici, "débloquer" lève simplement le verrou sur cet appareil : il n'y a
+      // aucun serveur de paiement dans VISION. Le vrai contrôle reste manuel,
+      // via le contact indiqué, une fois le paiement reçu.
+      this.debloque = true;
+      $("#lectureEnrVerrou").classList.remove("visible");
+      v.play().catch(() => {});
+    };
+  },
+
+  fermerLecture(){
+    const v = $("#lectureEnrVideo");
+    v.pause();
+    v.removeAttribute("src");
+    v.load();
+    $("#modaleLectureEnr").classList.remove("ouvert");
+    this.lectureId = null;
   }
 };
 
@@ -1508,6 +2019,33 @@ async function chercherIA(question){
 const cam = {
   flux:null, appel:null, frontale:false, code:null, relance:null,
   qualite:2160, source:null,
+  zoom:1, presets:[null,null,null], memoActif:false,
+
+  appliquerZoom(){
+    $("#camVideo").style.transform = "scale(" + this.zoom.toFixed(2) + ")";
+    $("#zoomVal").textContent = this.zoom.toFixed(1) + "×";
+  },
+
+  changerZoom(delta){
+    this.zoom = Math.max(1, Math.min(3, +(this.zoom + delta).toFixed(2)));
+    this.appliquerZoom();
+  },
+
+  basculerMemo(){
+    this.memoActif = !this.memoActif;
+    $("#camMemo").classList.toggle("on", this.memoActif);
+  },
+
+  toucherPreset(slot){
+    if (this.memoActif){
+      this.presets[slot] = this.zoom;
+      this.memoActif = false;
+      $("#camMemo").classList.remove("on");
+    } else if (this.presets[slot] != null){
+      this.zoom = this.presets[slot];
+      this.appliquerZoom();
+    }
+  },
 
   async demarrer(code){
     if (typeof Peer === "undefined")
@@ -1727,7 +2265,7 @@ const repetiteur = {
    aucun envoi de flux : une simple fenêtre de réception, comme une TV.
    ========================================================================= */
 const spectateur = {
-  code:null, peer:null, canal:null, relance:null,
+  code:null, peer:null, canal:null, relance:null, fluxRecu:null,
 
   demarrer(code){
     this.code = code;
@@ -1751,6 +2289,8 @@ const spectateur = {
       this.canal.on("data", (d) => {
         if (d && d.type === "attente"){
           $("#specEtat").textContent = "Le direct n'a pas encore démarré…";
+        } else if (d && d.type === "relayer" && d.vers){
+          this.relayerVers(d.vers);
         }
       });
       this.canal.on("close", () => this.perdu());
@@ -1759,18 +2299,34 @@ const spectateur = {
     this.peer.on("call", (appel) => {
       appel.answer(); // on ne renvoie rien : réception seule
       appel.on("stream", (flux) => {
+        this.fluxRecu = flux;
         $("#specVideo").srcObject = flux;
         $("#specEtat").style.display = "none";
+        try{ this.canal.send({ type:"video-recue" }); }catch(_){}
       });
       appel.on("close", () => {
         $("#specEtat").style.display = "";
         $("#specEtat").textContent = "Le direct est terminé.";
         $("#specVideo").srcObject = null;
+        this.fluxRecu = null;
       });
     });
 
     this.peer.on("error", () => this.perdu());
     this.peer.on("disconnected", () => { try{ this.peer.reconnect(); }catch(_){} });
+  },
+
+  // Relais local (mode salle) : la régie demande à CE spectateur de
+  // transmettre lui-même le flux qu'il reçoit à un voisin — pair à pair,
+  // sans repasser par la régie. Si le flux n'est pas encore arrivé, on
+  // réessaie pendant quelques secondes avant d'abandonner.
+  relayerVers(id, tentatives){
+    tentatives = tentatives || 0;
+    if (this.fluxRecu){
+      try{ this.peer.call(id, this.fluxRecu); }catch(_){}
+    } else if (tentatives < 12){
+      setTimeout(() => this.relayerVers(id, tentatives + 1), 500);
+    }
   },
 
   perdu(){
@@ -1816,6 +2372,9 @@ const regie = {
   enregistreur:null,
   fluxSpectateurs:null,
   spectateurs:{},
+  relaisActif:false,
+  capaciteNoeud:3,
+  enfantsRegie:[],
 
   async demarrer(){
     if (typeof Peer === "undefined"){
@@ -2044,29 +2603,63 @@ const regie = {
         });
       }
       else if (canal.metadata && canal.metadata.role === "spectateur"){
+        this.spectateurs[canal.peer] = { canal, appel:null, parent:null, enfants:[] };
         canal.on("open", () => {
-          if (this.fluxSpectateurs){
-            const appel = peer.call(canal.peer, this.fluxSpectateurs);
-            this.spectateurs[canal.peer] = { canal, appel };
-            appel.on("close", () => {
-              delete this.spectateurs[canal.peer];
-              this.majCompteSpectateurs();
-            });
-            this.majCompteSpectateurs();
-          }else{
+          if (!this.fluxSpectateurs){
             canal.send({ type:"attente" });
-            this.spectateurs[canal.peer] = { canal, appel:null };
+            return;
+          }
+          this.assignerSpectateur(canal.peer);
+        });
+        canal.on("data", (d) => {
+          if (d && d.type === "video-recue"){
+            const noeud = this.spectateurs[canal.peer];
+            if (noeud && noeud.minuteurSecours){
+              clearTimeout(noeud.minuteurSecours);
+              noeud.minuteurSecours = null;
+            }
           }
         });
-        canal.on("close", () => {
-          delete this.spectateurs[canal.peer];
-          this.majCompteSpectateurs();
-        });
+        canal.on("close", () => this.retirerSpectateur(canal.peer));
       }
     });
 
     peer.on("call", (appel) => {
       if (this.bannis[appel.peer]){ try{ appel.close(); }catch(_){} return; }
+
+      const suite = () => this.accepterAppelCam(appel);
+      if ($("#chkValiderCam").checked){
+        this.filedAttenteCam = this.filedAttenteCam || [];
+        this.filedAttenteCam.push({ appel, accepter:suite });
+        this.traiterFileCam();
+      } else {
+        suite();
+      }
+    });
+  },
+
+  /* ---------- Validation manuelle des caméras (sécurité régie) ---------- */
+  traiterFileCam(){
+    if (this.demandeCamEnCours || !this.filedAttenteCam || !this.filedAttenteCam.length) return;
+    const demande = this.filedAttenteCam[0];
+    this.demandeCamEnCours = demande;
+    const nom = (demande.appel.metadata && demande.appel.metadata.nom) || "Une caméra";
+    $("#demandeCamTexte").textContent = nom + " veut rejoindre la régie.";
+    $("#demandeCam").classList.add("visible");
+  },
+
+  repondreDemandeCam(accepte){
+    if (!this.demandeCamEnCours) return;
+    const demande = this.demandeCamEnCours;
+    this.filedAttenteCam = this.filedAttenteCam.filter(d => d !== demande);
+    this.demandeCamEnCours = null;
+    $("#demandeCam").classList.remove("visible");
+    if (accepte) demande.accepter();
+    else { try{ demande.appel.close(); }catch(_){} }
+    setTimeout(() => this.traiterFileCam(), 350);
+  },
+
+  accepterAppelCam(appel){
       appel.answer();
       const id = appel.peer;
       this.appels[id] = appel;
@@ -2085,7 +2678,26 @@ const regie = {
       appel.on("close", () => this.retirer(id));
       const pc = appel.peerConnection;
       pc.onconnectionstatechange = () => {
-        if (["failed","closed","disconnected"].includes(pc.connectionState)) this.retirer(id);
+        const etat = pc.connectionState;
+        if (etat === "connected"){
+          this.majEtatReseauCam(id, "ok");
+          if (this.delaisRetrait && this.delaisRetrait[id]){
+            clearTimeout(this.delaisRetrait[id]);
+            delete this.delaisRetrait[id];
+          }
+        } else if (etat === "disconnected"){
+          // Une coupure réseau brève ne doit pas éjecter la caméra tout de
+          // suite : on affiche "Reconnexion…" et on attend 8 s avant de
+          // vraiment la retirer si elle ne revient pas.
+          this.majEtatReseauCam(id, "reconnexion");
+          this.delaisRetrait = this.delaisRetrait || {};
+          clearTimeout(this.delaisRetrait[id]);
+          this.delaisRetrait[id] = setTimeout(() => {
+            if (pc.connectionState !== "connected") this.retirer(id);
+          }, 8000);
+        } else if (["failed","closed"].includes(etat)){
+          this.retirer(id);
+        }
       };
 
       // Canal direct pour le tally — ne dépend d'aucun serveur
@@ -2094,7 +2706,6 @@ const regie = {
         this.canaux[id] = canal;
         canal.send({ type:"tally", antenne: this.selection === id });
       });
-    });
   },
 
   dessinerQr(){
@@ -2253,6 +2864,12 @@ const regie = {
 
   /* ---------- Vignettes ---------- */
   numeroDe(id){ return String(this.ordre.indexOf(id) + 1).padStart(2, "0"); },
+
+  majEtatReseauCam(id, etat){
+    const tuile = document.getElementById("t_" + id);
+    if (!tuile) return;
+    tuile.classList.toggle("enReconnexion", etat === "reconnexion");
+  },
 
   dessinerTuile(id, pile){
     const src = this.sources[id];
@@ -2980,13 +3597,19 @@ const regie = {
       this.enregistreur = new MediaRecorder(flux, { mimeType:type, videoBitsPerSecond:6000000 });
       const morceaux = [];
       this.enregistreur.ondataavailable = (e) => { if (e.data.size) morceaux.push(e.data); };
-      this.enregistreur.onstop = () => {
+      this.enregistreur.onstop = async () => {
         flux.getTracks().forEach(t => t.stop());
         const blob = new Blob(morceaux, { type:"video/webm" });
+        const h = new Date();
+        const nom = "vision-" + h.toISOString().slice(0,16).replace(/[:T]/g,"-");
+
+        // Copie locale dans le catalogue "Mes enregistrements" (IndexedDB) :
+        // on peut ensuite la retrouver, la verrouiller et fixer un prix.
+        try{ await Enregistrements.ajouter(blob, nom); }catch(_){}
+
         const a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
-        const h = new Date();
-        a.download = "vision-" + h.toISOString().slice(0,16).replace(/[:T]/g,"-") + ".webm";
+        a.download = nom + ".webm";
         a.click();
         setTimeout(() => URL.revokeObjectURL(a.href), 4000);
         $("#btnEnregistrer").textContent = "● Enregistrer";
@@ -3065,6 +3688,12 @@ const regie = {
     );
     if (fenetre) fenetre.focus();
     $("#modaleDiffusion").classList.remove("ouvert");
+
+    // Redondance : on démarre l'enregistrement local en même temps que le
+    // direct, pour ne jamais perdre la vidéo même si la plateforme plante.
+    if (!this.enregistreur || this.enregistreur.state === "inactive"){
+      this.basculerEnregistrement().catch(() => {});
+    }
   },
 
   /* ---------- Lien spectateurs (public, gratuit, pair à pair) ----------
@@ -3072,6 +3701,96 @@ const regie = {
      puis renvoie ce même flux à chaque spectateur qui ouvre le lien —
      directement de navigateur à navigateur, sans serveur vidéo, donc
      sans coût quel que soit le nombre de spectateurs. */
+  /* ---------- Relais local en arbre (mode salle) ----------
+     Sans ce mode : régie appelle chaque spectateur directement (comme
+     avant). Avec ce mode : régie ne sert directement qu'un petit nombre
+     de spectateurs ; au-delà, un spectateur déjà servi relaie lui-même
+     le flux qu'il reçoit vers les suivants, en pair-à-pair — un seul flux
+     entrant suffit alors pour toute une salle, même sur un internet faible. */
+  assignerSpectateur(id){
+    const noeud = this.spectateurs[id];
+    if (!noeud || !this.fluxSpectateurs) return;
+
+    if (!this.relaisActif){
+      this.appelerSpectateurDirect(id);
+      return;
+    }
+
+    if (this.enfantsRegie.length < this.capaciteNoeud){
+      this.enfantsRegie.push(id);
+      noeud.parent = "regie";
+      this.appelerSpectateurDirect(id);
+      return;
+    }
+
+    const relais = this.trouverRelaisDisponible();
+    if (!relais){
+      // Aucune place trouvée (arbre saturé) : on sert quand même
+      // directement plutôt que de laisser un spectateur sans image.
+      this.appelerSpectateurDirect(id);
+      return;
+    }
+
+    noeud.parent = relais;
+    this.spectateurs[relais].enfants.push(id);
+    try{ this.spectateurs[relais].canal.send({ type:"relayer", vers:id }); }catch(_){}
+
+    // Garde-fou : si le relais ne délivre pas la vidéo sous 6 s
+    // (relais surchargé ou reparti entre-temps), régie reprend la main.
+    noeud.minuteurSecours = setTimeout(() => {
+      this.retirerEnfantDe(relais, id);
+      this.appelerSpectateurDirect(id);
+    }, 6000);
+    this.majCompteSpectateurs();
+  },
+
+  appelerSpectateurDirect(id){
+    const noeud = this.spectateurs[id];
+    if (!noeud || !this.fluxSpectateurs) return;
+    try{
+      const appel = peer.call(id, this.fluxSpectateurs);
+      noeud.appel = appel;
+      appel.on("close", () => this.retirerSpectateur(id));
+    }catch(_){}
+    this.majCompteSpectateurs();
+  },
+
+  trouverRelaisDisponible(){
+    // Parcours en largeur, en partant des enfants directs de la régie,
+    // pour garder l'arbre aussi équilibré (donc aussi rapide) que possible.
+    let file = this.enfantsRegie.slice();
+    while (file.length){
+      const id = file.shift();
+      const noeud = this.spectateurs[id];
+      if (!noeud) continue;
+      if (noeud.enfants.length < this.capaciteNoeud) return id;
+      file = file.concat(noeud.enfants);
+    }
+    return null;
+  },
+
+  retirerEnfantDe(parentId, enfantId){
+    const parent = this.spectateurs[parentId];
+    if (parent) parent.enfants = parent.enfants.filter((e) => e !== enfantId);
+  },
+
+  retirerSpectateur(id){
+    const noeud = this.spectateurs[id];
+    if (noeud){
+      if (noeud.minuteurSecours) clearTimeout(noeud.minuteurSecours);
+      if (noeud.parent === "regie") this.enfantsRegie = this.enfantsRegie.filter((e) => e !== id);
+      else if (noeud.parent) this.retirerEnfantDe(noeud.parent, id);
+
+      // Ses propres enfants perdent leur relais : on les réassigne aussitôt.
+      const orphelins = noeud.enfants.slice();
+      delete this.spectateurs[id];
+      orphelins.forEach((orphelinId) => {
+        if (this.spectateurs[orphelinId]) this.assignerSpectateur(orphelinId);
+      });
+    }
+    this.majCompteSpectateurs();
+  },
+
   ouvrirSpectateurs(){
     $("#modaleSpectateurs").classList.add("ouvert");
     const actif = !!this.fluxSpectateurs;
@@ -3085,6 +3804,8 @@ const regie = {
       alert("Ouvre d'abord l'écran de projection : c'est lui que les spectateurs verront.");
       return;
     }
+    this.relaisActif = $("#chkRelaisLocal").checked;
+    this.capaciteNoeud = Math.max(2, Math.min(8, Number($("#capaciteRelais").value) || 3));
     try{
       const flux = await navigator.mediaDevices.getDisplayMedia({
         video:{ frameRate:{ ideal:30 } }, audio:true
@@ -3104,19 +3825,15 @@ const regie = {
       $("#specAvant").style.display = "none";
       $("#specApres").style.display = "";
       $("#btnSpectateurs").classList.add("on");
+      $("#etatRelaisLocal").textContent = this.relaisActif
+        ? "Relais local activé — " + this.capaciteNoeud + " spectateurs par relais"
+        : "";
       this.majCompteSpectateurs();
 
       // Les spectateurs déjà en attente reçoivent le flux immédiatement
       Object.keys(this.spectateurs || {}).forEach((id) => {
         if (this.spectateurs[id].appel) return; // déjà en cours
-        try{
-          const appel = peer.call(id, this.fluxSpectateurs);
-          this.spectateurs[id].appel = appel;
-          appel.on("close", () => {
-            delete this.spectateurs[id];
-            this.majCompteSpectateurs();
-          });
-        }catch(_){}
+        this.assignerSpectateur(id);
       });
     }catch(_){ /* activation annulée par l'utilisateur */ }
   },
@@ -3126,13 +3843,16 @@ const regie = {
       try{ this.fluxSpectateurs.getTracks().forEach(t => t.stop()); }catch(_){}
     }
     this.fluxSpectateurs = null;
-    Object.values(this.spectateurs || {}).forEach(({ appel }) => {
-      try{ appel.close(); }catch(_){}
+    Object.values(this.spectateurs || {}).forEach((noeud) => {
+      if (noeud.minuteurSecours) clearTimeout(noeud.minuteurSecours);
+      try{ if (noeud.appel) noeud.appel.close(); }catch(_){}
     });
     this.spectateurs = {};
+    this.enfantsRegie = [];
     $("#btnSpectateurs").classList.remove("on");
     $("#specAvant").style.display = "";
     $("#specApres").style.display = "none";
+    $("#etatRelaisLocal").textContent = "";
   },
 
   majCompteSpectateurs(){
@@ -3245,6 +3965,64 @@ const regie = {
       : "Aucune source";
   },
 
+  /* ---------- Salle d'attente / démarrage programmé ----------
+     Le projecteur affiche un compte à rebours jusqu'à l'heure choisie,
+     puis reprend tout seul le programme normal — sans qu'on y touche. */
+  ouvrirSalleAttente(){
+    $("#modaleAttente").classList.add("ouvert");
+  },
+
+  activerSalleAttente(){
+    const val = $("#attenteHeure").value;
+    if (!val){ alert("Choisis une date et une heure."); return; }
+    const cible = new Date(val).getTime();
+    if (isNaN(cible) || cible <= Date.now()){
+      alert("Choisis une heure dans le futur."); return;
+    }
+    this.salleAttenteCible = cible;
+    this.salleAttenteMessage = $("#attenteMessage").value.trim().slice(0, 60)
+                                || "Le direct commence dans";
+    clearInterval(this.salleAttenteMinuteur);
+    this.salleAttenteMinuteur = setInterval(() => this.majSalleAttente(), 1000);
+    this.majSalleAttente();
+    this.appliquer();
+    $("#modaleAttente").classList.remove("ouvert");
+    $("#btnSalleAttente").classList.add("on");
+  },
+
+  majSalleAttente(){
+    if (!this.salleAttenteCible) return;
+    if (!this.fenetre || this.fenetre.closed) return;
+    const reste = this.salleAttenteCible - Date.now();
+    if (reste <= 0){ this.desactiverSalleAttente(); return; }
+
+    const s = Math.floor(reste / 1000);
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const sec = s % 60;
+    const texte = (h > 0 ? h + "h " : "") + String(m).padStart(2, "0") + ":" + String(sec).padStart(2, "0");
+
+    const txt = this.fenetre.document.getElementById("txt");
+    const compte = this.fenetre.document.getElementById("compte");
+    if (txt) txt.textContent = this.salleAttenteMessage;
+    if (compte) compte.textContent = texte;
+  },
+
+  desactiverSalleAttente(){
+    clearInterval(this.salleAttenteMinuteur);
+    this.salleAttenteMinuteur = null;
+    this.salleAttenteCible = null;
+    $("#btnSalleAttente").classList.remove("on");
+    $("#modaleAttente").classList.remove("ouvert");
+    if (this.fenetre && !this.fenetre.closed){
+      const txt = this.fenetre.document.getElementById("txt");
+      const compte = this.fenetre.document.getElementById("compte");
+      if (txt) txt.textContent = "En attente d'une source";
+      if (compte) compte.textContent = "";
+    }
+    this.appliquer();
+  },
+
   appliquer(){
     const id  = (this.selection && !this.noir) ? this.selection : null;
     const src = id ? this.sources[id] : null;
@@ -3270,7 +4048,7 @@ const regie = {
     rendreSortie(scene, src, id, false, fondSrc, fondId);
     rendreBandeau(scene, src);
     const att = this.fenetre.document.getElementById("attente");
-    if (att) att.style.display = src ? "none" : "flex";
+    if (att) att.style.display = (this.salleAttenteCible || !src) ? "flex" : "none";
     this.fenetre.document.body.style.background = (this.noir && this.selection) ? "#000" : "#050f26";
   },
 
@@ -3438,6 +4216,8 @@ const regie = {
       '#logo{font:400 54px/1 "Archivo Black","Arial Black",sans-serif;letter-spacing:.1em}' +
       '#txt{font:600 13px/1 "Barlow Condensed",Arial Narrow,sans-serif;letter-spacing:.3em;' +
       'text-transform:uppercase;color:#8296bd}' +
+      '#compte{font:600 17px/1 "IBM Plex Mono",ui-monospace,monospace;letter-spacing:.1em;' +
+      'color:#f2a83c;min-height:20px}' +
       '#aide{position:absolute;left:50%;bottom:34px;transform:translateX(-50%);' +
       'color:#050f26;background:#f2a83c;padding:11px 22px;border-radius:3px;' +
       'font:600 13px/1 "Barlow Condensed",Arial Narrow,sans-serif;letter-spacing:.2em;' +
@@ -3455,7 +4235,8 @@ const regie = {
       '<img class="filigrane" alt="">' +
       '</div>' +
       '<div id="attente"><div id="logo">VISION</div>' +
-      '<div id="txt">En attente d\'une source</div></div>' +
+      '<div id="txt">En attente d\'une source</div>' +
+      '<div id="compte"></div></div>' +
       '<div id="aide">' + (place ? "Clique ici pour le plein écran"
                                  : "Glisse sur le projecteur, puis clique ici") + '</div>' +
       '<scr' + 'ipt>' +
@@ -3491,6 +4272,44 @@ const regie = {
    DÉMARRAGE
    ========================================================================= */
 $("#btnRegie").onclick = () => { afficher("regie"); regie.demarrer(); };
+
+/* --- Salle d'attente / démarrage programmé --- */
+$("#btnSalleAttente").onclick = () => regie.ouvrirSalleAttente();
+$("#attenteActiver").onclick = () => regie.activerSalleAttente();
+$("#attenteDesactiver").onclick = () => regie.desactiverSalleAttente();
+$("#attenteFermer").onclick = () => $("#modaleAttente").classList.remove("ouvert");
+$("#modaleAttente").onclick = (e) => { if (e.target.id === "modaleAttente") $("#modaleAttente").classList.remove("ouvert"); };
+
+/* --- Validation manuelle des caméras entrantes (sécurité régie) --- */
+$("#demCamAccepter").onclick = () => regie.repondreDemandeCam(true);
+$("#demCamRefuser").onclick  = () => regie.repondreDemandeCam(false);
+
+/* --- Mes enregistrements : catalogue local + monétisation --- */
+$("#btnMesEnr").onclick = () => Enregistrements.ouvrir();
+$("#enrFermer").onclick = () => Enregistrements.fermer();
+$("#panneauEnrFond").onclick = () => Enregistrements.fermer();
+
+$("#enrAjouterCarte").onclick = () => $("#enrFichierGalerie").click();
+$("#enrRecherche").oninput = (e) => {
+  Enregistrements.filtre = e.target.value;
+  Enregistrements.dessiner();
+};
+$("#enrFichierGalerie").onchange = async (e) => {
+  const fichiers = Array.from(e.target.files || []);
+  e.target.value = "";
+  for (const f of fichiers){
+    await Enregistrements.ajouter(f, f.name.replace(/\.[^.]+$/, "").slice(0, 60));
+  }
+};
+
+$("#enrVerrouCase").onchange = () => Enregistrements.majChampsVerrou();
+$("#enrEditAnnuler").onclick = () => Enregistrements.fermerEdition();
+$("#enrEditValider").onclick = () => Enregistrements.valider();
+$("#enrSupprimer").onclick = () => Enregistrements.supprimer();
+$("#modaleEnr").onclick = (e) => { if (e.target.id === "modaleEnr") Enregistrements.fermerEdition(); };
+
+$("#lectureEnrFermer").onclick = () => Enregistrements.fermerLecture();
+$("#modaleLectureEnr").onclick = (e) => { if (e.target.id === "lectureEnrBoite" || e.target.id === "modaleLectureEnr") Enregistrements.fermerLecture(); };
 
 $("#btnCam").onclick = () => {
   $("#zoneCode").classList.add("ouvert");
@@ -3550,6 +4369,14 @@ $("#sourceCam").onchange = async (e) => {
   cam.source = e.target.value;
   await cam.remplacerPiste();
 };
+
+/* --- Zoom numérique et cadrages mémorisés --- */
+$("#zoomMoins").onclick = () => cam.changerZoom(-0.2);
+$("#zoomPlus").onclick  = () => cam.changerZoom(0.2);
+$("#camMemo").onclick   = () => cam.basculerMemo();
+$("#camPreset1").onclick = () => cam.toucherPreset(0);
+$("#camPreset2").onclick = () => cam.toucherPreset(1);
+$("#camPreset3").onclick = () => cam.toucherPreset(2);
 
 /* --- Recherche rapide via le Worker --- */
 if (!IA_URL) $("#blocIA").classList.add("absent");
